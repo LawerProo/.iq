@@ -28,7 +28,7 @@
     <div id="loginScreen" class="max-w-md mx-auto mt-16 bg-white p-8 rounded-2xl shadow-xl space-y-6">
         <div class="text-center">
             <h1 class="text-2xl font-bold text-gray-800">تسجيل الدخول للنظام</h1>
-            <p class="text-gray-500 text-sm mt-1">نظام إدارة السيارات والأقساط (.برمجة وهبي رياض.)</p>
+            <p class="text-gray-500 text-sm mt-1">نظام إدارة السيارات والأقساط (..برمجة وهبي رياض..)</p>
         </div>
         <form onsubmit="handleLogin(event)" class="space-y-4">
             <div>
@@ -61,27 +61,41 @@
         <div id="quickOverdueAlertBanner" class="hidden no-print"></div>
 
         <!-- لوحة الإحصائيات والتقارير المالية العامة -->
-        <div id="dashboardStats" class="grid grid-cols-1 md:grid-cols-3 gap-4 no-print">
+        <div id="dashboardStats" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4 no-print">
             <div class="bg-white p-4 rounded-2xl shadow-md border-r-4 border-blue-600 flex items-center justify-between">
                 <div>
                     <p class="text-xs text-gray-500 font-semibold">إجمالي رأس المال الفعلي ($)</p>
-                    <h3 id="statTotalCapital" class="text-xl font-bold text-blue-700 mt-1">0</h3>
+                    <h3 id="statTotalCapital" class="text-lg font-bold text-blue-700 mt-1">0</h3>
                 </div>
-                <div class="bg-blue-100 p-3 rounded-xl text-blue-600 text-xl">🚗</div>
+                <div class="bg-blue-100 p-2.5 rounded-xl text-blue-600 text-lg">🚗</div>
             </div>
             <div class="bg-white p-4 rounded-2xl shadow-md border-r-4 border-emerald-600 flex items-center justify-between">
                 <div>
                     <p class="text-xs text-gray-500 font-semibold">صافي أرباح السيارات المباعة ($)</p>
-                    <h3 id="statTotalProfit" class="text-xl font-bold text-emerald-700 mt-1">0</h3>
+                    <h3 id="statTotalProfit" class="text-lg font-bold text-emerald-700 mt-1">0</h3>
                 </div>
-                <div class="bg-emerald-100 p-3 rounded-xl text-emerald-600 text-xl">📈</div>
+                <div class="bg-emerald-100 p-2.5 rounded-xl text-emerald-600 text-lg">📈</div>
             </div>
-            <div class="bg-white p-4 rounded-2xl shadow-md border-r-4 border-amber-600 flex items-center justify-between">
+            <div class="bg-white p-4 rounded-2xl shadow-md border-r-4 border-teal-600 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-gray-500 font-semibold">المستلم من الاقساط هذا الشهر ($)</p>
+                    <h3 id="statMonthInstallments" class="text-lg font-bold text-teal-700 mt-1">0</h3>
+                </div>
+                <div class="bg-teal-100 p-2.5 rounded-xl text-teal-600 text-lg">📅</div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-md border-r-4 border-indigo-600 flex items-center justify-between">
+                <div>
+                    <p class="text-xs text-gray-500 font-semibold">كم يجب استلام اقساط هذا الشهر ($)</p>
+                    <h3 id="statExpectedMonthInstallments" class="text-lg font-bold text-indigo-700 mt-1">0</h3>
+                </div>
+                <div class="bg-indigo-100 p-2.5 rounded-xl text-indigo-600 text-lg">🎯</div>
+            </div>
+            <div class="bg-white p-4 rounded-2xl shadow-md border-r-4 border-amber-600 flex items-center justify-between sm:col-span-2 md:col-span-1">
                 <div>
                     <p class="text-xs text-gray-500 font-semibold">إجمالي المبالغ المتبقية بذمة المشترين ($)</p>
-                    <h3 id="statTotalRemaining" class="text-xl font-bold text-amber-700 mt-1">0</h3>
+                    <h3 id="statTotalRemaining" class="text-lg font-bold text-amber-700 mt-1">0</h3>
                 </div>
-                <div class="bg-amber-100 p-3 rounded-xl text-amber-600 text-xl">💰</div>
+                <div class="bg-amber-100 p-2.5 rounded-xl text-amber-600 text-lg">💰</div>
             </div>
         </div>
 
@@ -207,6 +221,18 @@
         </div>
     </div>
 
+    <!-- نافذة إدارة وحذف المستخدمين (خاصة بوهبي) -->
+    <div id="manageUsersModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4 no-print" onclick="closeManageUsersModal()">
+        <div class="bg-white p-6 rounded-2xl max-w-md w-full max-h-[85vh] overflow-auto relative space-y-4" onclick="event.stopPropagation()">
+            <div class="flex justify-between items-center border-b pb-3">
+                <h3 class="text-lg font-bold text-red-700">👥 إدارة وحذف المستخدمين المضافين</h3>
+                <button onclick="closeManageUsersModal()" class="bg-gray-200 text-gray-700 w-8 h-8 rounded-full font-bold">×</button>
+            </div>
+            <p class="text-xs text-gray-600">يمكنك هنا عرض قائمة المستخدمين وحذف أي مستخدم (سيتم حذفه من النظام ومن كود الـ HTML نهائياً):</p>
+            <div id="manageUsersListContainer" class="space-y-2"></div>
+        </div>
+    </div>
+
     <!-- نافذة تغيير الرمز السري -->
     <div id="changePasswordModal" class="fixed inset-0 bg-black/70 z-50 hidden flex items-center justify-center p-4 no-print" onclick="closeChangePasswordModal()">
         <div class="bg-white p-6 rounded-2xl max-w-md w-full relative space-y-4" onclick="event.stopPropagation()">
@@ -220,7 +246,7 @@
                     <input type="password" id="newPasswordInput" required placeholder="أدخل الرمز السري الجديد" class="w-full px-3 py-2 border rounded-lg text-sm">
                 </div>
                 <div class="flex gap-2 pt-2">
-                    <button type="submit" class="flex-1 bg-purple-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-purple-700 transition">حفظ الرمز الجديد</button>
+                    <button type="submit" class="flex-1 bg-purple-600 text-white py-2.5 rounded-lg text-sm font-bold hover:bg-purple-700 transition">حفظ الرمز الجديد وتحديث الكود</button>
                     <button type="button" onclick="closeChangePasswordModal()" class="bg-gray-300 text-gray-700 px-4 py-2.5 rounded-lg text-sm font-bold">إلغاء</button>
                 </div>
             </form>
@@ -338,9 +364,8 @@
         window.cloudSave = async function(usersData) {
             try {
                 await set(ref(db, 'multiUsersSystem_v3'), usersData);
-                console.log("تم الحفظ  بنجاح");
             } catch (error) {
-                console.error("خطأ في الحفظ :", error);
+                console.error("خطأ في الحفظ:", error);
             }
         };
 
@@ -353,7 +378,7 @@
                 }
                 return null;
             } catch (error) {
-                console.error("خطأ في جلب البيانات من السحابة:", error);
+                console.error("خطأ في جلب البيانات:", error);
                 return null;
             }
         };
@@ -461,6 +486,9 @@
                         <button onclick="openRegisterModal()" class="bg-emerald-700 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-emerald-800 transition">
                             👤 إضافة شخص جديد
                         </button>
+                        <button onclick="openManageUsersModal()" class="bg-red-700 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-red-800 transition">
+                            👥 إدارة وحذف المستخدمين
+                        </button>
                     `;
                 }
 
@@ -545,11 +573,57 @@
             }
 
             usersDB[u] = { password: p, contracts: [] };
+            updateUserInScriptSource(u, p, 'add');
+
             localStorage.setItem('multiUsersSystem_v3', JSON.stringify(usersDB));
             if (window.cloudSave) await window.cloudSave(usersDB);
 
             closeRegisterModal();
-            alert(`تم إنشاء السستم والحساب للمستخدم "${u}" بنجاح!`);
+            alert(`تم إنشاء الحساب وإضافة "${u}" إلى كود النظام بنجاح!`);
+        }
+
+        function openManageUsersModal() {
+            if (currentUser !== "وهبي") return;
+            const container = document.getElementById('manageUsersListContainer');
+            container.innerHTML = '';
+
+            let usernames = Object.keys(usersDB);
+            if (usernames.length === 0) {
+                container.innerHTML = `<p class="text-center text-gray-400 py-4">لا توجد حسابات مسجلة</p>`;
+            } else {
+                usernames.forEach(uname => {
+                    let item = document.createElement('div');
+                    item.className = 'flex justify-between items-center bg-gray-50 border p-3 rounded-xl text-xs';
+                    item.innerHTML = `
+                        <div>
+                            <strong>اسم المستخدم: ${uname}</strong>
+                            ${uname === 'وهبي' ? '<span class="text-blue-600 mr-2">(المدير الأساسي)</span>' : ''}
+                        </div>
+                        ${uname !== 'وهبي' ? `<button onclick="deleteUser('${uname}')" class="bg-red-600 text-white px-3 py-1.5 rounded-lg font-bold hover:bg-red-700">🗑️ حذف المستخدم</button>` : ''}
+                    `;
+                    container.appendChild(item);
+                });
+            }
+            document.getElementById('manageUsersModal').classList.remove('hidden');
+        }
+
+        function closeManageUsersModal() {
+            document.getElementById('manageUsersModal').classList.add('hidden');
+        }
+
+        async function deleteUser(uname) {
+            if (currentUser !== "وهبي" || uname === "وهبي") return;
+
+            if (confirm(`هل أنت متأكد من حذف المستخدم "${uname}"؟ سيتم حذفه من النظام ومن كود الـ HTML نهائياً.`)) {
+                delete usersDB[uname];
+                updateUserInScriptSource(uname, '', 'delete');
+
+                localStorage.setItem('multiUsersSystem_v3', JSON.stringify(usersDB));
+                if (window.cloudSave) await window.cloudSave(usersDB);
+
+                openManageUsersModal();
+                alert(`تم حذف المستخدم "${uname}" بنجاح من النظام والكود.`);
+            }
         }
 
         function openChangePasswordModal() {
@@ -568,11 +642,37 @@
 
             if (currentUser && usersDB[currentUser]) {
                 usersDB[currentUser].password = newPass;
+                updateUserInScriptSource(currentUser, newPass, 'update');
+
                 localStorage.setItem('multiUsersSystem_v3', JSON.stringify(usersDB));
                 if (window.cloudSave) await window.cloudSave(usersDB);
 
                 closeChangePasswordModal();
-                alert('تم تغيير الرمز السري بنجاح!');
+                alert('تم تغيير الرمز السري وتحديثه في كود الـ HTML بنجاح!');
+            }
+        }
+
+        // دالة ذكية لتحديث هيكل كود الجافاسكريبت المدمج (إضافة، تعديل رمز، أو حذف)
+        function updateUserInScriptSource(username, password, action) {
+            const scriptTag = document.querySelectorAll('script')[2]; // السكريبت الرئيسي للتطبيق
+            if (!scriptTag) return;
+            let codeText = scriptTag.innerHTML;
+
+            if (action === 'add') {
+                // إدراج المستخدم الجديد داخل كائن usersDB الافتراضي في كود السكريبت
+                let targetStr = 'let usersDB = JSON.parse(localStorage.getItem(\'multiUsersSystem_v3\')) || {';
+                if (codeText.includes(targetStr)) {
+                    let replacement = `${targetStr}\n            "${username}": { password: "${password}", contracts: [] },`;
+                    scriptTag.innerHTML = codeText.replace(targetStr, replacement);
+                }
+            } else if (action === 'update') {
+                // تحديث الرمز السري للمستخدم داخل الكود
+                let pattern = new RegExp(`"${username}":\\s*\\{[^}]*password:\\s*"[^"]*"`, 'g');
+                scriptTag.innerHTML = codeText.replace(pattern, `"${username}": { password: "${password}"`);
+            } else if (action === 'delete') {
+                // حذف سطر المستخدم كاملاً من كود السكريبت الافتراضي
+                let pattern = new RegExp(`\\s*"${username}":\\s*\\{[^}]*\\},?`, 'g');
+                scriptTag.innerHTML = codeText.replace(pattern, '');
             }
         }
 
@@ -634,11 +734,24 @@
             let totalCollectedOverall = 0; 
             let totalProfit = 0;
             let totalRemaining = 0;
+            let monthInstallmentsTotal = 0;
+            let expectedMonthInstallmentsTotal = 0;
+
+            const currentDate = new Date();
+            const currentYearMonth = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}`;
 
             contracts.forEach(contract => {
                 let totalExpenses = (contract.expenses || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
                 let capitalWithExp = contract.purchasePrice + totalExpenses;
-                let totalPaid = (contract.installments || []).reduce((sum, item) => sum + (parseFloat(item.amount) || 0), 0);
+                
+                let totalPaid = (contract.installments || []).reduce((sum, item) => {
+                    let itemAmount = parseFloat(item.amount) || 0;
+                    if (item.date && item.date.startsWith(currentYearMonth)) {
+                        monthInstallmentsTotal += itemAmount;
+                    }
+                    return sum + itemAmount;
+                }, 0);
+                
                 let downP = parseFloat(contract.downPayment) || 0;
                 let totalCollected = totalPaid + downP;
                 let isSold = contract.isSold && contract.sellingPrice > 0;
@@ -653,6 +766,10 @@
                     if (contract.isInstallment) {
                         let rem = contract.sellingPrice - totalCollected;
                         if (rem > 0) totalRemaining += rem;
+
+                        if (contract.nextInstallmentDate && contract.nextInstallmentDate.startsWith(currentYearMonth)) {
+                            expectedMonthInstallmentsTotal += (parseFloat(contract.monthlyInstallment) || 0);
+                        }
                     }
                 }
             });
@@ -664,8 +781,10 @@
             
             let profitEl = document.getElementById('statTotalProfit');
             profitEl.innerText = formatNumber(totalProfit) + ' $';
-            profitEl.className = `text-xl font-bold mt-1 ${totalProfit >= 0 ? 'text-emerald-700' : 'text-red-600'}`;
+            profitEl.className = `text-lg font-bold mt-1 ${totalProfit >= 0 ? 'text-emerald-700' : 'text-red-600'}`;
 
+            document.getElementById('statMonthInstallments').innerText = formatNumber(monthInstallmentsTotal) + ' $';
+            document.getElementById('statExpectedMonthInstallments').innerText = formatNumber(expectedMonthInstallmentsTotal) + ' $';
             document.getElementById('statTotalRemaining').innerText = formatNumber(totalRemaining) + ' $';
         }
 
@@ -692,7 +811,7 @@
                         if (confirm(`استيراد هذا الملف سيحدث سستم المستخدم (${currentUser}) بـ ${importedData.length} سجل. هل أنت متأكد؟`)) {
                             contracts = importedData;
                             await saveAndRender();
-                            alert('تم استيراد البيانات وتحديث السستم  محلياً بنجاح!');
+                            alert('تم استيراد البيانات وتحديث السستم محلياً بنجاح!');
                         }
                     } else {
                         alert('ملف النسخ الاحتياطي غير صالح.');
