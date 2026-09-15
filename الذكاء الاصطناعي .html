@@ -1,0 +1,1602 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>نظام إدارة وتوليد الباركود - المحامي علي العادلي</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #1b4f72;
+            --secondary-color: #2980b9;
+            --accent-color: #d4ac0d;
+            --bg-gradient: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            --card-bg: #ffffff;
+            --text-color: #2c3e50;
+        }
+
+        body { 
+            font-family: Tahoma, sans-serif; 
+            background: var(--bg-gradient); 
+            margin: 0; 
+            padding: 10px; 
+            min-height: 100vh; 
+            box-sizing: border-box; 
+        }
+        
+        #loginOverlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(20, 45, 65, 0.88); backdrop-filter: blur(5px); display: flex; justify-content: center; align-items: center; z-index: 9999;
+        }
+        .login-card { 
+            background: #fff; 
+            padding: 35px 30px; 
+            border-radius: 14px; 
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3); 
+            width: 400px; 
+            text-align: center; 
+            border-top: 8px solid var(--primary-color); 
+            position: relative;
+        }
+        
+        .developer-signature {
+            display: block;
+            text-align: left;
+            font-size: 10px;
+            color: #888;
+            margin-bottom: 5px;
+            font-weight: normal;
+        }
+
+        .login-card h3 { color: var(--primary-color); margin-bottom: 20px; font-size: 21px; font-weight: bold; text-align: right; }
+        .login-card label { font-size: 13px; text-align: right; display: block; margin-bottom: 6px; color: var(--text-color); font-weight: bold; }
+        .login-card input { font-size: 15px; padding: 10px 14px; margin-bottom: 15px; border-radius: 8px; width: 85% !important; }
+
+        #changePassModal, #myListModal, #pinPromptModal, #mergeToolModal, #helpModal, #notesModal, #aiModal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5); justify-content: center; align-items: center; z-index: 10000;
+        }
+        .modal-content { background: #fff; padding: 18px; border-radius: 8px; width: 650px; text-align: center; max-height: 90vh; overflow-y: auto; }
+
+        .card { 
+            background: var(--card-bg); 
+            padding: 15px 20px; 
+            border-radius: 10px; 
+            box-shadow: 0 6px 20px rgba(0,0,0,0.12); 
+            width: 100%; 
+            max-width: 1100px; 
+            margin: 0 auto; 
+            box-sizing: border-box;
+            border-top: 5px solid var(--primary-color); 
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 320px;
+            gap: 20px;
+            align-items: start;
+        }
+        
+        .header-top-bar { 
+            display: flex; 
+            justify-content: space-between; 
+            align-items: center; 
+            margin-bottom: 12px; 
+            border-bottom: 2px solid #eaecee; 
+            padding-bottom: 8px; 
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .showroom-title { font-size: 16px; font-weight: bold; color: var(--primary-color); }
+        
+        .top-action-btns { 
+            display: flex; 
+            gap: 5px; 
+            align-items: center; 
+            flex-wrap: nowrap; 
+        }
+        
+        .top-btn { 
+            color: #fff; 
+            border: none; 
+            padding: 4px 8px; 
+            font-size: 10px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            font-weight: bold; 
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+        .top-btn-new { background: #27ae60; }
+        .top-btn-new:hover { background: #219653; }
+        .top-btn-list { background: #2980b9; }
+        .top-btn-list:hover { background: #2471a3; }
+        .top-btn-export { background: #16a085; }
+        .top-btn-export:hover { background: #138d75; }
+        .top-btn-import { background: #d35400; }
+        .top-btn-import:hover { background: #ba4a00; }
+        .top-btn-pass { background: #7f8c8d; }
+        .top-btn-pass:hover { background: #616a6b; }
+        .top-btn-logout { background: #c0392b; }
+        .top-btn-logout:hover { background: #a93226; }
+
+        .showroom-subtitle { font-size: 11px; color: #7f8c8d; margin-bottom: 10px; }
+        
+        .stats-badge { font-size: 10px; background: #ebf5fb; color: var(--secondary-color); padding: 3px 8px; border-radius: 6px; display: inline-block; font-weight: bold; }
+
+        .controls-bar {
+            display: flex;
+            justify-content: flex-start;
+            align-items: center;
+            background: #f4f6f7;
+            padding: 5px 10px;
+            border-radius: 5px;
+            border: 1px solid #d5dbdb;
+            margin-bottom: 8px;
+        }
+
+        label { display: block; text-align: right; font-size: 10px; color: #34495e; margin-top: 4px; font-weight: bold; }
+        
+        input, select, textarea { 
+            width: 75%; 
+            padding: 7px 10px; 
+            margin: 2px auto 5px auto; 
+            display: block;
+            border: 1.5px solid #cbd5e1; 
+            border-radius: 6px; 
+            box-sizing: border-box; 
+            text-align: right; 
+            font-size: 11px; 
+            background-color: #f8fafc;
+            color: #1e293b;
+            transition: all 0.25s ease;
+        }
+        input:focus, select:focus, textarea:focus {
+            border-color: var(--secondary-color);
+            background-color: #ffffff;
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(41, 128, 185, 0.12);
+        }
+        textarea {
+            resize: vertical;
+            font-family: Tahoma, sans-serif;
+            padding: 8px 10px;
+        }
+        
+        .url-group { display: flex; gap: 5px; align-items: center; width: 75%; margin: 2px auto 5px auto; }
+        .url-group input { width: 100%; margin: 0; }
+        .copy-btn { background: #7f8c8d; width: auto; padding: 7px 10px; font-size: 10px; cursor: pointer; border-radius: 6px; color: #fff; border: none; font-weight: bold; }
+        .copy-btn:hover { background: #616a6b; }
+
+        .site-preview-box { display: flex; align-items: center; gap: 6px; background: #f9f9f9; padding: 5px 10px; border-radius: 6px; border: 1px solid #ddd; margin: 2px auto 5px auto; width: 75%; box-sizing: border-box; text-align: right; font-size: 10px; text-decoration: none; color: var(--secondary-color); transition: background 0.2s; cursor: pointer; }
+        .site-preview-box:hover { background: #ebf5fb; }
+        .site-preview-box img { width: 18px; height: 18px; object-fit: cover; border-radius: 3px; border: 1px solid #ccc; }
+
+        .form-left-panel {
+            background: #fdfefe;
+            border: 1px solid #d5dbdb;
+            padding: 12px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .action-buttons-group {
+            display: flex;
+            gap: 5px;
+            margin-top: 8px;
+            width: 75%;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        button.action-small-btn {
+            flex: 1;
+            color: white;
+            border: none;
+            padding: 7px 4px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 11px;
+            text-align: center;
+            transition: background 0.2s;
+        }
+        .btn-generate { background: #27ae60; }
+        .btn-generate:hover { background: #219653; }
+        
+        .btn-save { background: #d68910; }
+        .btn-save:hover { background: #b7950b; }
+        
+        .btn-test { background: var(--secondary-color); }
+        .btn-test:hover { background: #2471a3; }
+
+        .print-btn { background: var(--primary-color); margin-top: 8px; width: 100%; padding: 8px; font-size: 11px; }
+        .print-btn:hover { background: #154360; }
+        
+        #qrcode { margin: 6px auto; min-height: 140px; display: flex; justify-content: center; align-items: center; position: relative; }
+        #qrcode img { display: block; margin: 0 auto; border-radius: 4px; }
+
+        .qr-logo-overlay {
+            position: absolute; background: var(--primary-color); color: #fff; font-size: 9px; font-weight: bold; padding: 2px 5px; border-radius: 3px; border: 2px solid #fff; pointer-events: none;
+        }
+
+        .attached-images-section {
+            margin-top: 15px;
+            border-top: 1.5px dashed #bdc3c7;
+            padding-top: 10px;
+            text-align: right;
+        }
+        .attached-images-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 6px;
+        }
+        .attached-images-title {
+            font-size: 10px;
+            font-weight: bold;
+            color: var(--primary-color);
+        }
+        .thumb-grid { 
+            display: flex; 
+            flex-wrap: wrap; 
+            gap: 5px; 
+            max-height: 180px; 
+            overflow-y: auto; 
+            justify-content: flex-start; 
+            background: #f8f9fa;
+            padding: 6px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+        }
+        .thumb-item { 
+            position: relative; 
+            width: 50px; 
+            height: 50px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 4px; 
+            overflow: hidden; 
+            background: #fff; 
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .thumb-item img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+            cursor: pointer;
+        }
+        .pdf-badge-icon {
+            font-size: 11px;
+            font-weight: bold;
+            color: #c0392b;
+            background: #fdf2f2;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            text-align: center;
+        }
+        .thumb-delete { 
+            position: absolute; 
+            top: 1px; 
+            left: 1px; 
+            background: rgba(192, 57, 43, 0.9); 
+            color: white; 
+            border: none; 
+            font-size: 8px; 
+            width: 14px; 
+            height: 14px; 
+            border-radius: 50%; 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            z-index: 2;
+        }
+        .thumb-delete:hover { background: #c0392b; }
+
+        .floating-buttons-container {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            gap: 10px;
+            z-index: 999;
+        }
+
+        .server-float-btn {
+            background: #24292e;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+        .server-float-btn:hover {
+            background: #0366d6;
+            transform: translateY(-2px);
+        }
+
+        .help-float-btn {
+            background: #8e44ad;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+        .help-float-btn:hover {
+            background: #732d91;
+            transform: translateY(-2px);
+        }
+
+        .merge-tool-float-btn {
+            background: #16a085;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+        .merge-tool-float-btn:hover {
+            background: #138d75;
+            transform: translateY(-2px);
+        }
+
+        .notes-float-btn {
+            background: #d35400;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+        .notes-float-btn:hover {
+            background: #ba4a00;
+            transform: translateY(-2px);
+        }
+
+        .ai-float-btn {
+            background: #00a67e;
+            color: #ffffff;
+            border: none;
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 25px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            transition: all 0.3s ease;
+        }
+        .ai-float-btn:hover {
+            background: #008f6c;
+            transform: translateY(-2px);
+        }
+
+        @media print {
+            body { background: #fff; padding: 0; margin: 0; }
+            .card, #loginOverlay, #changePassModal, #myListModal, #pinPromptModal, #mergeToolModal, #helpModal, #notesModal, #aiModal, .floating-buttons-container { display: none !important; }
+            
+            .single-print-page { 
+                display: block !important; font-family: Tahoma, sans-serif; padding: 15px 20px; width: 100vw; height: 100vh; box-sizing: border-box; position: relative; border: 3px double var(--primary-color); overflow: hidden;
+                text-align: center; 
+            }
+
+            .print-watermark-grid {
+                position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+                display: flex; flex-wrap: wrap; justify-content: space-around; align-content: space-around;
+                z-index: 0; pointer-events: none; user-select: none; opacity: 0.045;
+            }
+
+            .watermark-item {
+                font-size: 26px; transform: rotate(-30deg); margin: 40px; font-weight: bold; color: var(--primary-color); white-space: nowrap; letter-spacing: 1px;
+            }
+
+            .print-header-container, .print-showroom-center, .print-qr-box, .print-legal-boxes-container, .print-footer-legal {
+                position: relative; z-index: 1;
+            }
+
+            .print-header-container { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--primary-color); padding-bottom: 8px; margin-bottom: 10px; }
+            .print-header-right { text-align: right; font-size: 11px; color: #222; line-height: 1.5; font-weight: normal; }
+            .print-header-right div { margin-bottom: 3px; }
+            .print-header-right strong { color: #111; font-weight: bold; }
+
+            .print-showroom-center { text-align: center; font-size: 22px; font-weight: bold; color: var(--primary-color); margin-bottom: 10px; }
+
+            .print-qr-box { 
+                border: 2px solid var(--primary-color); border-radius: 8px; padding: 10px; width: auto; display: inline-block; min-width: 220px; margin: 0 auto 10px auto; text-align: center; background: rgba(253, 254, 254, 0.92); 
+            }
+            .print-instruction-msg { font-size: 12px; color: var(--primary-color); font-weight: bold; margin-bottom: 6px; }
+            .print-red-note { font-size: 12px; color: #c0392b; font-weight: bold; margin-top: 6px; border-top: 1px dashed #e74c3c; padding-top: 4px; display: none; }
+
+            #pQrContainer { display: flex; justify-content: center; align-items: center; margin: 6px 0; }
+            #pQrContainer img { display: block; margin: 0 auto; width: var(--print-qr-w, 150px) !important; height: var(--print-qr-h, 150px) !important; }
+
+            .print-legal-boxes-container { display: flex; justify-content: center; gap: 12px; margin: 8px auto; max-width: 700px; }
+            .print-single-box { flex: 1; border: 2px solid var(--secondary-color); border-radius: 6px; background: rgba(244, 246, 247, 0.92); padding: 6px 10px; text-align: right; font-size: 14px; color: #111; font-weight: bold; }
+            .print-single-box .box-title { font-size: 11px; color: var(--primary-color); border-bottom: 1px solid #d5dbdb; padding-bottom: 2px; margin-bottom: 3px; }
+            .print-single-box .box-value { font-size: 14px; color: #000; }
+
+            .print-footer-legal { position: absolute; bottom: 12px; left: 0; right: 0; width: 92%; margin: 0 auto; border-top: 2px solid #bdc3c7; padding-top: 8px; display: flex; justify-content: space-between; align-items: center; background: rgba(255,255,255,0.8); }
+            .print-footer-text { font-size: 13px; font-weight: bold; color: #111; line-height: 1.4; text-align: right; }
+            .print-phone-qr-box { text-align: center; background: #fff; padding: 3px; border: 1px solid #bdc3c7; border-radius: 4px; }
+            .print-phone-label { font-size: 8px; color: #333; margin-top: 2px; font-weight: bold; }
+        }
+        
+        .single-print-page { display: none; }
+
+        .merge-modal-body {
+            font-family: Tahoma, sans-serif;
+            background-color: #f4f4f4;
+            padding: 10px;
+            text-align: right;
+            direction: rtl;
+        }
+        .merge-container {
+            background: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+            width: 100%;
+            max-width: 100%;
+            box-sizing: border-box;
+            margin-bottom: 15px;
+        }
+        .merge-container h2 {
+            text-align: center;
+            color: #333;
+            font-size: 16px;
+            margin-top: 0;
+        }
+        .image-input-group {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            align-items: center;
+        }
+        .merge-modal-body input[type="file"], .merge-modal-body input[type="text"] {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            box-sizing: border-box;
+            width: 100%;
+            margin: 0;
+            text-align: right;
+        }
+        .merge-modal-body button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: background 0.3s;
+        }
+        .merge-modal-body button:hover {
+            background-color: #45a049;
+        }
+        .merge-btn-danger {
+            background-color: #f44336 !important;
+        }
+        .merge-btn-danger:hover {
+            background-color: #d32f2f !important;
+        }
+        .merge-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+        .merge-actions button {
+            flex: 1;
+        }
+        #result-container {
+            margin-top: 15px;
+            text-align: center;
+        }
+        #mergedResult {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+            margin-top: 10px;
+            display: none;
+        }
+        .download-btn {
+            background-color: #008CBA !important;
+            display: none;
+            width: 100%;
+            margin-top: 10px;
+            text-decoration: none;
+            padding: 10px;
+            color: white;
+            border-radius: 5px;
+            text-align: center;
+            box-sizing: border-box;
+        }
+        .download-btn:hover {
+            background-color: #007bb5 !important;
+        }
+
+        .notes-modal-content {
+            background: #fff;
+            padding: 25px;
+            border-radius: 12px;
+            width: 600px;
+            max-width: 95vw;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            text-align: right;
+            direction: rtl;
+            border-top: 6px solid #d35400;
+        }
+        .notes-modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid #f1f2f6;
+            padding-bottom: 12px;
+            margin-bottom: 15px;
+        }
+        .notes-modal-header h3 {
+            margin: 0;
+            color: #d35400;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .notes-textarea-pro {
+            width: 100% !important;
+            height: 220px;
+            padding: 12px;
+            font-size: 13px;
+            border: 2px solid #cbd5e1;
+            border-radius: 8px;
+            background: #fdfefe;
+            box-sizing: border-box;
+            resize: vertical;
+            line-height: 1.6;
+        }
+        .notes-textarea-pro:focus {
+            border-color: #d35400;
+            box-shadow: 0 0 0 4px rgba(211, 84, 0, 0.1);
+        }
+        .notes-modal-footer {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+    </style>
+</head>
+<body>
+
+<div id="loginOverlay">
+    <div class="login-card">
+        <span class="developer-signature">برمجة وهبي رياض</span>
+        
+        <h3>تسجيل الدخول للنظام</h3>
+        <label>اسم المستخدم:</label>
+        <input type="text" id="loginUser" placeholder="أدخل اسم المستخدم" onkeydown="handleLoginKey(event)">
+        <label>رمز المرور:</label>
+        <input type="password" id="loginPass" placeholder="أدخل الرمز" onkeydown="handleLoginKey(event)">
+        <button class="action-small-btn btn-generate" onclick="checkLogin()" style="margin-top: 12px; width: 100%; padding: 11px; font-size: 14px;">دخول</button>
+        <div id="loginError" style="color: #c0392b; font-size: 12px; margin-top: 10px; font-weight: bold;"></div>
+    </div>
+</div>
+
+<div id="pinPromptModal">
+    <div class="modal-content" style="width: 280px;">
+        <h3>تأكيد الحذف بالرمز السري</h3>
+        <label style="text-align: right;">أدخل الرمز السري للمحامي:</label>
+        <input type="password" id="deletePinInput" placeholder="أدخل الرمز">
+        <button class="action-small-btn" onclick="confirmDeleteWithPin()" style="margin-top: 5px; background: #c0392b; width: 100%; padding: 7px;">تأكيد الحذف</button>
+        <button class="action-small-btn" onclick="closeModal('pinPromptModal')" style="margin-top: 3px; background: #7f8c8d; width: 100%; padding: 7px;">إلغاء</button>
+        <div id="deletePinError" style="color: #c0392b; font-size: 10px; margin-top: 3px;"></div>
+    </div>
+</div>
+
+<div id="changePassModal">
+    <div class="modal-content" style="width: 420px;">
+        <h3>تغيير الرمز السري</h3>
+        <label style="text-align: right;">الرمز القديم:</label>
+        <input type="password" id="oldPass">
+        <label style="text-align: right;">الرمز الجديد:</label>
+        <input type="password" id="newPass">
+        <button class="action-small-btn btn-generate" onclick="saveNewPassword()" style="margin-top: 5px; width: 100%; padding: 7px;">حفظ الرمز الجديد</button>
+        <button class="action-small-btn" onclick="closeModal('changePassModal')" style="margin-top: 3px; background: #c0392b; width: 100%; padding: 7px;">إلغاء</button>
+    </div>
+</div>
+
+<div id="myListModal">
+    <div class="modal-content" style="display: flex; flex-direction: column; max-height: 85vh;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
+            <h3 style="margin: 0; color: #333; font-size: 16px;">قائمتي والبحث في السجلات</h3>
+            <button type="button" onclick="closeModal('myListModal')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #888;">&times;</button>
+        </div>
+
+        <div style="margin-bottom: 10px;">
+            <input type="text" id="modalSearchInput" oninput="filterModalList()" placeholder="اكتب اسم الملف أو رقم الدعوى للبحث..." style="width: 95%; padding: 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px;" autocomplete="off">
+        </div>
+
+        <div id="fullSavedListContainer" style="overflow-y: auto; flex-grow: 1; max-height: 380px; text-align: right; border: 1px solid #f0f0f0; border-radius: 4px; padding: 6px; background: #fafafa;">
+            <div style="padding: 10px; color: #888; text-align: center;">اكتب اسم الملف أو رقم الدعوى للبحث...</div>
+        </div>
+
+        <button class="action-small-btn" onclick="closeModal('myListModal')" style="margin-top: 10px; background: #c0392b; width: 100%; padding: 8px;">إغلاق القائمة</button>
+    </div>
+</div>
+
+<div id="mergeToolModal">
+    <div class="modal-content" style="width: 600px; max-width: 95vw;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 8px;">
+            <h3 style="margin: 0; color: var(--primary-color); font-size: 16px;">أداة دمج الصور عمودياً</h3>
+            <button type="button" onclick="closeModal('mergeToolModal')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #888;">&times;</button>
+        </div>
+        
+        <div class="merge-modal-body">
+            <div class="merge-container" style="margin-bottom: 0;">
+                <h2>اختر الصور لدمجها</h2>
+                
+                <div id="inputs-container">
+                    <div class="image-input-group">
+                        <input type="file" accept="image/*" class="image-input">
+                    </div>
+                </div>
+
+                <button type="button" onclick="addField()" style="width: 100%; margin-top: 5px; background-color: #ff9800;">+ إضافة حقل صورة أخرى</button>
+
+                <div class="merge-actions">
+                    <button type="button" onclick="mergeImages()">دمج الصور</button>
+                </div>
+
+                <div id="result-container">
+                    <h3 style="font-size: 13px; color: #333;">النتيجة:</h3>
+                    <img id="mergedResult" alt="الصور المدمجة">
+                    <a id="downloadLink" class="download-btn" download="merged-image.png">تحميل الصورة المدمجة</a>
+                </div>
+            </div>
+        </div>
+
+        <button class="action-small-btn" onclick="closeModal('mergeToolModal')" style="margin-top: 15px; background: #c0392b; width: 100%; padding: 8px;">إغلاق النافذة</button>
+    </div>
+</div>
+
+<div id="notesModal">
+    <div class="notes-modal-content">
+        <div class="notes-modal-header">
+            <h3>سجل الملاحظات الخاصة</h3>
+            <button type="button" onclick="closeModal('notesModal')" style="background: none; border: none; font-size: 20px; cursor: pointer; color: #888;">&times;</button>
+        </div>
+        <p style="font-size: 11px; color: #666; margin-top: 0; margin-bottom: 10px;">قم بتسجيل وتعديل كافة الملاحظات الخاصة بالدعوى أو الموكل بطريقة احترافية ومنظمة:</p>
+        <textarea id="proNotesTextarea" class="notes-textarea-pro" placeholder="اكتب ملاحظاتك الخاصة هنا..."></textarea>
+        <div class="notes-modal-footer">
+            <button class="action-small-btn btn-generate" onclick="saveProNotes()" style="padding: 10px; font-size: 13px;">حفظ الملاحظات</button>
+            <button class="action-small-btn" onclick="closeModal('notesModal')" style="background: #7f8c8d; padding: 10px; font-size: 13px;">إغلاق</button>
+        </div>
+    </div>
+</div>
+
+<div id="helpModal">
+    <div class="modal-content" style="width: 350px; text-align: center;">
+        <h3 style="color: var(--primary-color); margin-top: 0;">المساعدة</h3>
+        <p style="font-size: 14px; color: #333; line-height: 1.6; margin: 20px 0;">
+            تمت البرمجة بواسطة وهبي رياض للمزيد من المعلومات يرجى الاتصال على رقم الهاتف 07752404350
+        </p>
+        <button class="action-small-btn" onclick="closeModal('helpModal')" style="background: #2980b9; width: 100%; padding: 8px;">حسناً</button>
+    </div>
+</div>
+
+<canvas id="mergeCanvas" style="display:none;"></canvas>
+
+<div class="floating-buttons-container">
+    <button class="ai-float-btn" onclick="openAIExternal()">الذكاء الاصطناعي</button>
+    <button class="notes-float-btn" onclick="openNotesModal()">الملاحظات الخاصة</button>
+    <button class="merge-tool-float-btn" onclick="openMergeToolModal()">دمج الصور</button>
+    <button class="help-float-btn" onclick="openHelpModal()">المساعدة</button>
+    <button class="server-float-btn" onclick="openServerWebsite()">سيرفر</button>
+</div>
+
+<div class="card">
+    <div class="header-top-bar">
+        <div class="showroom-title">المحامي علي العادلي</div>
+        <div class="top-action-btns">
+            <button class="top-btn top-btn-new" onclick="clearFormForNewEntry()">إدخال جديد</button>
+            <button class="top-btn top-btn-list" onclick="openMyListModal()">قائمتي</button>
+            <button class="top-btn top-btn-export" onclick="exportData()">تصدير البيانات</button>
+            <button class="top-btn top-btn-import" onclick="triggerImport()">استيراد البيانات</button>
+            <button class="top-btn top-btn-pass" onclick="openChangePassModal()">تغيير الرمز</button>
+            <button class="top-btn top-btn-logout" onclick="logoutSystem()">تسجيل الخروج</button>
+        </div>
+    </div>
+    <input type="file" id="importFile" style="display:none" accept=".json" onchange="importData(event)">
+
+    <div class="showroom-subtitle">نظام إدارة وتوليد الباركود القانوني المطور</div>
+
+    <div class="main-grid">
+        <div class="form-right-panel" id="formRightPanel">
+            
+            <div class="controls-bar">
+                <div id="statsBadge" class="stats-badge">العناصر المحفوظة: 0</div>
+            </div>
+
+            <label>اسم الباركود (العنوان / الوثيقة):</label>
+            <input type="text" id="nameInput" placeholder="مثلاً: توكيل رسمي عام">
+
+            <label>رقم الدعوى (اختياري):</label>
+            <input type="text" id="caseNumberInput" placeholder="مثلاً: 123/ق/2026">
+
+            <label>الموضوع:</label>
+            <input type="text" id="subjectInput" placeholder="مثلاً: وثيقة عامة / استعلام قانوني">
+
+            <label>اسم المشتكي (اختياري):</label>
+            <input type="text" id="complainantInput" placeholder="اسم المشتكي الرباعي واللقب">
+
+            <label>اسم المشكو منه (اختياري):</label>
+            <input type="text" id="defendantInput" placeholder="اسم المشكو منه الرباعي واللقب">
+
+            <label>اسم المحكمة (اختياري):</label>
+            <input type="text" id="courtNameInput" placeholder="مثلاً: محكمة بداءة الكرخ">
+
+            <label>تاريخ الإصدار (اختياري):</label>
+            <input type="date" id="dateInput">
+
+            <label>رابط الموقع أو الصفحة:</label>
+            <div class="url-group">
+                <input type="text" id="urlInput" placeholder="https://example.com" value="https://example.com" oninput="updateSitePreview()">
+                <button class="copy-btn" onclick="copyUrl()">نسخ</button>
+            </div>
+            
+            <a id="sitePreviewBox" class="site-preview-box" href="#" target="_blank">
+                <img id="siteFaviconImg" src="" alt="معاينة" style="display:none;">
+                <span id="siteDomainText">أدخل رابط صالح لمعاينة الموقع</span>
+            </a>
+
+            <label style="color: #2980b9; font-weight: bold; margin-top: 6px;">إرفاق الصور والمستندات وملفات الـ Word/PDF (حتى ١٠٠ ملف):</label>
+            <div style="display: flex; gap: 5px; width: 75%; margin: 2px auto 5px auto;">
+                <input type="file" id="attachmentsInput" accept="image/*,.pdf,.doc,.docx,.txt" multiple style="display:none;" onchange="handleFilesSelection(event)">
+                <input type="file" id="moreImagesInput" accept="image/*,.pdf,.doc,.docx,.txt" multiple style="display:none;" onchange="handleMoreFilesSelection(event)">
+                <button type="button" class="copy-btn" onclick="document.getElementById('attachmentsInput').click()" style="width: 100%; background: #2980b9; text-align: center; padding: 8px;">اختر صور، مستندات Word، PDF (تصل لـ 100)</button>
+            </div>
+
+            <label style="color: #c0392b; font-weight: bold; margin-top: 4px;">ملاحظة حمراء أسفل الباركود (اختياري):</label>
+            <input type="text" id="redNoteInput" placeholder="مثلاً: صالح للاستخدام لمدة أسبوع فقط" style="border-color: #e74c3c;">
+
+            <textarea id="privateNotesInput" style="display:none;"></textarea>
+
+            <div style="display: flex; gap: 6px; align-items: center; width: 75%; margin: 2px auto 5px auto;">
+                <label style="flex: 1; margin:0; text-align: right;">حجم الباركود:</label>
+                <select id="qrSizeSelect" style="flex: 2; margin: 0; width: 100%;" onchange="generateQR()">
+                    <option value="110">صغير (110 بكسل)</option>
+                    <option value="150" selected>متوسط (150 بكسل)</option>
+                    <option value="200">كبير (200 بكسل)</option>
+                    <option value="260">كبير جداً (260 بكسل)</option>
+                </select>
+            </div>
+            
+            <div class="action-buttons-group">
+                <button class="action-small-btn btn-generate" onclick="generateQR()" title="تحديث وعرض الباركود">تحديث</button>
+                <button class="action-small-btn btn-save" onclick="saveBarcode()" title="حفظ الباركود الحالي ومستنداته إلى فولدر الحاسوب">حفظ</button>
+                <button class="action-small-btn btn-test" onclick="testUrl()" title="فحص / فتح الرابط بالمتصفح">فحص</button>
+            </div>
+        </div>
+
+        <div class="form-left-panel">
+            <div style="font-size: 11px; font-weight: bold; color: var(--primary-color); margin-bottom: 3px;">معاينة الباركود المباشرة</div>
+            <div id="qrcode">
+                <div class="qr-logo-overlay">LAW</div>
+            </div>
+            <button class="action-small-btn print-btn" onclick="prepareAndPrint()">طباعة البطاقة الاحترافية</button>
+
+            <div class="attached-images-section">
+                <div class="attached-images-header">
+                    <span class="attached-images-title">الملفات والمستندات (<span id="attachedCountNum">0</span>)</span>
+                    <button type="button" class="copy-btn" onclick="document.getElementById('moreImagesInput').click()" style="font-size: 8px; padding: 3px 6px; background: #27ae60;">+ إضافة</button>
+                </div>
+                <div class="thumb-grid" id="modalThumbGrid">
+                    <div style="font-size: 9px; color: #888; width: 100%; text-align: center; padding: 10px;" id="noImagesPlaceholder">لا توجد ملفات مرفقة حالياً</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="single-print-page" id="singlePrintPage">
+    <div class="print-watermark-grid">
+        <div class="watermark-item">المحامي علي العادلي</div>
+        <div class="watermark-item">المحامي علي العادلي</div>
+        <div class="watermark-item">المحامي علي العادلي</div>
+        <div class="watermark-item">المحامي علي العادلي</div>
+        <div class="watermark-item">المحامي علي العادلي</div>
+        <div class="watermark-item">المحامي علي العادلي</div>
+    </div>
+
+    <div class="print-header-container">
+        <div class="print-header-right">
+            <div><strong>رقم الدعوى:</strong> <span id="pCaseNo">---</span></div>
+            <div><strong>تاريخ الإصدار:</strong> <span id="pDate"></span></div>
+            <div><strong>الموضوع:</strong> <span id="pSubject"></span></div>
+        </div>
+    </div>
+
+    <div class="print-showroom-center">المحامي علي العادلي</div>
+
+    <div class="print-qr-box">
+        <div class="print-instruction-msg">هذه الوثيقة رسمية يمكن قراءتها عبر كاميرا الهاتف</div>
+        <div id="pQrContainer"></div>
+        <div id="pRedNote" class="print-red-note"></div>
+    </div>
+
+    <div id="pLegalBoxesContainer" class="print-legal-boxes-container" style="display: none;">
+        <div id="pComplainantBox" class="print-single-box" style="display: none;">
+            <div class="box-title">المشتكي</div>
+            <div id="pComplainantVal" class="box-value"></div>
+        </div>
+        <div id="pDefendantBox" class="print-single-box" style="display: none;">
+            <div class="box-title">المشكو منه</div>
+            <div id="pDefendantVal" class="box-value"></div>
+        </div>
+        <div id="pCourtBox" class="print-single-box" style="display: none;">
+            <div class="box-title">المحكمة المختصة</div>
+            <div id="pCourtVal" class="box-value"></div>
+        </div>
+    </div>
+
+    <div class="print-footer-legal">
+        <div class="print-footer-text">
+            لمزيد من المعلومات يرجى الاتصال بالمحامي علي العادلي<br>
+            هاتف: 07841503344
+        </div>
+        <div class="print-phone-qr-box">
+            <div id="pPhoneQrContainer"></div>
+            <div class="print-phone-label">مسح للاتصال</div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let savedBarcodes = JSON.parse(localStorage.getItem('aliAdliBarcodes')) || [];
+    let itemToDeleteIndex = null;
+    let idleTimer = null;
+    let currentAttachedImages = [];
+
+    if (!localStorage.getItem('aliAdliPass')) {
+        localStorage.setItem('aliAdliPass', '0000');
+    }
+
+    window.onload = function() {
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('dateInput').value = today;
+
+        const defaultSize = document.getElementById("qrSizeSelect").value;
+        makeCode("https://example.com", defaultSize);
+        updateSitePreview();
+        updateStats();
+        renderThumbnails();
+        resetIdleTimer();
+    };
+
+    function openServerWebsite() {
+        window.open('https://github.com', '_blank');
+    }
+
+    function openHelpModal() {
+        document.getElementById('helpModal').style.display = 'flex';
+    }
+
+    function openMergeToolModal() {
+        document.getElementById('mergeToolModal').style.display = 'flex';
+    }
+
+    function openNotesModal() {
+        document.getElementById('proNotesTextarea').value = document.getElementById('privateNotesInput').value;
+        document.getElementById('notesModal').style.display = 'flex';
+    }
+
+    // فتح موقع الذكاء الاصطناعي بتبويب خارجي لضمان عدم الحظر والتجربة السلسة
+    function openAIExternal() {
+        window.open('https://chatgpt.com', '_blank');
+    }
+
+    function saveProNotes() {
+        document.getElementById('privateNotesInput').value = document.getElementById('proNotesTextarea').value;
+        closeModal('notesModal');
+    }
+
+    function resetIdleTimer() {
+        clearTimeout(idleTimer);
+        idleTimer = setTimeout(() => {
+            logoutSystem();
+        }, 300000);
+    }
+
+    ['mousemove', 'keydown', 'click', 'scroll', 'touchstart'].forEach(eventName => {
+        window.addEventListener(eventName, resetIdleTimer, true);
+    });
+
+    function logoutSystem() {
+        document.getElementById("loginUser").value = "";
+        document.getElementById("loginPass").value = "";
+        document.getElementById("loginError").innerText = "";
+        document.getElementById("loginOverlay").style.display = "flex";
+        closeModal('myListModal');
+        closeModal('changePassModal');
+        closeModal('pinPromptModal');
+        closeModal('mergeToolModal');
+        closeModal('helpModal');
+        closeModal('notesModal');
+    }
+
+    function handleLoginKey(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            checkLogin();
+        }
+    }
+
+    function checkLogin() {
+        const u = document.getElementById("loginUser").value.trim();
+        const p = document.getElementById("loginPass").value.trim();
+        const storedPass = localStorage.getItem('aliAdliPass');
+
+        if (u === "علي" && p === storedPass) {
+            document.getElementById("loginOverlay").style.display = "none";
+            resetIdleTimer();
+        } else {
+            document.getElementById("loginError").innerText = "اسم المستخدم أو الرمز غير صحيح!";
+        }
+    }
+
+    function clearFormForNewEntry() {
+        document.getElementById("nameInput").value = "";
+        document.getElementById("caseNumberInput").value = "";
+        document.getElementById("subjectInput").value = "";
+        document.getElementById("complainantInput").value = "";
+        document.getElementById("defendantInput").value = "";
+        document.getElementById("courtNameInput").value = "";
+        
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById("dateInput").value = today;
+        
+        document.getElementById("urlInput").value = "https://example.com";
+        document.getElementById("redNoteInput").value = "";
+        document.getElementById("privateNotesInput").value = "";
+        document.getElementById("proNotesTextarea").value = "";
+        
+        currentAttachedImages = [];
+        renderThumbnails();
+        updateSitePreview();
+        
+        const defaultSize = document.getElementById("qrSizeSelect").value;
+        makeCode("https://example.com", defaultSize);
+    }
+
+    function openChangePassModal() {
+        document.getElementById("oldPass").value = "";
+        document.getElementById("newPass").value = "";
+        document.getElementById("changePassModal").style.display = "flex";
+    }
+
+    function closeModal(modalId) {
+        document.getElementById(modalId).style.display = "none";
+    }
+
+    function saveNewPassword() {
+        const oldP = document.getElementById("oldPass").value.trim();
+        const newP = document.getElementById("newPass").value.trim();
+        const storedPass = localStorage.getItem('aliAdliPass');
+
+        if (oldP !== storedPass) {
+            alert("الرمز القديم غير صحيح!");
+            return;
+        }
+        if (!newP) {
+            alert("يرجى إدخال الرمز الجديد!");
+            return;
+        }
+
+        localStorage.setItem('aliAdliPass', newP);
+        alert("تم تغيير الرمز السري بنجاح!");
+        closeModal('changePassModal');
+    }
+
+    function handleFilesSelection(event) {
+        const files = event.target.files;
+        processFiles(files);
+        event.target.value = "";
+    }
+
+    function handleMoreFilesSelection(event) {
+        const files = event.target.files;
+        processFiles(files);
+        event.target.value = "";
+    }
+
+    function processFiles(files) {
+        if (!files || files.length === 0) return;
+        
+        if (currentAttachedImages.length + files.length > 100) {
+            alert("عذراً، الحد الأقصى المسموح به هو 100 ملف!");
+            return;
+        }
+
+        Array.from(files).forEach(file => {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                let fileType = 'file';
+                const fileName = file.name.toLowerCase();
+                if (file.type.startsWith('image/')) {
+                    fileType = 'image';
+                } else if (file.type === 'application/pdf' || fileName.endsWith('.pdf')) {
+                    fileType = 'pdf';
+                } else if (fileName.endsWith('.doc') || fileName.endsWith('.docx')) {
+                    fileType = 'word';
+                }
+                
+                currentAttachedImages.push({
+                    data: e.target.result,
+                    type: fileType,
+                    name: file.name
+                });
+                renderThumbnails();
+            };
+            reader.readAsDataURL(file);
+        });
+    }
+
+    function renderThumbnails() {
+        const grid = document.getElementById("modalThumbGrid");
+        const countSpan = document.getElementById("attachedCountNum");
+        countSpan.innerText = currentAttachedImages.length;
+        
+        grid.innerHTML = "";
+
+        if (currentAttachedImages.length === 0) {
+            grid.innerHTML = '<div style="font-size: 9px; color: #888; width: 100%; text-align: center; padding: 10px;" id="noImagesPlaceholder">لا توجد ملفات مرفقة حالياً</div>';
+            return;
+        }
+
+        currentAttachedImages.forEach((itemObj, index) => {
+            let item = document.createElement("div");
+            item.className = "thumb-item";
+
+            if (itemObj.type === 'image') {
+                let img = document.createElement("img");
+                img.src = itemObj.data;
+                img.title = itemObj.name || "صورة مرفقة - اضغط للعرض";
+                img.onclick = function() {
+                    let win = window.open("");
+                    win.document.write(`<img src="${itemObj.data}" style="max-width:100%; height:auto; display:block; margin:auto;" />`);
+                };
+                item.appendChild(img);
+            } else {
+                let badgeDiv = document.createElement("div");
+                badgeDiv.className = "pdf-badge-icon";
+                if (itemObj.type === 'pdf') {
+                    badgeDiv.innerText = "PDF";
+                    badgeDiv.style.color = "#c0392b";
+                } else if (itemObj.type === 'word') {
+                    badgeDiv.innerText = "WORD";
+                    badgeDiv.style.color = "#2980b9";
+                } else {
+                    badgeDiv.innerText = "FILE";
+                    badgeDiv.style.color = "#27ae60";
+                }
+                badgeDiv.title = (itemObj.name || "مستند مرفق") + " - اضغط للفتح";
+                badgeDiv.onclick = function() {
+                    let win = window.open("");
+                    if (itemObj.type === 'pdf') {
+                        win.document.write(`<iframe src="${itemObj.data}" style="width:100%; height:100vh; border:none;"></iframe>`);
+                    } else {
+                        win.document.write(`<embed src="${itemObj.data}" style="width:100%; height:100vh;" />`);
+                    }
+                };
+                item.appendChild(badgeDiv);
+            }
+
+            let delBtn = document.createElement("button");
+            delBtn.className = "thumb-delete";
+            delBtn.innerText = "✕";
+            delBtn.onclick = function(e) {
+                e.stopPropagation();
+                currentAttachedImages.splice(index, 1);
+                renderThumbnails();
+            };
+
+            item.appendChild(delBtn);
+            grid.appendChild(item);
+        });
+    }
+
+    function openMyListModal() {
+        document.getElementById("modalSearchInput").value = "";
+        document.getElementById("fullSavedListContainer").innerHTML = '<div style="padding:10px; color:#888; text-align:center;">اكتب اسم الملف أو رقم الدعوى للبحث...</div>';
+        document.getElementById("myListModal").style.display = "flex";
+        setTimeout(() => {
+            document.getElementById("modalSearchInput").focus();
+        }, 100);
+    }
+
+    function filterModalList() {
+        const query = document.getElementById("modalSearchInput").value.trim();
+        
+        if (query.length === 0) {
+            document.getElementById("fullSavedListContainer").innerHTML = '<div style="padding:10px; color:#888; text-align:center;">اكتب اسم الملف أو رقم الدعوى للبحث...</div>';
+            return;
+        }
+
+        document.getElementById("fullSavedListContainer").innerHTML = '<div style="padding:10px; color:#888; text-align:center;">جاري البحث...</div>';
+
+        if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.postMessage(JSON.stringify({ 
+                action: "search_records", 
+                searchQuery: query 
+            }));
+        } else {
+            const filtered = savedBarcodes.filter(item => 
+                (item.name && item.name.toLowerCase().includes(query.toLowerCase())) || 
+                (item.caseNumber && item.caseNumber.toLowerCase().includes(query.toLowerCase())
+            ));
+            renderModalListItems(filtered);
+        }
+    }
+
+    function renderModalListItems(items) {
+        const container = document.getElementById("fullSavedListContainer");
+        container.innerHTML = "";
+
+        if (!items || items.length === 0) {
+            container.innerHTML = '<div style="padding:10px; color:#ff4d4d; text-align:center;">لا توجد نتائج مطابقة للبحث</div>';
+            return;
+        }
+
+        items.forEach((item, index) => {
+            let div = document.createElement("div");
+            div.style.cssText = "padding: 8px 10px; margin-bottom: 6px; background: #fff; border: 1px solid #ddd; border-radius: 4px; display: flex; justify-content: space-between; align-items: center;";
+            
+            let titleText = item.name ? `العنوان: ${item.name}` : (item.caseNumber ? `دعوى رقم: ${item.caseNumber}` : `سجل رقم ${index + 1}`);
+            let subText = `رقم الدعوى: ${item.caseNumber || 'لا يوجد'} | الموضوع: ${item.subject || 'بدون موضوع'}`;
+
+            let infoDiv = document.createElement("div");
+            infoDiv.style.cssText = "text-align: right; flex: 1;";
+            infoDiv.innerHTML = `
+                <div style="font-weight: bold; color: #1b4f72; font-size: 12px;">${titleText}</div>
+                <div style="font-size: 11px; color: #555; margin-top: 3px;">${subText}</div>
+            `;
+            
+            let actionsDiv = document.createElement("div");
+            actionsDiv.style.cssText = "display: flex; gap: 4px;";
+
+            let loadBtn = document.createElement("button");
+            loadBtn.className = "action-btn-search";
+            loadBtn.innerText = "جلب";
+            loadBtn.onclick = function(e) {
+                e.stopPropagation();
+                loadItemToMainForm(item);
+                closeModal('myListModal');
+            };
+
+            actionsDiv.appendChild(loadBtn);
+            div.appendChild(infoDiv);
+            div.appendChild(actionsDiv);
+            container.appendChild(div);
+        });
+    }
+
+    function loadItemToMainForm(item) {
+        document.getElementById("nameInput").value = item.name || "";
+        document.getElementById("urlInput").value = item.url || "";
+        document.getElementById("subjectInput").value = item.subject || "";
+        document.getElementById("caseNumberInput").value = item.caseNumber || "";
+        document.getElementById("complainantInput").value = item.complainant || "";
+        document.getElementById("defendantInput").value = item.defendant || "";
+        document.getElementById("courtNameInput").value = item.courtName || "";
+        document.getElementById("redNoteInput").value = item.redNote || "";
+        document.getElementById("privateNotesInput").value = item.privateNotes || "";
+        document.getElementById("proNotesTextarea").value = item.privateNotes || "";
+        
+        if (item.attachments && Array.isArray(item.attachments)) {
+            currentAttachedImages = item.attachments.map(att => {
+                if (typeof att === 'string') {
+                    return { data: att, type: 'image', name: 'صورة مرفقة' };
+                }
+                return {
+                    data: att.data || '',
+                    type: att.type || 'file',
+                    name: att.name || 'مستند'
+                };
+            });
+        } else {
+            currentAttachedImages = [];
+        }
+        
+        renderThumbnails();
+
+        if(item.date) {
+            document.getElementById("dateInput").value = item.date;
+        }
+        updateSitePreview();
+        const size = document.getElementById("qrSizeSelect").value;
+        makeCode(item.url || "https://example.com", size);
+    }
+
+    function updateSitePreview() {
+        const urlVal = document.getElementById("urlInput").value.trim();
+        const previewBox = document.getElementById("sitePreviewBox");
+        const imgEl = document.getElementById("siteFaviconImg");
+        const domainText = document.getElementById("siteDomainText");
+
+        if (!urlVal) {
+            previewBox.href = "#";
+            imgEl.style.display = "none";
+            domainText.innerText = "أدخل رابط صالح لمعاينة الموقع";
+            return;
+        }
+
+        try {
+            let formattedUrl = urlVal;
+            if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
+                formattedUrl = 'https://' + formattedUrl;
+            }
+            
+            previewBox.href = formattedUrl;
+            const parsedObj = new URL(formattedUrl);
+            const domain = parsedObj.hostname;
+
+            imgEl.src = `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+            imgEl.style.display = "inline-block";
+            domainText.innerText = `الموقع: ${domain} (اضغط للفتح)`;
+        } catch (e) {
+            previewBox.href = "#";
+            imgEl.style.display = "none";
+            domainText.innerText = "صيغة الرابط غير مرتبة";
+        }
+    }
+
+    function updateStats() {
+        document.getElementById("statsBadge").innerText = `العناصر المحفوظة: ${savedBarcodes.length}`;
+    }
+
+    function makeCode(urlText, size) {
+        const qrContainer = document.getElementById("qrcode");
+        qrContainer.innerHTML = '<div class="qr-logo-overlay">LAW</div>'; 
+        
+        try {
+            new QRCode(qrContainer, {
+                text: urlText,
+                width: parseInt(size),
+                height: parseInt(size),
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        } catch (e) {
+            console.error("خطأ في توليد الباركود:", e);
+        }
+    }
+
+    function generateQR() {
+        const url = document.getElementById("urlInput").value.trim();
+        const size = document.getElementById("qrSizeSelect").value;
+
+        if (!url) {
+            alert("يرجى إدخال الرابط أولاً");
+            return;
+        }
+        makeCode(url, size);
+    }
+
+    function copyUrl() {
+        const urlInput = document.getElementById("urlInput");
+        urlInput.select();
+        document.execCommand("copy");
+        alert("تم نسخ الرابط بنجاح!");
+    }
+
+    function saveBarcode() {
+        const name = document.getElementById("nameInput").value.trim();
+        const caseNumber = document.getElementById("caseNumberInput").value.trim();
+        const subject = document.getElementById("subjectInput").value.trim();
+        const complainant = document.getElementById("complainantInput").value.trim();
+        const defendant = document.getElementById("defendantInput").value.trim();
+        const courtName = document.getElementById("courtNameInput").value.trim();
+        const url = document.getElementById("urlInput").value.trim();
+        const redNote = document.getElementById("redNoteInput").value.trim();
+        const privateNotes = document.getElementById("privateNotesInput").value.trim();
+        const date = document.getElementById("dateInput").value;
+
+        if (!name || !url) {
+            alert("يرجى إدخال اسم الباركود والرابط معاً قبل الحفظ.");
+            return;
+        }
+
+        const recordPackage = {
+            action: "save_record",
+            name: name,
+            caseNumber: caseNumber,
+            subject: subject,
+            complainant: complainant,
+            defendant: defendant,
+            courtName: courtName,
+            url: url,
+            redNote: redNote,
+            privateNotes: privateNotes,
+            date: date,
+            attachments: currentAttachedImages
+        };
+
+        if (window.chrome && window.chrome.webview) {
+            window.chrome.webview.postMessage(JSON.stringify(recordPackage));
+        } else {
+            let existing = savedBarcodes.find(item => item.name === name);
+            if (existing) {
+                existing.url = url;
+                existing.caseNumber = caseNumber;
+                existing.subject = subject;
+                existing.complainant = complainant;
+                existing.defendant = defendant;
+                existing.courtName = courtName;
+                existing.redNote = redNote;
+                existing.privateNotes = privateNotes;
+                existing.date = date;
+                existing.attachments = [...currentAttachedImages];
+            } else {
+                savedBarcodes.push({ 
+                    name: name, caseNumber: caseNumber, url: url, subject: subject, 
+                    complainant: complainant, defendant: defendant, courtName: courtName, 
+                    redNote: redNote, privateNotes: privateNotes, date: date, 
+                    attachments: [...currentAttachedImages] 
+                });
+            }
+            localStorage.setItem('aliAdliBarcodes', JSON.stringify(savedBarcodes));
+            updateStats();
+            alert("تم الحفظ في الذاكرة المحلية (خارج بيئة الفجول ستوديو).");
+        }
+    }
+
+    function testUrl() {
+        let url = document.getElementById("urlInput").value.trim();
+        if (!url) {
+            alert("لا يوجد رابط لفحصه!");
+            return;
+        }
+        if (!url.startsWith('http://') && !url.startsWith('https://')) {
+            url = 'https://' + url;
+        }
+        window.open(url, '_blank');
+    }
+
+    function exportData() {
+        if (savedBarcodes.length === 0) {
+            alert("لا توجد بيانات محفوظة لتصديرها!");
+            return;
+        }
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(savedBarcodes, null, 2));
+        const downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", "ali_adli_barcodes_backup.json");
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    }
+
+    function triggerImport() {
+        document.getElementById('importFile').click();
+    }
+
+    function importData(event) {
+        const file = event.target.files[0];
+        if (!file) return;
+
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            try {
+                const importedData = JSON.parse(e.target.result);
+                if (Array.isArray(importedData)) {
+                    savedBarcodes = importedData;
+                    localStorage.setItem('aliAdliBarcodes', JSON.stringify(savedBarcodes));
+                    updateStats();
+                    alert("تم استيراد البيانات بنجاح!");
+                } else {
+                    alert("ملف غير صالح!");
+                }
+            } catch (error) {
+                alert("حدث خطأ أثناء قراءة الملف.");
+            }
+        };
+        reader.readAsText(file);
+    }
+
+    function prepareAndPrint() {
+        const caseNumber = document.getElementById("caseNumberInput").value.trim();
+        const subject = document.getElementById("subjectInput").value.trim();
+        const complainant = document.getElementById("complainantInput").value.trim();
+        const defendant = document.getElementById("defendantInput").value.trim();
+        const courtName = document.getElementById("courtNameInput").value.trim();
+        const url = document.getElementById("urlInput").value.trim();
+        const redNote = document.getElementById("redNoteInput").value.trim();
+        const selectedDate = document.getElementById("dateInput").value;
+        const size = document.getElementById("qrSizeSelect").value;
+
+        if (!url) {
+            alert("يرجى إدخال الرابط أولاً");
+            return;
+        }
+
+        let dateStr = selectedDate;
+        if (!dateStr) {
+            const now = new Date();
+            dateStr = now.toLocaleDateString('ar-IQ', { year: 'numeric', month: '2-digit', day: '2-digit' });
+        } else {
+            const parts = selectedDate.split('-');
+            if(parts.length === 3) {
+                dateStr = `${parts[2]}/${parts[1]}/${parts[0]}`;
+            }
+        }
+
+        document.getElementById("pCaseNo").innerText = caseNumber ? caseNumber : "---";
+        document.getElementById("pDate").innerText = dateStr;
+        document.getElementById("pSubject").innerText = subject ? subject : "وثيقة عامة";
+
+        let hasLegalBoxes = false;
+        const boxesContainer = document.getElementById("pLegalBoxesContainer");
+        
+        const compBox = document.getElementById("pComplainantBox");
+        const defBox = document.getElementById("pDefendantBox");
+        const courtBox = document.getElementById("pCourtBox");
+
+        if (complainant) {
+            document.getElementById("pComplainantVal").innerText = complainant;
+            compBox.style.display = "block";
+            hasLegalBoxes = true;
+        } else {
+            compBox.style.display = "none";
+        }
+
+        if (defendant) {
+            document.getElementById("pDefendantVal").innerText = defendant;
+            defBox.style.display = "block";
+            hasLegalBoxes = true;
+        } else {
+            defBox.style.display = "none";
+        }
+
+        if (courtName) {
+            document.getElementById("pCourtVal").innerText = courtName;
+            courtBox.style.display = "block";
+            hasLegalBoxes = true;
+        } else {
+            courtBox.style.display = "none";
+        }
+
+        if (hasLegalBoxes) {
+            boxesContainer.style.display = "flex";
+        } else {
+            boxesContainer.style.display = "none";
+        }
+
+        const pRedNoteEl = document.getElementById("pRedNote");
+        if (redNote) {
+            pRedNoteEl.innerText = redNote;
+            pRedNoteEl.style.display = "block";
+        } else {
+            pRedNoteEl.innerText = "";
+            pRedNoteEl.style.display = "none";
+        }
+
+        const printPageEl = document.getElementById("singlePrintPage");
+        printPageEl.style.setProperty('--print-qr-w', size + 'px');
+        printPageEl.style.setProperty('--print-qr-h', size + 'px');
+
+        const pQr = document.getElementById("pQrContainer");
+        pQr.innerHTML = "";
+        new QRCode(pQr, {
+            text: url,
+            width: parseInt(size),
+            height: parseInt(size),
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.H
+        });
+
+        const pPhoneQr = document.getElementById("pPhoneQrContainer");
+        pPhoneQr.innerHTML = "";
+        new QRCode(pPhoneQr, {
+            text: "tel:07841503344",
+            width: 45,
+            height: 45,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.L
+        });
+
+        setTimeout(() => {
+            window.print();
+        }, 300);
+    }
+
+    function addField() {
+        const container = document.getElementById('inputs-container');
+        const div = document.createElement('div');
+        div.className = 'image-input-group';
+        div.innerHTML = `
+            <input type="file" accept="image/*" class="image-input">
+            <button type="button" class="merge-btn-danger" onclick="this.parentElement.remove()" style="background-color: #f44336; color:#fff;">حذف</button>
+        `;
+        container.appendChild(div);
+    }
+
+    async function mergeImages() {
+        const fileInputs = document.querySelectorAll('.merge-modal-body .image-input');
+        const imageFiles = [];
+
+        fileInputs.forEach(input => {
+            if (input.files && input.files[0]) {
+                imageFiles.push(input.files[0]);
+            }
+        });
+
+        if (imageFiles.length === 0) {
+            alert('الرجاء اختيار صورة واحدة على الأقل!');
+            return;
+        }
+
+        const loadedImages = await Promise.all(imageFiles.map(file => {
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => resolve(img);
+                img.onerror = reject;
+                img.src = URL.createObjectURL(file);
+            });
+        }));
+
+        const targetWidth = loadedImages[0].width; 
+        
+        let totalHeight = 0;
+        const scaledImages = loadedImages.map(img => {
+            const scaledHeight = (img.height * targetWidth) / img.width;
+            totalHeight += scaledHeight;
+            return { img: img, height: scaledHeight };
+        });
+
+        const canvas = document.getElementById('mergeCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = targetWidth;
+        canvas.height = totalHeight;
+
+        let currentY = 0;
+        scaledImages.forEach(item => {
+            ctx.drawImage(item.img, 0, currentY, targetWidth, item.height);
+            currentY += item.height;
+        });
+
+        const dataURL = canvas.toDataURL('image/png');
+        
+        const resultImg = document.getElementById('mergedResult');
+        resultImg.src = dataURL;
+        resultImg.style.display = 'block';
+
+        const downloadLink = document.getElementById('downloadLink');
+        downloadLink.href = dataURL;
+        downloadLink.style.display = 'block';
+    }
+</script>
+
+</body>
+</html>
