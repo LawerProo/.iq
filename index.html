@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام إدارة وتوثيق الدعاوى القضائية</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+          apiKey: "AIzaSyCnAg_4zW8BHVjKp_C-38E-0LNBj8OmyFg",
+          authDomain: "lawyer-29611.firebaseapp.com",
+          projectId: "lawyer-29611",
+          storageBucket: "lawyer-29611.firebasestorage.app",
+          messagingSenderId: "545328949989",
+          appId: "1:545328949989:web:1f3e49f0a7a8269267020c"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+        let selectedFileBase64 = "";
+        let selectedFileName = "";
+
+        onAuthStateChanged(auth, (user) => {
+            const loginBox = document.getElementById('loginSection');
+            const appBox = document.getElementById('appSection');
+            const userEmailSpan = document.getElementById('userEmailDisplay');
+
+            if (user) {
+                currentUser = user;
+                loginBox.style.display = 'none';
+                appBox.style.display = 'block';
+                userEmailSpan.textContent = user.email;
+            } else {
+                currentUser = null;
+                loginBox.style.display = 'block';
+                appBox.style.display = 'none';
+            }
+        });
+
+        window.loginUser = async function() {
+            const email = document.getElementById('email').value.trim();
+            const password = document.getElementById('password').value.trim();
+            const errorMsg = document.getElementById('loginError');
+
+            if (!email || !password) {
+                errorMsg.textContent = "يرجى إدخال البريد وكلمة المرور.";
+                return;
+            }
+
+            try {
+                errorMsg.style.color = "#3b82f6";
+                errorMsg.textContent = "جاري تسجيل الدخول...";
+                await signInWithEmailAndPassword(auth, email, password);
+                errorMsg.textContent = "";
+            } catch (error) {
+                errorMsg.style.color = "#ef4444";
+                errorMsg.textContent = "فشل: " + error.message;
+            }
+        };
+
+        window.logoutUser = async function() {
+            await signOut(auth);
+        };
+
+        window.changeUserPassword = async function() {
+            if (!currentUser) return;
+            const newPass = document.getElementById('newPassword').value.trim();
+            const passMsg = document.getElementById('passMessage');
+
+            if (!newPass || newPass.length < 6) {
+                passMsg.style.color = "#ef4444";
+                passMsg.textContent = "6 رموز على الأقل.";
+                return;
+            }
+
+            try {
+                passMsg.style.color = "#3b82f6";
+                passMsg.textContent = "جاري التحديث...";
+                await updatePassword(currentUser, newPass);
+                passMsg.style.color = "#10b981";
+                passMsg.textContent = "تم التحديث بنجاح! ✅";
+                document.getElementById('newPassword').value = "";
+                setTimeout(() => {
+                    document.getElementById('passwordSection').style.display = "none";
+                    passMsg.textContent = "";
+                }, 3000);
+            } catch (error) {
+                passMsg.style.color = "#ef4444";
+                passMsg.textContent = "فشل: " + error.message;
+            }
+        };
+
+        window.togglePasswordSection = function() {
+            const section = document.getElementById('passwordSection');
+            section.style.display = section.style.display === 'none' ? 'block' : 'none';
+        };
+
+        // دالة ذكية لضغط وتصغير الصورة تلقائياً لكي لا تتجاوز حجم فايربيس
+        window.handleFileSelect = function(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            selectedFileName = file.name;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    const canvas = document.createElement('canvas');
+                    let width = img.width;
+                    let height = img.height;
+                    
+                    // تصغير أبعاد الصورة إذا كانت كبيرة جداً (أقصى عرض 800 بكسل)
+                    const maxWidth = 800;
+                    if (width > maxWidth) {
+                        height = Math.round((height * maxWidth) / width);
+                        width = maxWidth;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(img, 0, 0, width, height);
+
+                    // تحويل الصورة لصيغة ضغط جودة 70% لضمان صغر حجمها
+                    selectedFileBase64 = canvas.toDataURL('image/jpeg', 0.7);
+                    document.getElementById('fileInfo').innerHTML = `📎 تم ضغط وتجهيز الصورة بنجاح: <b>${file.name}</b>`;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        };
+
+        window.saveDataToFirebase = async function() {
+            if (!currentUser) {
+                alert("يرجى تسجيل الدخول أولاً!");
+                return;
+            }
+
+            const caseNumber = document.getElementById('caseNumber').value.trim();
+            const complainant = document.getElementById('complainant').value.trim();
+            
+            if (!caseNumber || !complainant) {
+                alert("يرجى إدخال رقم الدعوة واسم المشتكي!");
+                return;
+            }
+
+            try {
+                const docId = caseNumber.replace(/\//g, '_');
+                
+                const caseData = {
+                    userId: currentUser.uid,
+                    caseNumber: caseNumber,
+                    caseTitle: document.getElementById('caseTitle').value,
+                    complainant: complainant,
+                    defendant: document.getElementById('defendant').value,
+                    court: document.getElementById('court').value,
+                    locationUrl: document.getElementById('locationUrl').value,
+                    fileData: selectedFileBase64 || "",
+                    fileName: selectedFileName || ""
+                };
+
+                await setDoc(doc(db, "cases", docId), caseData);
+                alert("تم حفظ الدعوة بنجاح تام! ✅");
+            } catch (error) {
+                alert("خطأ أثناء الحفظ: " + error.message);
+            }
+        };
+
+        window.fetchDataFromFirebase = async function() {
+            if (!currentUser) return;
+            const queryNum = document.getElementById('searchQuery').value.trim();
+            if (!queryNum) {
+                alert("أدخل رقم الدعوة للبحث.");
+                return;
+            }
+
+            try {
+                const docId = queryNum.replace(/\//g, '_');
+                const docRef = doc(db, "cases", docId);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    document.getElementById('caseNumber').value = data.caseNumber || '';
+                    document.getElementById('caseTitle').value = data.caseTitle || '';
+                    document.getElementById('complainant').value = data.complainant || '';
+                    document.getElementById('defendant').value = data.defendant || '';
+                    document.getElementById('court').value = data.court || '';
+                    document.getElementById('locationUrl').value = data.locationUrl || '';
+                    
+                    if (data.locationUrl) generateQRCode();
+
+                    selectedFileBase64 = data.fileData || "";
+                    selectedFileName = data.fileName || "";
+
+                    if (selectedFileName) {
+                        document.getElementById('fileInfo').innerHTML = `📎 الملف المرفق: <a href="${selectedFileBase64}" download="${selectedFileName}" style="color: #2980b9; font-weight: bold;">تحميل (${selectedFileName})</a>`;
+                    } else {
+                        document.getElementById('fileInfo').textContent = "";
+                    }
+                    alert("تم استرجاع الدعوة بنجاح! 🔍");
+                } else {
+                    alert("لم يتم العثور على دعوة بهذا الرقم.");
+                }
+            } catch (error) {
+                alert("خطأ: " + error.message);
+            }
+        };
+    </script>
+
+    <style>
+        :root {
+            --primary-color: #1e3a8a;
+            --secondary-color: #3b82f6;
+            --success-color: #10b981;
+            --print-color: #f59e0b;
+            --danger-color: #ef4444;
+            --bg-color: #f8fafc;
+            --card-bg: #ffffff;
+            --text-main: #1e293b;
+            --border-color: #cbd5e1;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; color: var(--text-main); }
+        .container { max-width: 850px; background: var(--card-bg); margin: 0 auto; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; }
+        .auth-card { max-width: 380px; margin: 40px auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; text-align: center; }
+        .auth-card h2 { color: var(--primary-color); margin-bottom: 20px; font-size: 20px; }
+        .auth-group { margin-bottom: 15px; text-align: right; }
+        .auth-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
+        .auth-group input { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; font-size: 15px; }
+        .btn-main { background-color: var(--primary-color); color: white; border: none; width: 100%; padding: 12px; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .error-text { font-size: 13px; margin-top: 10px; word-break: break-word; }
+        .user-bar { display: flex; justify-content: space-between; align-items: center; background: #eff6ff; padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; border: 1px solid #bfdbfe; flex-wrap: wrap; gap: 10px; }
+        .user-actions { display: flex; gap: 8px; }
+        .btn-settings { background-color: var(--print-color); color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
+        .btn-logout { background-color: var(--danger-color); color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .password-box { background: #fff; border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none; }
+        .header-title { text-align: center; color: var(--primary-color); margin-bottom: 20px; font-size: 22px; font-weight: 700; }
+        .search-section { background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
+        .search-section input { flex: 1; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background: #fff; outline: none; }
+        .btn-search { background-color: var(--secondary-color); color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        .form-group { margin-bottom: 12px; }
+        .form-group.full-width { grid-column: span 2; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; color: #475569; font-size: 13px; }
+        input[type="text"], input[type="url"], input[type="file"], input[type="email"], input[type="password"] { width: 100%; padding: 9px 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background: #fdfdfd; }
+        input[type="file"] { padding: 6px; background: #f8fafc; cursor: pointer; }
+        .qrcode-section { text-align: center; margin-top: 12px; padding: 12px; background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; display: none; }
+        #qrcode { display: inline-block; margin-top: 6px; padding: 6px; background: white; border-radius: 8px; }
+        .actions-section { display: flex; gap: 10px; justify-content: center; margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 15px; }
+        .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; }
+        .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; }
+    </style>
+</head>
+<body>
+
+    <div id="loginSection" class="auth-card">
+        <h2>🔐 تسجيل الدخول للإدارة</h2>
+        <div class="auth-group">
+            <label>البريد الإلكتروني:</label>
+            <input type="email" id="email" placeholder="name@example.com">
+        </div>
+        <div class="auth-group">
+            <label>كلمة المرور:</label>
+            <input type="password" id="password" placeholder="********">
+        </div>
+        <button type="button" class="btn-main" onclick="loginUser()">تسجيل الدخول</button>
+        <div id="loginError" class="error-text"></div>
+    </div>
+
+    <div class="container" id="appSection" style="display: none;">
+        <div class="user-bar">
+            <span>👤 المستخدم: <strong id="userEmailDisplay"></strong></span>
+            <div class="user-actions">
+                <button type="button" class="btn-settings" onclick="togglePasswordSection()">🔑 تغيير الرمز</button>
+                <button type="button" class="btn-logout" onclick="logoutUser()">خروج</button>
+            </div>
+        </div>
+
+        <div id="passwordSection" class="password-box">
+            <h4 style="margin: 0 0 10px 0; font-size: 15px; color: var(--primary-color);">تغيير كلمة المرور</h4>
+            <div style="display: flex; gap: 8px;">
+                <input type="password" id="newPassword" placeholder="الجديدة (6 رموز على الأقل)" style="flex: 1;">
+                <button type="button" class="btn-search" onclick="changeUserPassword()">تحديث</button>
+            </div>
+            <div id="passMessage" style="font-size: 12px; margin-top: 6px;"></div>
+        </div>
+
+        <h2 class="header-title">⚖️ نظام إدارة وتوثيق الدعاوى</h2>
+        
+        <div class="search-section">
+            <input type="text" id="searchQuery" placeholder="بحث برقم الدعوة...">
+            <button type="button" class="btn-search" onclick="fetchDataFromFirebase()">🔍 استعلام</button>
+        </div>
+
+        <form id="lawForm">
+            <div class="form-grid">
+                <div class="form-group">
+                    <label>رقم الدعوة:</label>
+                    <input type="text" id="caseNumber" placeholder="مثال: 2">
+                </div>
+                <div class="form-group">
+                    <label>المحكمة المختصة:</label>
+                    <input type="text" id="court" placeholder="مثال: بداءة بغداد">
+                </div>
+                <div class="form-group full-width">
+                    <label>عنوان الدعوة (موضوعها):</label>
+                    <input type="text" id="caseTitle" placeholder="أدخل موضوع الدعوة">
+                </div>
+                <div class="form-group">
+                    <label>اسم المشتكي:</label>
+                    <input type="text" id="complainant" placeholder="الاسم الثلاثي">
+                </div>
+                <div class="form-group">
+                    <label>اسم المشكو منه:</label>
+                    <input type="text" id="defendant" placeholder="الاسم الثلاثي">
+                </div>
+                <div class="form-group full-width">
+                    <label>مرفقات الدعوة (صورة أو ملف):</label>
+                    <input type="file" id="attachment" accept=".jpg, .jpeg, .png" onchange="handleFileSelect(event)">
+                    <div id="fileInfo" style="margin-top: 5px; font-size: 12px; color: #64748b;"></div>
+                </div>
+                <div class="form-group full-width">
+                    <label>رابط موقع الدعوة (الإلكتروني):</label>
+                    <input type="text" id="locationUrl" placeholder="https://example.com">
+                </div>
+            </div>
+
+            <div class="qrcode-section" id="qrcodeContainer">
+                <span style="font-size: 12px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">QR Code:</span>
+                <div id="qrcode"></div>
+            </div>
+
+            <div class="actions-section">
+                <button type="button" class="btn-save" onclick="saveDataToFirebase()">💾 حفظ في النظام</button>
+                <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة</button>
+            </div>
+        </form>
+    </div>
+
+<script>
+    function generateQRCode() {
+        const urlInput = document.getElementById('locationUrl').value.trim();
+        const qrcodeContainer = document.getElementById('qrcodeContainer');
+        const qrcodeDiv = document.getElementById('qrcode');
+        if (urlInput === "") return;
+        qrcodeContainer.style.display = "block";
+        qrcodeDiv.innerHTML = "";
+        new QRCode(qrcodeDiv, {
+            text: urlInput,
+            width: 90,
+            height: 90,
+            colorDark : "#1e3a8a",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
+        });
+    }
+    document.getElementById('locationUrl').addEventListener('input', generateQRCode);
+</script>
+</body>
+</html>
