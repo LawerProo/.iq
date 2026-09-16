@@ -42,6 +42,9 @@
                 currentUser = null;
                 loginBox.style.display = 'block';
                 appBox.style.display = 'none';
+                // تفريغ خانات الدخول تماماً عند الخروج لضمان عدم دخولها أوتوماتيكياً
+                document.getElementById('email').value = "";
+                document.getElementById('password').value = "";
             }
         });
 
@@ -103,7 +106,6 @@
             section.style.display = section.style.display === 'none' ? 'block' : 'none';
         };
 
-        // ضغط وتصغير الصورة تلقائياً لتجنب حدود فايربيس
         window.handleFileSelect = function(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -161,8 +163,9 @@
                     defendant: document.getElementById('defendant').value,
                     court: document.getElementById('court').value,
                     locationUrl: document.getElementById('locationUrl').value,
-                    privateNotes: document.getElementById('privateNotes').value, // الملاحظات الخاصة بالحفظ فقط
-                    watermarkText: document.getElementById('watermarkText').value, // نص العلامة المائية للطباعة
+                    privateNotes: document.getElementById('privateNotes').value,
+                    watermarkText: document.getElementById('watermarkText').value,
+                    barcodeSubText: document.getElementById('barcodeSubText').value, // النص السفلي للباركود
                     fileData: selectedFileBase64 || "",
                     fileName: selectedFileName || ""
                 };
@@ -197,8 +200,12 @@
                     document.getElementById('locationUrl').value = data.locationUrl || '';
                     document.getElementById('privateNotes').value = data.privateNotes || '';
                     document.getElementById('watermarkText').value = data.watermarkText || '';
+                    document.getElementById('barcodeSubText').value = data.barcodeSubText || '';
                     
                     if (data.locationUrl) generateQRCode();
+                    if (data.barcodeSubText) {
+                        document.getElementById('barcodeSubTextDisplay').textContent = data.barcodeSubText;
+                    }
 
                     selectedFileBase64 = data.fileData || "";
                     selectedFileName = data.fileName || "";
@@ -258,11 +265,19 @@
         textarea { resize: vertical; height: 75px; }
         .qrcode-section { text-align: center; margin-top: 12px; padding: 12px; background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; display: none; }
         #qrcode { display: inline-block; margin-top: 6px; padding: 6px; background: white; border-radius: 8px; }
+        
+        /* تنسيق النص السفلي للباركود باللون الأحمر */
+        .barcode-sub-text {
+            margin-top: 6px;
+            font-size: 14px;
+            font-weight: bold;
+            color: #dc2626; /* لون أحمر */
+        }
+
         .actions-section { display: flex; gap: 10px; justify-content: center; margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 15px; }
         .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; }
         .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; }
 
-        /* طبقة العلامة المائية للطباعة لمنع التزوير */
         #watermarkLayer {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
@@ -272,45 +287,39 @@
             pointer-events: none;
             z-index: 9999;
             overflow: hidden;
-            opacity: 0; /* مخفية تماماً أثناء الاستخدام العادي وتظهر فقط عند الطباعة إذا تم إدخال نص */
+            opacity: 0;
         }
         .watermark-text-style {
             font-size: 60px;
             font-weight: bold;
-            color: rgba(30, 58, 138, 0.08); /* لون خفيف جداً وشفاف لكي لا يحجب القراءة */
+            color: rgba(30, 58, 138, 0.08);
             transform: rotate(-35deg);
             white-space: nowrap;
             text-align: center;
             user-select: none;
         }
 
-        /* تخصيصات الطباعة */
         @media print {
             body { background: white !important; padding: 0 !important; }
             .container { border: none !important; box-shadow: none !important; width: 100% !important; padding: 0 !important; }
             .user-bar, .search-section, .actions-section, .auth-card, #passwordSection { display: none !important; }
-            
-            /* إخفاء الملاحظات الخاصة، المرفقات، والرابط تماماً عند الطباعة */
             .hide-on-print { display: none !important; }
-
-            /* إظهار العلامة المائية بوضوح عند الطباعة إذا كتب الموظف اسمها */
-            #watermarkLayer {
-                opacity: 1 !important;
-            }
+            #watermarkLayer { opacity: 1 !important; }
         }
     </style>
 </head>
 <body>
 
+    <!-- حقول تسجيل الدخول فارغة تماماً ولا تدخل تلقائياً -->
     <div id="loginSection" class="auth-card">
         <h2>🔐 تسجيل الدخول للإدارة</h2>
         <div class="auth-group">
             <label>البريد الإلكتروني:</label>
-            <input type="email" id="email" placeholder="name@example.com">
+            <input type="email" id="email" placeholder="name@example.com" autocomplete="off">
         </div>
         <div class="auth-group">
             <label>كلمة المرور:</label>
-            <input type="password" id="password" placeholder="********">
+            <input type="password" id="password" placeholder="********" autocomplete="new-password">
         </div>
         <button type="button" class="btn-main" onclick="loginUser()">تسجيل الدخول</button>
         <div id="loginError" class="error-text"></div>
@@ -318,7 +327,6 @@
 
     <div class="container" id="appSection" style="display: none;">
         
-        <!-- طبقة العلامة المائية الخلفية لمنع التزوير -->
         <div id="watermarkLayer">
             <div class="watermark-text-style" id="watermarkDisplay"></div>
         </div>
@@ -370,36 +378,39 @@
                     <input type="text" id="defendant" placeholder="الاسم الثلاثي">
                 </div>
 
-                <!-- مرفقات الدعوة (تخفي تلقائياً عند الطباعة) -->
                 <div class="form-group full-width hide-on-print">
                     <label>مرفقات الدعوة (صورة أو ملف):</label>
                     <input type="file" id="attachment" accept=".jpg, .jpeg, .png" onchange="handleFileSelect(event)">
                     <div id="fileInfo" style="margin-top: 5px; font-size: 12px; color: #64748b;"></div>
                 </div>
 
-                <!-- رابط الموقع الإلكتروني (يخفي تلقائياً عند الطباعة) -->
                 <div class="form-group full-width hide-on-print">
                     <label>رابط موقع الدعوة (الإلكتروني):</label>
                     <input type="text" id="locationUrl" placeholder="https://example.com">
                 </div>
 
-                <!-- الملاحظات والتعليمات الداخلية (تخفي تماماً عند الطباعة ولا تظهر إلا بالحفظ) -->
+                <!-- حقل النص السفلي للباركود -->
+                <div class="form-group full-width hide-on-print">
+                    <label>النص السفلي للباركود (يظهر باللون الأحمر تحت الباركود عند الطباعة):</label>
+                    <input type="text" id="barcodeSubText" placeholder="مثال: صالح للنشر والاعتماد الرسمي">
+                </div>
+
                 <div class="form-group full-width hide-on-print">
                     <label>ملاحظات إضافية (خاصة بالحفظ الداخلي ولا تظهر عند الطباعة):</label>
                     <textarea id="privateNotes" placeholder="أدخل أي ملاحظات سرية أو إدارية خاصة بالدعوة..."></textarea>
                 </div>
 
-                <!-- حقل اسم الورقة المائية لمنع التزوير (يخفي عند الطباعة ويطبع كمحتوى مائي خلف الورقة) -->
                 <div class="form-group full-width hide-on-print">
                     <label>اسم المسؤول / المدقق (يظهر كورقة مائية خلفية للطباعة لمنع التزوير):</label>
                     <input type="text" id="watermarkText" placeholder="مثال: م, أحمد العزاوي - شعبة التدقيق">
                 </div>
             </div>
 
-            <!-- الباركود (يظهر بوضوح عند الطباعة) -->
+            <!-- الباركود مع النص السفلي الأحمر -->
             <div class="qrcode-section" id="qrcodeContainer">
                 <span style="font-size: 12px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">QR Code (رمز التحقق الرسمي):</span>
                 <div id="qrcode"></div>
+                <div id="barcodeSubTextDisplay" class="barcode-sub-text"></div>
             </div>
 
             <div class="actions-section">
@@ -428,7 +439,11 @@
     }
     document.getElementById('locationUrl').addEventListener('input', generateQRCode);
 
-    // تحديث نص العلامة المائية تلقائياً خلف المستند عند الكتابة
+    // ربط حقل النص السفلي بالباركود لتحديثه فوراً
+    document.getElementById('barcodeSubText').addEventListener('input', function() {
+        document.getElementById('barcodeSubTextDisplay').textContent = this.value;
+    });
+
     document.getElementById('watermarkText').addEventListener('input', function() {
         document.getElementById('watermarkDisplay').textContent = this.value;
     });
