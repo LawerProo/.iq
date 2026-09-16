@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة وتوثيق الدعاوى القضائية وقانون العقوبات العراقي</title>
+    <title>نظام إدارة وتوثيق الدعاوى القضائية</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <script type="module">
@@ -231,59 +231,62 @@
             --success-color: #10b981;
             --print-color: #f59e0b;
             --danger-color: #ef4444;
-            --bg-color: #f8fafc;
+            --bg-color: #f1f5f9;
             --card-bg: #ffffff;
             --text-main: #1e293b;
             --border-color: #cbd5e1;
         }
 
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; color: var(--text-main); }
-        .container { max-width: 850px; background: var(--card-bg); margin: 0 auto; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; position: relative; overflow: hidden; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); margin: 0; padding: 10px; color: var(--text-main); }
         
-        .auth-card { max-width: 380px; margin: 40px auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; text-align: center; }
+        /* جعل التصميم بعرض الشاشة الكاملة مع هوامش بسيطة مريحة للعين */
+        .container { width: 100%; max-width: 100%; background: var(--card-bg); margin: 0 auto; padding: 20px 30px; box-sizing: border-box; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04); position: relative; }
+        
+        .auth-card { max-width: 380px; margin: 60px auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; text-align: center; }
         .auth-card h2 { color: var(--primary-color); margin-bottom: 20px; font-size: 20px; }
         .auth-group { margin-bottom: 15px; text-align: right; }
         .auth-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
         .auth-group input { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; font-size: 15px; }
         .btn-main { background-color: var(--primary-color); color: white; border: none; width: 100%; padding: 12px; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 10px; }
         .error-text { font-size: 13px; margin-top: 10px; word-break: break-word; }
-        .user-bar { display: flex; justify-content: space-between; align-items: center; background: #eff6ff; padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; border: 1px solid #bfdbfe; flex-wrap: wrap; gap: 10px; }
+        
+        .user-bar { display: flex; justify-content: space-between; align-items: center; background: #eff6ff; padding: 10px 20px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; border: 1px solid #bfdbfe; flex-wrap: wrap; gap: 10px; }
         .user-actions { display: flex; gap: 8px; flex-wrap: wrap; }
-        .btn-settings { background-color: var(--print-color); color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
-        .btn-legal { background-color: #8b5cf6; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
-        .btn-logout { background-color: var(--danger-color); color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        .btn-settings { background-color: var(--print-color); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
+        .btn-legal { background-color: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
+        .btn-logout { background-color: var(--danger-color); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
         
-        .password-box { background: #fff; border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none; }
-        .header-title { text-align: center; color: var(--primary-color); margin-bottom: 20px; font-size: 22px; font-weight: 700; }
-        .search-section { background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
-        .search-section input { flex: 1; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background: #fff; outline: none; }
-        .btn-search { background-color: var(--secondary-color); color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; }
+        .password-box { background: #fff; border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: none; }
+        .header-title { text-align: center; color: var(--primary-color); margin-bottom: 15px; font-size: 22px; font-weight: 700; }
         
-        /* قسم البحث في القوانين السريعة */
-        .legal-search-bar { background: #f3e8ff; border: 1px solid #d8b4fe; padding: 12px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
-        .legal-search-bar input { flex: 1; padding: 8px 12px; border: 1px solid #c084fc; border-radius: 8px; font-size: 14px; background: #fff; outline: none; }
-        .btn-legal-search { background-color: #7c3aed; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; }
+        /* تنظيم شريطي البحث جنباً إلى جنب بشكل احترافي وصغير */
+        .search-container-top { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
+        .search-box-item { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 15px; border-radius: 10px; display: flex; gap: 8px; align-items: center; }
+        .search-box-item.legal { background: #f3e8ff; border-color: #d8b4fe; }
+        .search-box-item input { flex: 1; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: #fff; outline: none; }
+        .search-box-item.legal input { border-color: #c084fc; }
+        
+        .btn-search { background-color: var(--secondary-color); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; white-space: nowrap; }
+        .btn-legal-search { background-color: #7c3aed; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; white-space: nowrap; }
 
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+        /* شبكة النماذج بعرض الشاشة */
+        .form-grid { display: grid; grid-template-columns: 1.2fr 1.8fr 3fr; gap: 15px; align-items: end; }
         .form-group { margin-bottom: 12px; }
-        .form-group.full-width { grid-column: span 2; }
-        label { display: block; margin-bottom: 5px; font-weight: 600; color: #475569; font-size: 13px; }
-        input[type="text"], input[type="url"], input[type="file"], input[type="email"], input[type="password"], textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background: #fdfdfd; font-family: inherit; }
-        input[type="file"] { padding: 6px; background: #f8fafc; cursor: pointer; }
-        textarea { resize: vertical; height: 75px; }
-        .qrcode-section { text-align: center; margin-top: 12px; padding: 12px; background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; display: none; }
-        #qrcode { display: inline-block; margin-top: 6px; padding: 6px; background: white; border-radius: 8px; }
+        .form-group.full-width { grid-column: span 3; }
         
-        .barcode-sub-text {
-            margin-top: 6px;
-            font-size: 14px;
-            font-weight: bold;
-            color: #dc2626;
-        }
+        label { display: block; margin-bottom: 4px; font-weight: 600; color: #475569; font-size: 12.5px; }
+        input[type="text"], input[type="url"], input[type="file"], input[type="email"], input[type="password"], textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13.5px; box-sizing: border-box; background: #fdfdfd; font-family: inherit; }
+        input[type="file"] { padding: 5px; background: #f8fafc; cursor: pointer; }
+        textarea { resize: vertical; height: 60px; }
+        
+        .qrcode-section { text-align: center; margin-top: 10px; padding: 10px; background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 10px; display: none; }
+        #qrcode { display: inline-block; margin-top: 5px; padding: 5px; background: white; border-radius: 6px; }
+        
+        .barcode-sub-text { margin-top: 4px; font-size: 13px; font-weight: bold; color: #dc2626; }
 
-        .actions-section { display: flex; gap: 10px; justify-content: center; margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 15px; }
-        .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; }
-        .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; }
+        .actions-section { display: flex; gap: 10px; justify-content: center; margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 15px; }
+        .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 25px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
+        .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 25px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
 
         #watermarkLayer {
             position: absolute;
@@ -309,7 +312,7 @@
         @media print {
             body { background: white !important; padding: 0 !important; }
             .container { border: none !important; box-shadow: none !important; width: 100% !important; padding: 0 !important; }
-            .user-bar, .search-section, .legal-search-bar, .actions-section, .auth-card, #passwordSection { display: none !important; }
+            .user-bar, .search-container-top, .actions-section, .auth-card, #passwordSection { display: none !important; }
             .hide-on-print { display: none !important; }
             #watermarkLayer { opacity: 1 !important; }
         }
@@ -349,7 +352,7 @@
         </div>
 
         <div id="passwordSection" class="password-box">
-            <h4 style="margin: 0 0 10px 0; font-size: 15px; color: var(--primary-color);">تغيير كلمة المرور</h4>
+            <h4 style="margin: 0 0 10px 0; font-size: 14px; color: var(--primary-color);">تغيير كلمة المرور</h4>
             <div style="display: flex; gap: 8px;">
                 <input type="password" id="newPassword" placeholder="الجديدة (6 رموز على الأقل)" style="flex: 1;">
                 <button type="button" class="btn-search" onclick="changeUserPassword()">تحديث</button>
@@ -359,20 +362,21 @@
 
         <h2 class="header-title">⚖️ نظام إدارة وتوثيق الدعاوى</h2>
         
-        <!-- شريط البحث برقم الدعوة المطلوبة -->
-        <div class="search-section">
-            <input type="text" id="searchQuery" placeholder="أدخل رقم الدعوة للبحث والاستعلام...">
-            <button type="button" class="btn-search" onclick="fetchDataFromFirebase()">🔍 بحث برقم الدعوة</button>
-        </div>
-
-        <!-- شريط البحث السريع في قانون العقوبات (عبر الانتقال للبحث بالموقع أو المادة) -->
-        <div class="legal-search-bar">
-            <input type="text" id="legalSearchInput" placeholder="أبحث برقم المادة أو الكلمة في قانون العقوبات (مثال: المادة 406)...">
-            <button type="button" class="btn-legal-search" onclick="searchLegalCode()">⚖️ بحث في القانون</button>
+        <!-- حقول البحث في أعلى الصفحة جنباً إلى جنب بشكل احترافي وصغير -->
+        <div class="search-container-top">
+            <div class="search-box-item">
+                <input type="text" id="searchQuery" placeholder="بحث برقم الدعوة...">
+                <button type="button" class="btn-search" onclick="fetchDataFromFirebase()">🔍 بحث الدعوى</button>
+            </div>
+            <div class="search-box-item legal">
+                <input type="text" id="legalSearchInput" placeholder="بحث بالمادة القانونية (مثال: 406)...">
+                <button type="button" class="btn-legal-search" onclick="searchLegalCode()">⚖️ بحث بالقانون</button>
+            </div>
         </div>
 
         <form id="lawForm">
             <div class="form-grid">
+                <!-- الصف الأول: رقم الدعوة صغير + المحكمة + موضوع الدعوة ممتد -->
                 <div class="form-group">
                     <label>رقم الدعوة:</label>
                     <input type="text" id="caseNumber" placeholder="مثال: 2">
@@ -381,10 +385,12 @@
                     <label>المحكمة المختصة:</label>
                     <input type="text" id="court" placeholder="مثال: بداءة بغداد">
                 </div>
-                <div class="form-group full-width">
+                <div class="form-group">
                     <label>عنوان الدعوة (موضوعها):</label>
                     <input type="text" id="caseTitle" placeholder="أدخل موضوع الدعوة">
                 </div>
+
+                <!-- الصف الثاني: الأطراف وباقي الحقول -->
                 <div class="form-group">
                     <label>اسم المشتكي:</label>
                     <input type="text" id="complainant" placeholder="الاسم الثلاثي">
@@ -393,31 +399,31 @@
                     <label>اسم المشكو منه:</label>
                     <input type="text" id="defendant" placeholder="الاسم الثلاثي">
                 </div>
-
-                <div class="form-group full-width hide-on-print">
-                    <label>مرفقات الدعوة (صورة أو ملف):</label>
+                <div class="form-group hide-on-print">
+                    <label>مرفقات الدعوة (صورة/ملف):</label>
                     <input type="file" id="attachment" accept=".jpg, .jpeg, .png" onchange="handleFileSelect(event)">
-                    <div id="fileInfo" style="margin-top: 5px; font-size: 12px; color: #64748b;"></div>
                 </div>
 
-                <div class="form-group full-width hide-on-print">
+                <div class="form-group full-width hide-on-print" style="grid-column: span 3;">
+                    <div id="fileInfo" style="font-size: 12px; color: #64748b;"></div>
+                </div>
+
+                <div class="form-group full-width hide-on-print" style="grid-column: span 1;">
                     <label>رابط موقع الدعوة (الإلكتروني):</label>
                     <input type="text" id="locationUrl" placeholder="https://example.com">
                 </div>
-
-                <div class="form-group full-width hide-on-print">
-                    <label>النص السفلي للباركود (يظهر باللون الأحمر تحت الباركود عند الطباعة):</label>
-                    <input type="text" id="barcodeSubText" placeholder="مثال: صالح للنشر والاعتماد الرسمي">
+                <div class="form-group full-width hide-on-print" style="grid-column: span 1;">
+                    <label>النص السفلي للباركود:</label>
+                    <input type="text" id="barcodeSubText" placeholder="مثال: صالح للنشر والاعتماد">
+                </div>
+                <div class="form-group full-width hide-on-print" style="grid-column: span 1;">
+                    <label>اسم المسؤول / المدقق (الورقة المائية):</label>
+                    <input type="text" id="watermarkText" placeholder="مثال: م, أحمد العزاوي">
                 </div>
 
-                <div class="form-group full-width hide-on-print">
-                    <label>ملاحظات إضافية (خاصة بالحفظ الداخلي ولا تظهر عند الطباعة):</label>
+                <div class="form-group full-width hide-on-print" style="grid-column: span 3;">
+                    <label>ملاحظات إضافية (خاصة بالحفظ الداخلي):</label>
                     <textarea id="privateNotes" placeholder="أدخل أي ملاحظات سرية أو إدارية خاصة بالدعوة..."></textarea>
-                </div>
-
-                <div class="form-group full-width hide-on-print">
-                    <label>اسم المسؤول / المدقق (يظهر كورقة مائية خلفية للطباعة لمنع التزوير):</label>
-                    <input type="text" id="watermarkText" placeholder="مثال: م, أحمد العزاوي - شعبة التدقيق">
                 </div>
             </div>
 
@@ -436,12 +442,10 @@
     </div>
 
 <script>
-    // فتح قانون العقوبات العراقي في تبويب جديد لتجنب مشاكل الحظر الأمني للموقع الخارجي
     function openPenalCode() {
         window.open("https://www.rwi.uzh.ch/dam/jcr:00000000-0c03-6a0c-ffff-ffff96be3560/penalcode1969.pdf", "_blank");
     }
 
-    // زر البحث السريع داخل القوانين عبر جوجل موجهاً لملف القانون مباشرة
     function searchLegalCode() {
         const query = document.getElementById('legalSearchInput').value.trim();
         if(!query) {
@@ -461,8 +465,8 @@
         qrcodeDiv.innerHTML = "";
         new QRCode(qrcodeDiv, {
             text: urlInput,
-            width: 90,
-            height: 90,
+            width: 80,
+            height: 80,
             colorDark : "#1e3a8a",
             colorLight : "#ffffff",
             correctLevel : QRCode.CorrectLevel.H
@@ -470,7 +474,7 @@
     }
     document.getElementById('locationUrl').addEventListener('input', generateQRCode);
 
-    document.getElementById('barcodeSubTest').addEventListener('input', function() {
+    document.getElementById('barcodeSubTest')?.addEventListener('input', function() {
         document.getElementById('barcodeSubTextDisplay').textContent = this.value;
     });
 
