@@ -478,7 +478,7 @@
         .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
         .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
 
-        /* تصميم وثيقة عقد المحاماة القابلة للطباعة بحجم A4 وبشكل متناسق */
+        /* تصميم وثيقة عقد المحاماة القابلة للطباعة بحجم A4 وتوسيط الشعار تماماً */
         .contract-print-container { 
             background: #fff; 
             width: 210mm;
@@ -495,15 +495,15 @@
             overflow: hidden;
         }
 
-        /* تنسيق صورة الخلفية المائية متوسطة تماماً بحجم A4 */
+        /* تنسيق وتوسيط الشعار المائي في منتصف صفحة الـ A4 بدقة */
         .contract-print-container::before {
             content: "";
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
-            width: 80%;
-            height: 80%;
+            width: 75%;
+            height: 75%;
             background-image: url('https://raw.githubusercontent.com/abodabips-spec/Abo-Dabi/refs/heads/main/F0CBF176-4A9B-40CE-BF30-FAFF67BF79B1.png');
             background-repeat: no-repeat;
             background-position: center;
@@ -687,7 +687,7 @@
             </div>
         </form>
 
-        <!-- قسم نموذج عقد محامي القابل للطباعة بحجم A4 -->
+        <!-- قسم نموذج عقد محامي القابل للطباعة بحجم A4 وتوسيط الخلفية -->
         <div id="contractPrintSection" class="contract-print-container">
             <div class="contract-content-wrapper">
                 <div class="contract-title">عقد أتعاب محاماة</div>
