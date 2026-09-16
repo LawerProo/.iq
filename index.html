@@ -478,7 +478,7 @@
         .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
         .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
 
-        /* تصميم وثيقة عقد المحاماة القابلة للطباعة بحجم A4 وتوسيط الشعار تماماً */
+        /* تصميم وثيقة عقد المحاماة بحجم A4 وتوسيط الشعار المائي تماماً بالمنتصف */
         .contract-print-container { 
             background: #fff; 
             width: 210mm;
@@ -492,22 +492,19 @@
             font-size: 14px; 
             position: relative; 
             box-sizing: border-box;
-            overflow: hidden;
         }
 
-        /* تنسيق وتوسيط الشعار المائي في منتصف صفحة الـ A4 بدقة */
         .contract-print-container::before {
             content: "";
             position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 75%;
-            height: 75%;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
             background-image: url('https://raw.githubusercontent.com/abodabips-spec/Abo-Dabi/refs/heads/main/F0CBF176-4A9B-40CE-BF30-FAFF67BF79B1.png');
             background-repeat: no-repeat;
-            background-position: center;
-            background-size: contain;
+            background-position: center center;
+            background-size: 65% auto;
             opacity: 0.10;
             pointer-events: none;
             z-index: 1;
@@ -687,7 +684,7 @@
             </div>
         </form>
 
-        <!-- قسم نموذج عقد محامي القابل للطباعة بحجم A4 وتوسيط الخلفية -->
+        <!-- قسم نموذج عقد محامي القابل للطباعة بحجم A4 -->
         <div id="contractPrintSection" class="contract-print-container">
             <div class="contract-content-wrapper">
                 <div class="contract-title">عقد أتعاب محاماة</div>
