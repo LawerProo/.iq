@@ -146,6 +146,11 @@
             window.open('https://www.rwi.uzh.ch/dam/jcr:00000000-0c03-6a0c-ffff-ffff96be3560/penalcode1969.pdf', '_blank');
         };
 
+        // دالة فتح صفحة محفظتي
+        window.openMyWalletPage = function() {
+            window.open('https://drive.google.com', '_blank');
+        };
+
         function populateDateDropdowns() {
             const yearSelect = document.getElementById('contractYear');
             const monthSelect = document.getElementById('contractMonth');
@@ -611,18 +616,18 @@
             box-shadow: 0 2px 0 #7f1d1d;
         }
 
-        /* 5. الأزرار الثانوية (قوانين، عقد، أرشيف مالي، ليلي، عودة، رمادي) */
-        .btn-open-financial-top, .btn-open-contract-top, .btn-open-laws-top, .btn-theme-toggle, .btn-back {
+        /* 5. الأزرار الثانوية (محفظتي، قوانين، عقد، أرشيف مالي، ليلي، عودة، رمادي) */
+        .btn-open-wallet-top, .btn-open-financial-top, .btn-open-contract-top, .btn-open-laws-top, .btn-theme-toggle, .btn-back {
             background: linear-gradient(135deg, #64748b 0%, #334155 100%);
             color: white;
             box-shadow: 0 4px 0 #1e293b, 0 6px 12px rgba(100, 116, 139, 0.3);
         }
-        .btn-open-financial-top:hover, .btn-open-contract-top:hover, .btn-open-laws-top:hover, .btn-theme-toggle:hover, .btn-back:hover {
+        .btn-open-wallet-top:hover, .btn-open-financial-top:hover, .btn-open-contract-top:hover, .btn-open-laws-top:hover, .btn-theme-toggle:hover, .btn-back:hover {
             background: linear-gradient(135deg, #94a3b8 0%, #475569 100%);
             transform: translateY(-2px);
             box-shadow: 0 6px 0 #1e293b, 0 10px 16px rgba(100, 116, 139, 0.4);
         }
-        .btn-open-financial-top:active, .btn-open-contract-top:active, .btn-open-laws-top:active, .btn-theme-toggle:active, .btn-back:active {
+        .btn-open-wallet-top:active, .btn-open-financial-top:active, .btn-open-contract-top:active, .btn-open-laws-top:active, .btn-theme-toggle:active, .btn-back:active {
             transform: translateY(3px);
             box-shadow: 0 2px 0 #1e293b;
         }
@@ -630,7 +635,7 @@
         /* تخصيص أحجام الأزرار حسب أماكنها في الواجهة */
         .btn-main { width: 100%; padding: 12px; font-size: 16px; margin-top: 10px; }
         
-        .btn-settings, .btn-logout, .btn-open-financial-top, .btn-open-contract-top, .btn-open-laws-top, .btn-theme-toggle {
+        .btn-settings, .btn-logout, .btn-open-wallet-top, .btn-open-financial-top, .btn-open-contract-top, .btn-open-laws-top, .btn-theme-toggle {
             padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px;
         }
 
@@ -790,6 +795,7 @@
                 <div class="user-actions">
                     <button type="button" id="darkModeBtn" class="btn-theme-toggle btn-3d" onclick="toggleDarkMode()">🌙 ليلي</button>
                     <button type="button" class="btn-open-laws-top btn-3d" onclick="openLawsPage()">📖 قوانين</button>
+                    <button type="button" class="btn-open-wallet-top btn-3d" onclick="openMyWalletPage()">📁 محفظتي</button>
                     <button type="button" class="btn-open-contract-top btn-3d" onclick="openContractModal()">📜 عقد محامي</button>
                     <button type="button" class="btn-open-financial-top btn-3d" onclick="openFinancialModal()">💰 الأرشيف المالي</button>
                     <button type="button" class="btn-settings btn-3d" onclick="togglePasswordSection()">🔑 تغيير الرمز</button>
