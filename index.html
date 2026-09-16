@@ -1069,13 +1069,14 @@
             }
             body.print-report #watermarkLayer { opacity: 1 !important; }
 
-            /* حالة 2: طباعة عقد المحامي الرسمي فقط */
+            /* حالة 2: طباعة عقد المحامي الرسمي بحجم A4 مخصص */
             body.print-contract #mainSystemView { display: none !important; }
             body.print-contract .contract-print-container { 
                 display: block !important; 
                 border: none !important; 
                 width: 190mm !important;
-                min-height: auto !important;
+                min-height: 277mm !important;
+                max-height: 277mm !important;
                 margin: 0 auto !important;
                 padding: 0 !important;
                 box-shadow: none !important;
@@ -1083,13 +1084,22 @@
                 box-sizing: border-box !important;
                 color: black !important;
                 background: white !important;
+                font-size: 13.5px !important;
+                line-height: 1.6 !important;
             }
             body.print-contract .contract-print-container::before {
-                opacity: 0.12 !important;
+                opacity: 0.10 !important;
                 width: 100% !important;
                 height: 100% !important;
                 top: 0 !important; left: 0 !important;
                 background-size: 100% 100% !important;
+            }
+            body.print-contract .contract-title {
+                font-size: 16px !important;
+                margin-bottom: 12px !important;
+            }
+            body.print-contract .contract-body-text {
+                margin-bottom: 8px !important;
             }
             body.print-contract .hide-on-print { display: none !important; }
         }
