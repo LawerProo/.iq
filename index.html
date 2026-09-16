@@ -299,14 +299,12 @@
             }
         };
 
-        // دالة مخصصة لطباعة التقرير العام للدعوى فقط (تضيف كلاس print-report وتطبع)
         window.printCaseReportOnly = function() {
             document.body.classList.add('print-report');
             window.print();
             document.body.classList.remove('print-report');
         };
 
-        // دالة مخصصة لطباعة عقد المحامي الرسمي فقط (تضيف كلاس print-contract وتطبع)
         window.printLawyerContractOnly = function() {
             document.body.classList.add('print-contract');
             window.print();
@@ -978,9 +976,12 @@
         }
 
         @media print {
-            @page { size: A4; margin: 0; }
-            body { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; }
-            .container { border: none !important; box-shadow: none !important; width: 100% !important; padding: 0 !important; background: white !important; }
+            @page { 
+                size: A4; 
+                margin: 10mm; 
+            }
+            body { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; width: 210mm !important; }
+            .container { border: none !important; box-shadow: none !important; width: 100% !important; max-width: 100% !important; padding: 0 !important; background: white !important; margin: 0 !important; }
             
             /* حالة 1: طباعة التقرير العام فقط */
             body.print-report #contractPrintSection { display: none !important; }
@@ -996,11 +997,10 @@
             body.print-contract .contract-print-container { 
                 display: block !important; 
                 border: none !important; 
-                width: 210mm !important;
-                height: 297mm !important;
-                max-height: 297mm !important;
-                margin: 0 !important;
-                padding: 18mm !important;
+                width: 190mm !important;
+                min-height: auto !important;
+                margin: 0 auto !important;
+                padding: 0 !important;
                 box-shadow: none !important;
                 page-break-after: always;
                 box-sizing: border-box !important;
