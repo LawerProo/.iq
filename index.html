@@ -106,7 +106,6 @@
             section.style.display = section.style.display === 'none' ? 'block' : 'none';
         };
 
-        // دالة التبديل بين الوضع النهاري والليلي
         window.toggleDarkMode = function() {
             const body = document.body;
             body.classList.toggle('dark-mode');
@@ -116,7 +115,6 @@
             btn.textContent = isDark ? '☀️ نهاري' : '🌙 ليلي';
         };
 
-        // تطبيق الوضع المحفوظ عند التحميل
         window.addEventListener('DOMContentLoaded', () => {
             const savedTheme = localStorage.getItem('themeMode');
             if (savedTheme === 'dark') {
@@ -455,7 +453,6 @@
             --section-bg: #f8fafc;
         }
 
-        /* متغيرات الوضع الليلي (Dark Mode) */
         body.dark-mode {
             --primary-color: #60a5fa;
             --secondary-color: #3b82f6;
@@ -497,10 +494,15 @@
         .password-box { background: var(--card-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; display: none; }
         .header-title { text-align: center; color: var(--primary-color); margin-bottom: 15px; font-size: 22px; font-weight: 700; }
         
-        .search-container-top { display: flex; justify-content: flex-start; margin-bottom: 20px; }
-        .search-box-item { background: var(--section-bg); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 10px; display: flex; gap: 8px; align-items: center; width: 100%; max-width: 320px; }
-        .search-box-item input { flex: 1; padding: 5px 8px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: var(--input-bg); color: var(--text-main); outline: none; text-align: center; letter-spacing: 1px; }
-        .btn-search { background-color: var(--secondary-color); color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; white-space: nowrap; }
+        /* شريط علوي يجمع حقل البحث وموعد الجلسة بجانب بعضهما بنفس الحجم */
+        .top-search-hearing-bar { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
+        .search-box-item { background: var(--section-bg); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 10px; display: flex; gap: 8px; align-items: center; width: 320px; height: 38px; box-sizing: border-box; }
+        .search-box-item input { flex: 1; padding: 4px 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: var(--input-bg); color: var(--text-main); outline: none; text-align: center; letter-spacing: 1px; height: 26px; }
+        .btn-search { background-color: var(--secondary-color); color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; white-space: nowrap; height: 26px; }
+
+        .hearing-box-top { background: var(--section-bg); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 10px; display: flex; gap: 8px; align-items: center; width: 320px; height: 38px; box-sizing: border-box; }
+        .hearing-box-top label { font-size: 12px; font-weight: 600; color: var(--label-color); white-space: nowrap; margin: 0; }
+        .hearing-box-top input[type="datetime-local"] { flex: 1; padding: 4px 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px; background: var(--input-bg); color: var(--text-main); height: 26px; box-sizing: border-box; }
 
         .section-title { font-size: 14px; font-weight: bold; color: var(--primary-color); border-bottom: 2px solid var(--border-color); padding-bottom: 6px; margin: 25px 0 15px 0; grid-column: span 3; background: var(--section-bg); padding-right: 10px; border-radius: 4px; }
         
@@ -509,7 +511,7 @@
         .form-group.full-width { grid-column: span 3; }
         
         label { display: block; margin-bottom: 4px; font-weight: 600; color: var(--label-color); font-size: 12px; }
-        input[type="text"], input[type="url"], input[type="file"], input[type="email"], input[type="password"], input[type="datetime-local"], input[type="number"], select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; box-sizing: border-box; background: var(--input-bg); color: var(--text-main); font-family: inherit; height: 38px; }
+        input[type="text"], input[type="url"], input[type="file"], input[type="email"], input[type="password"], input[type="number"], select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; box-sizing: border-box; background: var(--input-bg); color: var(--text-main); font-family: inherit; height: 38px; }
         input[type="file"] { padding: 6px; background: var(--section-bg); cursor: pointer; }
         textarea { resize: vertical; height: 60px; }
 
@@ -655,11 +657,15 @@
             
             <div id="hearingAlertBox" class="hearing-alert"></div>
 
-            <!-- حقل البحث الصغير المخصص لـ 7 إلى 9 أرقام -->
-            <div class="search-container-top">
+            <!-- حقل البحث وحقل موعد الجلسة بجانب بعضهما وبنفس الحجم -->
+            <div class="top-search-hearing-bar">
                 <div class="search-box-item">
                     <input type="text" id="searchQuery" placeholder="بحث (7-9 أرقام)..." maxlength="9">
                     <button type="button" class="btn-search" onclick="fetchDataFromFirebase()">🔍 بحث</button>
+                </div>
+                <div class="hearing-box-top">
+                    <label>موعد الجلسة:</label>
+                    <input type="datetime-local" id="nextHearingDate" onchange="checkHearingAlert(this.value)">
                 </div>
             </div>
 
@@ -695,16 +701,8 @@
                         <input type="text" id="defendant" placeholder="الاسم الثلاثي">
                     </div>
 
-                    <!-- 2. موعد الجلسة القادمة -->
-                    <div class="section-title">📅 2. موعد الجلسة القادمة</div>
-
-                    <div class="form-group full-width">
-                        <label>تاريخ ووقت الجلسة:</label>
-                        <input type="datetime-local" id="nextHearingDate" onchange="checkHearingAlert(this.value)">
-                    </div>
-
-                    <!-- 3. المرفقات والإعدادات الخاصة -->
-                    <div class="section-title">⚙️ 3. المرفقات والإعدادات الخاصة</div>
+                    <!-- 2. المرفقات والإعدادات الخاصة -->
+                    <div class="section-title">⚙️ 2. المرفقات والإعدادات الخاصة</div>
 
                     <div class="form-group">
                         <label>مرفقات الدعوة (صورة/ملف):</label>
