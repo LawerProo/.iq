@@ -1005,7 +1005,7 @@
                 display: none !important; 
             }
 
-            /* إخفاء قسم "المرفقات والإعدادات الخاصة" وكلمتها بالكامل عند الطباعة */
+            /* إخفاء قسم "المرفقات والإعدادات الخاصة" ما عدا النص السفلي للباركود */
             body.print-report .section-title:nth-of-type(2),
             body.print-report .form-group:has(#attachment),
             body.print-report .form-group:has(#locationUrl),
@@ -1015,12 +1015,17 @@
                 display: none !important; 
             }
 
-            /* إخفاء حقل النص السفلي للباركود عند الطباعة بناءً على طلبك */
-            body.print-report #barcodeSubText,
-            body.print-report label[for="barcodeSubText"],
-            body.print-report .form-group:has(#barcodeSubText),
+            /* إظهار النص السفلي للباركود باللون الأحمر أثناء الطباعة */
             body.print-report #barcodeSubTextDisplay { 
-                display: none !important; 
+                display: block !important; 
+                color: red !important; 
+                font-weight: bold !important;
+                font-size: 15px !important;
+            }
+            
+            /* إخفاء حقل الادخال الأصلي للنص السفلي وترك الحقل المعروض تحت الباركود فقط */
+            body.print-report .form-group:has(#barcodeSubText) {
+                display: none !important;
             }
 
             /* إبقاء الباركود ظاهراً وبحجم أكبر وأوضح عند الطباعة */
