@@ -371,7 +371,6 @@
             }
         };
 
-        // دالة تفريغ الحقول لإنشاء إدخال جديد
         window.startNewEntry = function() {
             document.getElementById('lawForm').reset();
             document.getElementById('searchQuery').value = "";
@@ -388,7 +387,6 @@
             alert("تم إفريغ الحقول بنجاح. يمكنك الآن إدخال دعوة جديدة.");
         };
 
-        // دالة حذف الدعوة مع التحقق من الرمز السري
         window.deleteCurrentCase = async function() {
             if (!currentLoadedDocId || !currentUser) {
                 alert("لا توجد دعوة محددة للحذف حالياً.");
@@ -525,18 +523,132 @@
         .auth-group { margin-bottom: 15px; text-align: right; }
         .auth-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; color: var(--label-color); }
         .auth-group input { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; font-size: 15px; background: var(--input-bg); color: var(--text-main); }
-        .btn-main { background-color: var(--secondary-color); color: white; border: none; width: 100%; padding: 12px; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        .error-text { font-size: 13px; margin-top: 10px; word-break: break-word; }
         
+        /* ---------------------------------------------------- */
+        /* تصميم الأزرار الاحترافية بنمط 3D (ثلاثي الأبعاد)      */
+        /* ---------------------------------------------------- */
+        .btn-3d {
+            position: relative;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            border-radius: 8px;
+            cursor: pointer;
+            border: none;
+            outline: none;
+            transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+            text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+            user-select: none;
+        }
+
+        .btn-3d:active {
+            transform: translateY(3px) !important;
+            box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3) !important;
+        }
+
+        /* 1. زر أزرق (تخويل / بحث / دخول) */
+        .btn-main, .btn-search {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+            box-shadow: 0 5px 0 #1e3a8a, 0 8px 15px rgba(59, 130, 246, 0.3);
+        }
+        .btn-main:hover, .btn-search:hover {
+            background: linear-gradient(135deg, #60a5fa 0%, #2563eb 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 7px 0 #1e3a8a, 0 12px 20px rgba(59, 130, 246, 0.4);
+        }
+        .btn-main:active, .btn-search:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #1e3a8a;
+        }
+
+        /* 2. زر أخضر (حفظ / إدخال جديد) */
+        .btn-save, .btn-new-entry {
+            background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+            color: white;
+            box-shadow: 0 5px 0 #065f46, 0 8px 15px rgba(16, 185, 129, 0.3);
+        }
+        .btn-save:hover, .btn-new-entry:hover {
+            background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 7px 0 #065f46, 0 12px 20px rgba(16, 185, 129, 0.4);
+        }
+        .btn-save:active, .btn-new-entry:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #065f46;
+        }
+
+        /* 3. زر برتقالي/ذهبي (طباعة / إعدادات) */
+        .btn-print, .btn-settings {
+            background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
+            color: white;
+            box-shadow: 0 5px 0 #78350f, 0 8px 15px rgba(245, 158, 11, 0.3);
+        }
+        .btn-print:hover, .btn-settings:hover {
+            background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 7px 0 #78350f, 0 12px 20px rgba(245, 158, 11, 0.4);
+        }
+        .btn-print:active, .btn-settings:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #78350f;
+        }
+
+        /* 4. زر أحمر (حذف / خروج) */
+        .btn-danger, .btn-delete-case, .btn-logout, .modal-close-btn {
+            background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+            color: white;
+            box-shadow: 0 5px 0 #7f1d1d, 0 8px 15px rgba(239, 68, 68, 0.3);
+        }
+        .btn-danger:hover, .btn-delete-case:hover, .btn-logout:hover, .modal-close-btn:hover {
+            background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 7px 0 #7f1d1d, 0 12px 20px rgba(239, 68, 68, 0.4);
+        }
+        .btn-danger:active, .btn-delete-case:active, .btn-logout:active, .modal-close-btn:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #7f1d1d;
+        }
+
+        /* 5. الأزرار الثانوية (قوانين، عقد، أرشيف مالي، ليلي، عودة، رمادي) */
+        .btn-open-financial-top, .btn-open-contract-top, .btn-open-laws-top, .btn-theme-toggle, .btn-back {
+            background: linear-gradient(135deg, #64748b 0%, #334155 100%);
+            color: white;
+            box-shadow: 0 4px 0 #1e293b, 0 6px 12px rgba(100, 116, 139, 0.3);
+        }
+        .btn-open-financial-top:hover, .btn-open-contract-top:hover, .btn-open-laws-top:hover, .btn-theme-toggle:hover, .btn-back:hover {
+            background: linear-gradient(135deg, #94a3b8 0%, #475569 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 0 #1e293b, 0 10px 16px rgba(100, 116, 139, 0.4);
+        }
+        .btn-open-financial-top:active, .btn-open-contract-top:active, .btn-open-laws-top:active, .btn-theme-toggle:active, .btn-back:active {
+            transform: translateY(3px);
+            box-shadow: 0 2px 0 #1e293b;
+        }
+
+        /* تخصيص أحجام الأزرار حسب أماكنها في الواجهة */
+        .btn-main { width: 100%; padding: 12px; font-size: 16px; margin-top: 10px; }
+        
+        .btn-settings, .btn-logout, .btn-open-financial-top, .btn-open-contract-top, .btn-open-laws-top, .btn-theme-toggle {
+            padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px;
+        }
+
+        .btn-search, .btn-delete-case, .btn-new-entry {
+            padding: 4px 10px; font-size: 12px; height: 26px; border-radius: 6px;
+        }
+
+        .modal-close-btn {
+            padding: 5px 10px; font-size: 12px; border-radius: 4px;
+        }
+
+        .btn-save, .btn-print, .btn-back {
+            padding: 10px 20px; font-size: 13px; font-weight: 600;
+        }
+        /* ---------------------------------------------------- */
+
         .user-bar { display: flex; justify-content: space-between; align-items: center; background: var(--userbar-bg); padding: 10px 20px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; border: 1px solid var(--userbar-border); flex-wrap: wrap; gap: 10px; }
         .user-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
-        .btn-settings { background-color: var(--print-color); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
-        .btn-logout { background-color: var(--danger-color); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
-        
-        .btn-open-financial-top { background-color: #475569; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; }
-        .btn-open-contract-top { background-color: #0d9488; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; }
-        .btn-open-laws-top { background-color: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; }
-        .btn-theme-toggle { background-color: #334155; color: #f8fafc; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; }
         
         .password-box { background: var(--card-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; display: none; }
         .header-title { text-align: center; color: var(--primary-color); margin-bottom: 15px; font-size: 22px; font-weight: 700; }
@@ -544,13 +656,10 @@
         .top-search-hearing-bar { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
         .search-box-item { background: var(--section-bg); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 10px; display: flex; gap: 8px; align-items: center; width: 380px; height: 38px; box-sizing: border-box; }
         .search-box-item input { flex: 1; padding: 4px 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: var(--input-bg); color: var(--text-main); outline: none; text-align: center; letter-spacing: 1px; height: 26px; }
-        .btn-search { background-color: var(--secondary-color); color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; white-space: nowrap; height: 26px; }
-        .btn-delete-case { background-color: var(--danger-color); color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; white-space: nowrap; height: 26px; display: none; }
 
         .hearing-box-top { background: var(--section-bg); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 10px; display: flex; gap: 8px; align-items: center; height: 38px; box-sizing: border-box; }
         .hearing-box-top label { font-size: 12px; font-weight: 600; color: var(--label-color); white-space: nowrap; margin: 0; }
         .hearing-box-top input[type="datetime-local"] { padding: 4px 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px; background: var(--input-bg); color: var(--text-main); height: 26px; box-sizing: border-box; width: 180px; }
-        .btn-new-entry { background-color: var(--success-color); color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; white-space: nowrap; height: 26px; }
 
         .section-title { font-size: 14px; font-weight: bold; color: var(--primary-color); border-bottom: 2px solid var(--border-color); padding-bottom: 6px; margin: 25px 0 15px 0; grid-column: span 3; background: var(--section-bg); padding-right: 10px; border-radius: 4px; }
         
@@ -568,16 +677,12 @@
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 10000; }
         .modal-content { background: var(--card-bg); color: var(--text-main); padding: 25px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; border: 1px solid var(--border-color); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
-        .modal-close-btn { background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
         .qrcode-section { text-align: center; margin-top: 15px; padding: 10px; background: var(--section-bg); border: 2px dashed var(--border-color); border-radius: 10px; display: none; }
         #qrcode { display: inline-block; margin-top: 5px; padding: 5px; background: white; border-radius: 6px; }
         .barcode-sub-text { margin-top: 4px; font-size: 13px; font-weight: bold; color: var(--danger-color); }
 
         .actions-section { display: flex; gap: 10px; justify-content: center; margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 20px; flex-wrap: wrap; }
-        .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
-        .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
-        .btn-back { background-color: #64748b; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
 
         .contract-print-container { 
             background: #fff; 
@@ -669,7 +774,7 @@
             <label>كلمة المرور:</label>
             <input type="password" id="password" placeholder="********">
         </div>
-        <button type="button" class="btn-main" onclick="loginUser()">دخول للنظام</button>
+        <button type="button" class="btn-main btn-3d" onclick="loginUser()">دخول للنظام</button>
         <div id="loginError" class="error-text"></div>
     </div>
 
@@ -683,12 +788,12 @@
             <div class="user-bar">
                 <span>👤 المستخدم: <strong id="userEmailDisplay"></strong></span>
                 <div class="user-actions">
-                    <button type="button" id="darkModeBtn" class="btn-theme-toggle" onclick="toggleDarkMode()">🌙 ليلي</button>
-                    <button type="button" class="btn-open-laws-top" onclick="openLawsPage()">📖 قوانين</button>
-                    <button type="button" class="btn-open-contract-top" onclick="openContractModal()">📜 عقد محامي</button>
-                    <button type="button" class="btn-open-financial-top" onclick="openFinancialModal()">💰 الأرشيف المالي</button>
-                    <button type="button" class="btn-settings" onclick="togglePasswordSection()">🔑 تغيير الرمز</button>
-                    <button type="button" class="btn-logout" onclick="logoutUser()">خروج</button>
+                    <button type="button" id="darkModeBtn" class="btn-theme-toggle btn-3d" onclick="toggleDarkMode()">🌙 ليلي</button>
+                    <button type="button" class="btn-open-laws-top btn-3d" onclick="openLawsPage()">📖 قوانين</button>
+                    <button type="button" class="btn-open-contract-top btn-3d" onclick="openContractModal()">📜 عقد محامي</button>
+                    <button type="button" class="btn-open-financial-top btn-3d" onclick="openFinancialModal()">💰 الأرشيف المالي</button>
+                    <button type="button" class="btn-settings btn-3d" onclick="togglePasswordSection()">🔑 تغيير الرمز</button>
+                    <button type="button" class="btn-logout btn-3d" onclick="logoutUser()">خروج</button>
                 </div>
             </div>
 
@@ -696,7 +801,7 @@
                 <h4 style="margin: 0 0 10px 0; font-size: 14px; color: var(--primary-color);">تغيير كلمة المرور</h4>
                 <div style="display: flex; gap: 8px;">
                     <input type="password" id="newPassword" placeholder="الجديدة (6 رموز على الأقل)" style="flex: 1;">
-                    <button type="button" class="btn-search" onclick="changeUserPassword()">تحديث</button>
+                    <button type="button" class="btn-search btn-3d" onclick="changeUserPassword()">تحديث</button>
                 </div>
                 <div id="passMessage" style="font-size: 12px; margin-top: 6px;"></div>
             </div>
@@ -705,17 +810,17 @@
             
             <div id="hearingAlertBox" class="hearing-alert"></div>
 
-            <!-- حقل البحث، زر الحذف، وحقل موعد الجلسة مع زر إدخال جديد -->
+            <!-- شريط البحث وموعد الجلسة -->
             <div class="top-search-hearing-bar">
                 <div class="search-box-item" style="width: 380px;">
                     <input type="text" id="searchQuery" placeholder="بحث (7-9 أرقام)..." maxlength="9">
-                    <button type="button" class="btn-search" onclick="fetchDataFromFirebase()">🔍 بحث</button>
-                    <button type="button" id="deleteCaseBtn" class="btn-delete-case" onclick="deleteCurrentCase()">🗑️ حذف الدعوى</button>
+                    <button type="button" class="btn-search btn-3d" onclick="fetchDataFromFirebase()">🔍 بحث</button>
+                    <button type="button" id="deleteCaseBtn" class="btn-delete-case btn-3d" onclick="deleteCurrentCase()" style="display: none;">🗑️ حذف الدعوى</button>
                 </div>
                 <div class="hearing-box-top">
                     <label>موعد الجلسة:</label>
                     <input type="datetime-local" id="nextHearingDate" onchange="checkHearingAlert(this.value)">
-                    <button type="button" class="btn-new-entry" onclick="startNewEntry()">➕ إدخال جديد</button>
+                    <button type="button" class="btn-new-entry btn-3d" onclick="startNewEntry()">➕ إدخال جديد</button>
                 </div>
             </div>
 
@@ -786,8 +891,8 @@
                 </div>
 
                 <div class="actions-section">
-                    <button type="button" class="btn-save" onclick="saveDataToFirebase()">💾 حفظ بالكامل</button>
-                    <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة التقرير</button>
+                    <button type="button" class="btn-save btn-3d" onclick="saveDataToFirebase()">💾 حفظ بالكامل</button>
+                    <button type="button" class="btn-print btn-3d" onclick="window.print()">🖨️ طباعة التقرير</button>
                 </div>
             </form>
         </div>
@@ -815,8 +920,8 @@
                 </div>
                 
                 <div class="actions-section hide-on-print" style="margin-top: 30px;">
-                    <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة العقد الرسمي</button>
-                    <button type="button" class="btn-back" onclick="backToMainSystem()">⬅️ عودة للنظام</button>
+                    <button type="button" class="btn-print btn-3d" onclick="window.print()">🖨️ طباعة العقد الرسمي</button>
+                    <button type="button" class="btn-back btn-3d" onclick="backToMainSystem()">⬅️ عودة للنظام</button>
                 </div>
             </div>
         </div>
@@ -828,7 +933,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 style="margin: 0; color: var(--primary-color);">💰 الأرشيف المالي للدعوى</h3>
-                <button type="button" class="modal-close-btn" onclick="closeFinancialModal()">✕ إغلاق</button>
+                <button type="button" class="modal-close-btn btn-3d" onclick="closeFinancialModal()">✕ إغلاق</button>
             </div>
             <div style="display: flex; flex-direction: column; gap: 12px;">
                 <div class="form-group" style="margin: 0;">
@@ -843,7 +948,7 @@
                     <label>المصاريف القضائية المدفوعة:</label>
                     <input type="number" id="courtExpenses" placeholder="رسوم، خبراء...">
                 </div>
-                <button type="button" class="btn-main" style="margin-top: 10px;" onclick="closeFinancialModal()">حفظ وإغلاق النافذة</button>
+                <button type="button" class="btn-main btn-3d" style="margin-top: 10px;" onclick="closeFinancialModal()">حفظ وإغلاق النافذة</button>
             </div>
         </div>
     </div>
@@ -853,7 +958,7 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3 style="margin: 0; color: var(--primary-color);">📜 إنشاء عقد أتعاب محاماة</h3>
-                <button type="button" class="modal-close-btn" onclick="closeContractModal()">✕ إغلاق</button>
+                <button type="button" class="modal-close-btn btn-3d" onclick="closeContractModal()">✕ إغلاق</button>
             </div>
             <div style="display: flex; flex-direction: column; gap: 12px;">
                 <div class="form-group" style="margin: 0;">
@@ -898,7 +1003,7 @@
                     <label>ملاحظات إضافية (اختياري):</label>
                     <textarea id="contractNotes" placeholder="أي تفاصيل أخرى تخص الدفعات أو الشروط..."></textarea>
                 </div>
-                <button type="button" class="btn-main" style="background-color: #0d9488; margin-top: 10px;" onclick="previewContract()">👁️ معاينة وطباعة العقد</button>
+                <button type="button" class="btn-main btn-3d" style="background: linear-gradient(135deg, #0d9488 0%, #115e59 100%); margin-top: 10px;" onclick="previewContract()">👁️ معاينة وطباعة العقد</button>
             </div>
         </div>
     </div>
