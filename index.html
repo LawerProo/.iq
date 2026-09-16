@@ -990,13 +990,38 @@
                 print-color-adjust: exact;
             }
             
-            /* حالة 1: طباعة التقرير العام فقط (العناصر الرئيسية للدعوى) */
+            /* حالة 1: طباعة التقرير العام للدعوى فقط مع إخفاء الهاتف والمرفقات والإعدادات وإظهار الباركود */
             body.print-report #contractPrintSection { display: none !important; }
             body.print-report #mainSystemView { display: block !important; }
             body.print-report .actions-section, 
             body.print-report .hide-on-print,
             body.print-report .user-bar,
             body.print-report .top-search-hearing-bar { display: none !important; }
+            
+            /* إخفاء هاتف الموكل عند الطباعة */
+            body.print-report #complainantPhone,
+            body.print-report label[for="complainantPhone"],
+            body.print-report .form-group:has(#complainantPhone) { 
+                display: none !important; 
+            }
+
+            /* إخفاء قسم المرفقات والإعدادات بالكامل عند الطباعة (نستثني منها الباركود وقسمه) */
+            body.print-report .section-title:nth-of-type(2),
+            body.print-report .form-group:has(#attachment),
+            body.print-report .form-group:has(#locationUrl),
+            body.print-report .form-group:has(#watermarkText),
+            body.print-report .form-group:has(#privateNotes),
+            body.print-report #fileInfo { 
+                display: none !important; 
+            }
+
+            /* إبقاء الباركود وقسمه ظاهراً بوضوح عند الطباعة */
+            body.print-report #qrcodeContainer {
+                display: block !important;
+                border: 1px solid #94a3b8 !important;
+                background: #ffffff !important;
+                page-break-inside: avoid;
+            }
             
             body.print-report .container { 
                 border: none !important; 
@@ -1176,7 +1201,6 @@
 
                 <div class="actions-section">
                     <button type="button" class="btn-save btn-3d" onclick="saveDataToFirebase()">💾 حفظ بالكامل (تعديل / إضافة)</button>
-                    <!-- زر طباعة التقرير العام للدعوى فقط (مرتبط حصرياً بدالة printCaseReportOnly) -->
                     <button type="button" class="btn-print btn-3d" onclick="printCaseReportOnly()">🖨️ طباعة التقرير</button>
                 </div>
             </form>
@@ -1204,7 +1228,6 @@
                 </div>
                 
                 <div class="actions-section hide-on-print" style="margin-top: 30px;">
-                    <!-- زر طباعة عقد محامي الرسمي المستقل (مرتبط حصرياً بدالة printLawyerContractOnly) -->
                     <button type="button" class="btn-print btn-3d" onclick="printLawyerContractOnly()">🖨️ طباعة العقد الرسمي</button>
                     <button type="button" class="btn-back btn-3d" onclick="backToMainSystem()">⬅️ عودة للنظام</button>
                 </div>
