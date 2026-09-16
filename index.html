@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة وتوثيق الدعاوى القضائية</title>
+    <title>نظام إدارة وتوثيق الدعاوى القضائية وموسوعة القوانين العراقية</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <script type="module">
@@ -248,9 +248,11 @@
         .btn-main { background-color: var(--primary-color); color: white; border: none; width: 100%; padding: 12px; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 10px; }
         .error-text { font-size: 13px; margin-top: 10px; word-break: break-word; }
         .user-bar { display: flex; justify-content: space-between; align-items: center; background: #eff6ff; padding: 10px 15px; border-radius: 8px; margin-bottom: 20px; font-size: 13px; border: 1px solid #bfdbfe; flex-wrap: wrap; gap: 10px; }
-        .user-actions { display: flex; gap: 8px; }
+        .user-actions { display: flex; gap: 8px; flex-wrap: wrap; }
         .btn-settings { background-color: var(--print-color); color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
+        .btn-legal { background-color: #8b5cf6; color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
         .btn-logout { background-color: var(--danger-color); color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+        
         .password-box { background: #fff; border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: none; }
         .header-title { text-align: center; color: var(--primary-color); margin-bottom: 20px; font-size: 22px; font-weight: 700; }
         .search-section { background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
@@ -276,6 +278,63 @@
         .actions-section { display: flex; gap: 10px; justify-content: center; margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 15px; }
         .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; }
         .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; }
+
+        /* نافذة القوانين المنبثقة (Modal) */
+        #legalModal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 10000;
+            justify-content: center;
+            align-items: center;
+        }
+        .legal-modal-content {
+            background: #ffffff;
+            width: 90%;
+            max-width: 750px;
+            max-height: 85vh;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .legal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+        }
+        .legal-header h3 { margin: 0; color: var(--primary-color); }
+        .close-modal { background: none; border: none; font-size: 20px; cursor: pointer; color: #64748b; }
+        .legal-search-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        .legal-results {
+            flex: 1;
+            overflow-y: auto;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px;
+            background: #f8fafc;
+        }
+        .law-card {
+            background: #fff;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            padding: 12px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.02);
+        }
+        .law-card h4 { margin: 0 0 6px 0; color: var(--primary-color); font-size: 15px; }
+        .law-card p { margin: 4px 0; font-size: 13px; color: #334155; }
+        .law-card .explanation { background: #eff6ff; padding: 8px; border-radius: 6px; margin-top: 6px; font-size: 13px; color: #1e40af; border-right: 3px solid var(--secondary-color); }
 
         #watermarkLayer {
             position: absolute;
@@ -324,6 +383,26 @@
         <div id="loginError" class="error-text"></div>
     </div>
 
+    <!-- نافذة القوانين العراقية (Modal) -->
+    <div id="legalModal">
+        <div class="legal-modal-content">
+            <div class="legal-header">
+                <h3>⚖️ موسوعة القوانين العراقية الشاملة</h3>
+                <button type="button" class="close-modal" onclick="closeLegalModal()">✕</button>
+            </div>
+            <div class="legal-search-box">
+                <input type="text" id="legalSearchInput" placeholder="بحث برقم المادة (مثال: 405، 150) أو اسم القانون أو الكلمة المفتاحية..." oninput="searchLaws()">
+                <button type="button" class="btn-search" onclick="searchLaws()">بحث</button>
+            </div>
+            <div style="margin-bottom: 8px; font-size: 12px; color: #64748b;">
+                البحث الفوري يشمل مواد قانون العقوبات، المدني، المرافعات، الإثبات، الأحوال الشخصية، أصول المحاكمات الجزائية:
+            </div>
+            <div class="legal-results" id="legalResultsContainer">
+                <!-- نتائج البحث تظهر هنا -->
+            </div>
+        </div>
+    </div>
+
     <!-- واجهة النظام الرئيسية -->
     <div class="container" id="appSection" style="display: none;">
         
@@ -334,6 +413,7 @@
         <div class="user-bar">
             <span>👤 المستخدم: <strong id="userEmailDisplay"></strong></span>
             <div class="user-actions">
+                <button type="button" class="btn-legal" onclick="openLegalModal()">📜 قانونيات</button>
                 <button type="button" class="btn-settings" onclick="togglePasswordSection()">🔑 تغيير الرمز</button>
                 <button type="button" class="btn-logout" onclick="logoutUser()">خروج</button>
             </div>
@@ -420,6 +500,92 @@
     </div>
 
 <script>
+    // قاعدة بيانات موسعة لأهم وأبرز المواد القانونية في القوانين العراقية
+    const iraqiLawsDatabase = [
+        // قانون العقوبات رقم 111 لسنة 1969
+        { lawName: "قانون العقوبات العراقي رقم 111 لسنة 1969", article: "1", text: "لا جريمة ولا عقوبة إلا بناء على قانون وتطبق على الأفعال المرتكبة في زمان نفاذ القانون.", explanation: "مبدأ الشرعية الجنائية." },
+        { lawName: "قانون العقوبات العراقي رقم 111 لسنة 1969", article: "405", text: "من قتل إنساناً عمداً يعاقب بالسجن المؤبد أو المؤقت.", explanation: "جريمة القتل العمد المجرد عن الظروف المشددة." },
+        { lawName: "قانون العقوبات العراقي رقم 111 لسنة 1969", article: "406", text: "يعاقب بالاعدام من قتل إنساناً عمداً مع سبق الإصرار أو الترصد...", explanation: "القتل العمد مع سبق الإصرار والترصد أو ارتكابه ضد أصول." },
+        { lawName: "قانون العقوبات العراقي رقم 111 لسنة 1969", article: "410", text: "من جرح إنساناً أو ضربه عمداً فأحدث به عجزاً أو عاهة مستديمة يعاقب بالسجن مدة لا تزيد على خمس عشرة سنة.", explanation: "جريمة الضرب المفضي إلى عاهة مستديمة." },
+        { lawName: "قانون العقوبات العراقي رقم 111 لسنة 1969", article: "413", text: "من ضرب إنساناً أو جرحه ولم يبلغ الفعل درجة العاهة المستديمة... يعاقب بالحبس.", explanation: "جريمة الإيذاء البسيط." },
+        { lawName: "قانون العقوبات العراقي رقم 111 لسنة 1969", article: "430", text: "من هدد آخر بالقتل أو بارتكاب جناية ضد نفسه أو ماله يعاقب بالحبس.", explanation: "جريمة التهديد بارتكاب جناية." },
+        { lawName: "قانون العقوبات العراقي رقم 111 لسنة 1969", article: "433", text: "القذف هو اسناد واقعة معينة إلى غيره توجب عقابه قانوناً أو تحقر منه...", explanation: "جريمة القذف والطعن بالسمعة." },
+        { lawName: "قانون العقوبات العراقي رقم 111 لسنة 1969", article: "434", text: "السب هو خدش الشرف أو الاعتبار ولو لم يتضمن اسناد واقعة معينة...", explanation: "جريمة السب والشتم العلني أو غير العلني." },
+        { lawName: "قانون العقوبات العراقي رقم 111 لسنة 1969", article: "443", text: "يعاقب بالسجن مدة لا تزيد على سبع سنوات من سرق مالاً ليلاً من محل مسكون...", explanation: "حالات السرقة المشددة." },
+        { lawName: "قانون العقوبات العراقي رقم 111 لسنة 1969", article: "453", text: "من استولى بغير حق على مال منقول مملوك لغيره تسلمه بحوت أمانة...", explanation: "جريمة خيانة الأمانة." },
+        { lawName: "قانون العقوبات العراقي رقم 111 لسنة 1969", article: "456", text: "يعاقب بالحبس من توصل إلى تسلم مال منقول بحتي بطرق احتيالية...", explanation: "جريمة الاحتيال والنصب." },
+
+        // القانون المدني العراقي رقم 40 لسنة 1951
+        { lawName: "القانون المدني العراقي رقم 40 لسنة 1951", article: "1", text: "تطبق النصوص التشريعية على جميع المسائل التي تناولتها هذه النصوص في لفظها أو فحواها.", explanation: "المصادر الرسمية للتشريع وتطبيقه." },
+        { lawName: "القانون المدني العراقي رقم 40 لسنة 1951", article: "150", text: "العقد شريعة المتعاقدين، فلا يجوز نقضه ولا تعديله إلا باتفاق الطرفين أو لأسباب قانونية.", explanation: "مبدأ قوة العقد الملزمة." },
+        { lawName: "القانون المدني العراقي رقم 40 لسنة 1951", article: "256", text: "إذا لم يوف المدين بالتزامه جاز للمحكمة إلزامه بالتنفيذ العيني متى كان ممكناً.", explanation: "أحكام التنفيذ العيني للالتزامات." },
+        { lawName: "القانون المدني العراقي رقم 40 لسنة 1951", article: "262", text: "يقدر التعويض في كل التزام بنقود بقدر ما لحق الدائن من خسارة وما فاته من كسب...", explanation: "قواعد تقدير التعويض المدني." },
+        { lawName: "القانون المدني العراقي رقم 40 لسنة 1951", article: "506", text: "البيع تبادل مال بمال.", explanation: "التعريف القانوني لعقد البيع." },
+
+        // قانون الإثبات العراقي رقم 107 لسنة 1979
+        { lawName: "قانون الإثبات العراقي رقم 107 لسنة 1979", article: "1", text: "البينة على من ادعى واليمين على من أنكر.", explanation: "القاعدة الذهبية في الإثبات القضائي." },
+        { lawName: "قانون الإثبات العراقي رقم 107 لسنة 1979", article: "69", text: "الكتابة الرسمية حجة على الناس كافة بما روته الموظف العام أو وثقه قانوناً.", explanation: "قوة الأوراق الرسمية في الإثبات." },
+        { lawName: "قانون الإثبات العراقي رقم 107 لسنة 1979", article: "115", text: "يجوز إثبات الالتزامات بالشهادة فيما لم تزد قيمته على خمسة آلاف دينار...", explanation: "حدود الإثبات بشهادة الشهود في المسائل المدنية." },
+
+        // قانون المرافعات المدنية رقم 83 لسنة 1969
+        { lawName: "قانون المرافعات المدنية العراقي رقم 83 لسنة 1969", article: "1", text: "تختص المحاكم العراقية بنظر جميع الدعاوى التي تقام على العراقي إلا ما استثني بنص.", explanation: "ولاية المحاكم العراقية." },
+        { lawName: "قانون المرافعات المدنية العراقي رقم 83 لسنة 1969", article: "30", text: "ترفع الدعوى بعريضة تقدم إلى المحكمة مختومة بخاتم الرسم وتسجل في السجل الخاص.", explanation: "إجراءات رفع الدعوى المدنية." },
+
+        // قانون أصول المحاكمات الجزائية رقم 23 لسنة 1971
+        { lawName: "قانون أصول المحاكمات الجزائية العراقي", article: "1", text: "لا تحرك الدعوى الجزائية إلا بناء على شكوى متضرر في الجرائم المنصوص عليها قانوناً.", explanation: "الجرائم التي تتطلب شكوى مجني عليه لتحريكها." },
+        { lawName: "قانون أصول المحاكمات الجزائية العراقي", article: "39", text: "لكل من شاهد جريمة مشهودة أن يقبض على المتهم ويحضره لدى السلطات فوراً.", explanation: "حق القبض في الجرائم المشهودة." },
+
+        // قانون الأحوال الشخصية رقم 188 لسنة 1959
+        { lawName: "قانون الأحوال الشخصية العراقي رقم 188 لسنة 1959", article: "3", text: "شرط الأهلية للزواج هو العقل وإتمام الثامنة عشرة من العمر.", explanation: "السن القانوني للأهلية للزواج في العراق." },
+        { lawName: "قانون الأحوال الشخصية العراقي رقم 188 لسنة 1959", article: "34", text: "النفقة الواجبة للزوجة تشمل الطعام والكسوة والمسكن والتطبيب بالمعروف.", explanation: "وجوب النفقة الزوجية." }
+    ];
+
+    function openLegalModal() {
+        document.getElementById('legalModal').style.display = 'flex';
+        displayAllLaws(iraqiLawsDatabase);
+    }
+
+    function closeLegalModal() {
+        document.getElementById('legalModal').style.display = 'none';
+    }
+
+    function displayAllLaws(lawsArray) {
+        const container = document.getElementById('legalResultsContainer');
+        container.innerHTML = "";
+        
+        if (lawsArray.length === 0) {
+            container.innerHTML = `<p style="text-align: center; color: #64748b; padding: 20px;">لم يتم العثور على مواد مطابقة للبحث.</p>`;
+            return;
+        }
+
+        lawsArray.forEach(item => {
+            container.innerHTML += `
+                <div class="law-card">
+                    <h4>📜 ${item.lawName} - المادة (${item.article})</h4>
+                    <p><b>نص المادة:</b> ${item.text}</p>
+                    <div class="explanation">💡 <b>الشرح والتفسير القضائي:</b> ${item.explanation}</div>
+                </div>
+            `;
+        });
+    }
+
+    function searchLaws() {
+        const query = document.getElementById('legalSearchInput').value.trim().toLowerCase();
+        if (!query) {
+            displayAllLaws(iraqiLawsDatabase);
+            return;
+        }
+
+        const filtered = iraqiLawsDatabase.filter(item => {
+            return item.article.toLowerCase() === query || 
+                   item.text.toLowerCase().includes(query) || 
+                   item.lawName.toLowerCase().includes(query) ||
+                   item.explanation.toLowerCase().includes(query);
+        });
+
+        displayAllLaws(filtered);
+    }
+
     function generateQRCode() {
         const urlInput = document.getElementById('locationUrl').value.trim();
         const qrcodeContainer = document.getElementById('qrcodeContainer');
