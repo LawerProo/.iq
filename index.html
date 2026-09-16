@@ -106,6 +106,26 @@
             section.style.display = section.style.display === 'none' ? 'block' : 'none';
         };
 
+        // دالة التبديل بين الوضع النهاري والليلي
+        window.toggleDarkMode = function() {
+            const body = document.body;
+            body.classList.toggle('dark-mode');
+            const isDark = body.classList.contains('dark-mode');
+            localStorage.setItem('themeMode', isDark ? 'dark' : 'light');
+            const btn = document.getElementById('darkModeBtn');
+            btn.textContent = isDark ? '☀️ نهاري' : '🌙 ليلي';
+        };
+
+        // تطبيق الوضع المحفوظ عند التحميل
+        window.addEventListener('DOMContentLoaded', () => {
+            const savedTheme = localStorage.getItem('themeMode');
+            if (savedTheme === 'dark') {
+                document.body.classList.add('dark-mode');
+                const btn = document.getElementById('darkModeBtn');
+                if (btn) btn.textContent = '☀️ نهاري';
+            }
+        });
+
         window.openFinancialModal = function() {
             document.getElementById('financialModal').style.display = 'flex';
         };
@@ -215,7 +235,6 @@
 
             closeContractModal();
 
-            // إخفاء واجهة النظام الرئيسية وإظهار صفحة المعاينة المستقلة
             document.getElementById('mainSystemView').style.display = 'none';
             document.getElementById('contractPrintSection').style.display = 'block';
             window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -429,20 +448,43 @@
             --card-bg: #ffffff;
             --text-main: #1e293b;
             --border-color: #cbd5e1;
+            --label-color: #475569;
+            --input-bg: #fdfdfd;
+            --userbar-bg: #eff6ff;
+            --userbar-border: #bfdbfe;
+            --section-bg: #f8fafc;
         }
 
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); margin: 0; padding: 10px; color: var(--text-main); }
-        .container { width: 100%; max-width: 100%; background: var(--card-bg); margin: 0 auto; padding: 20px 30px; box-sizing: border-box; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04); position: relative; }
+        /* متغيرات الوضع الليلي (Dark Mode) */
+        body.dark-mode {
+            --primary-color: #60a5fa;
+            --secondary-color: #3b82f6;
+            --success-color: #059669;
+            --print-color: #d97706;
+            --danger-color: #dc2626;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --border-color: #475569;
+            --label-color: #94a3b8;
+            --input-bg: #0f172a;
+            --userbar-bg: #1e293b;
+            --userbar-border: #334155;
+            --section-bg: #111827;
+        }
+
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); margin: 0; padding: 10px; color: var(--text-main); transition: background 0.3s ease, color 0.3s ease; }
+        .container { width: 100%; max-width: 100%; background: var(--card-bg); margin: 0 auto; padding: 20px 30px; box-sizing: border-box; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04); position: relative; transition: background 0.3s ease; }
         
-        .auth-card { max-width: 380px; margin: 60px auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; text-align: center; }
+        .auth-card { max-width: 380px; margin: 60px auto; background: var(--card-bg); padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid var(--border-color); text-align: center; }
         .auth-card h2 { color: var(--primary-color); margin-bottom: 20px; font-size: 20px; }
         .auth-group { margin-bottom: 15px; text-align: right; }
-        .auth-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; }
-        .auth-group input { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; font-size: 15px; }
-        .btn-main { background-color: var(--primary-color); color: white; border: none; width: 100%; padding: 12px; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 10px; }
+        .auth-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; color: var(--label-color); }
+        .auth-group input { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; font-size: 15px; background: var(--input-bg); color: var(--text-main); }
+        .btn-main { background-color: var(--secondary-color); color: white; border: none; width: 100%; padding: 12px; border-radius: 6px; font-size: 16px; cursor: pointer; font-weight: bold; margin-top: 10px; }
         .error-text { font-size: 13px; margin-top: 10px; word-break: break-word; }
         
-        .user-bar { display: flex; justify-content: space-between; align-items: center; background: #eff6ff; padding: 10px 20px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; border: 1px solid #bfdbfe; flex-wrap: wrap; gap: 10px; }
+        .user-bar { display: flex; justify-content: space-between; align-items: center; background: var(--userbar-bg); padding: 10px 20px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; border: 1px solid var(--userbar-border); flex-wrap: wrap; gap: 10px; }
         .user-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
         .btn-settings { background-color: var(--print-color); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
         .btn-logout { background-color: var(--danger-color); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
@@ -450,47 +492,46 @@
         .btn-open-financial-top { background-color: #475569; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; }
         .btn-open-contract-top { background-color: #0d9488; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; }
         .btn-open-laws-top { background-color: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; }
+        .btn-theme-toggle { background-color: #334155; color: #f8fafc; border: 1px solid var(--border-color); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; }
         
-        .password-box { background: #fff; border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: none; }
+        .password-box { background: var(--card-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; display: none; }
         .header-title { text-align: center; color: var(--primary-color); margin-bottom: 15px; font-size: 22px; font-weight: 700; }
         
-        .search-container-top { display: grid; grid-template-columns: 1fr; gap: 15px; margin-bottom: 20px; }
-        .search-box-item { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 15px; border-radius: 10px; display: flex; gap: 8px; align-items: center; }
-        .search-box-item input { flex: 1; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: #fff; outline: none; }
-        .btn-search { background-color: var(--secondary-color); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; white-space: nowrap; }
+        .search-container-top { display: flex; justify-content: flex-start; margin-bottom: 20px; }
+        .search-box-item { background: var(--section-bg); border: 1px solid var(--border-color); padding: 8px 12px; border-radius: 10px; display: flex; gap: 8px; align-items: center; width: 100%; max-width: 320px; }
+        .search-box-item input { flex: 1; padding: 5px 8px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: var(--input-bg); color: var(--text-main); outline: none; text-align: center; letter-spacing: 1px; }
+        .btn-search { background-color: var(--secondary-color); color: white; border: none; padding: 5px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; white-space: nowrap; }
 
-        .section-title { font-size: 14px; font-weight: bold; color: var(--primary-color); border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin: 20px 0 10px 0; grid-column: span 3; }
+        .section-title { font-size: 14px; font-weight: bold; color: var(--primary-color); border-bottom: 2px solid var(--border-color); padding-bottom: 6px; margin: 25px 0 15px 0; grid-column: span 3; background: var(--section-bg); padding-right: 10px; border-radius: 4px; }
         
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 15px; align-items: end; }
-        .form-group { margin-bottom: 10px; }
+        .form-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; align-items: start; }
+        .form-group { margin-bottom: 5px; }
         .form-group.full-width { grid-column: span 3; }
         
-        label { display: block; margin-bottom: 4px; font-weight: 600; color: #475569; font-size: 12.5px; }
-        input[type="text"], input[type="url"], input[type="file"], input[type="email"], input[type="password"], input[type="datetime-local"], input[type="number"], select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13.5px; box-sizing: border-box; background: #fdfdfd; font-family: inherit; }
-        input[type="file"] { padding: 5px; background: #f8fafc; cursor: pointer; }
-        textarea { resize: vertical; height: 50px; }
-
-        .small-input-width { max-width: 280px; }
+        label { display: block; margin-bottom: 4px; font-weight: 600; color: var(--label-color); font-size: 12px; }
+        input[type="text"], input[type="url"], input[type="file"], input[type="email"], input[type="password"], input[type="datetime-local"], input[type="number"], select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; box-sizing: border-box; background: var(--input-bg); color: var(--text-main); font-family: inherit; height: 38px; }
+        input[type="file"] { padding: 6px; background: var(--section-bg); cursor: pointer; }
+        textarea { resize: vertical; height: 60px; }
 
         .hearing-alert { padding: 10px 15px; border-radius: 8px; font-weight: bold; font-size: 13px; margin-bottom: 15px; border: 1px solid transparent; display: none; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 10000; }
-        .modal-content { background: white; padding: 25px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
-        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+        .modal-content { background: var(--card-bg); color: var(--text-main); padding: 25px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; border: 1px solid var(--border-color); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
         .modal-close-btn { background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
-        .qrcode-section { text-align: center; margin-top: 10px; padding: 10px; background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 10px; display: none; }
+        .qrcode-section { text-align: center; margin-top: 15px; padding: 10px; background: var(--section-bg); border: 2px dashed var(--border-color); border-radius: 10px; display: none; }
         #qrcode { display: inline-block; margin-top: 5px; padding: 5px; background: white; border-radius: 6px; }
-        .barcode-sub-text { margin-top: 4px; font-size: 13px; font-weight: bold; color: #dc2626; }
+        .barcode-sub-text { margin-top: 4px; font-size: 13px; font-weight: bold; color: var(--danger-color); }
 
-        .actions-section { display: flex; gap: 10px; justify-content: center; margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 15px; flex-wrap: wrap; }
+        .actions-section { display: flex; gap: 10px; justify-content: center; margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 20px; flex-wrap: wrap; }
         .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
         .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
         .btn-back { background-color: #64748b; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
 
-        /* تصميم وثيقة عقد المحاماة بحجم A4 وتوسيط الخلفية تماماً */
         .contract-print-container { 
             background: #fff; 
+            color: #1e293b;
             width: 210mm;
             min-height: 297mm;
             padding: 20mm;
@@ -507,10 +548,7 @@
         .contract-print-container::before {
             content: "";
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 0; left: 0; width: 100%; height: 100%;
             background-image: url('https://raw.githubusercontent.com/abodabips-spec/Abo-Dabi/refs/heads/main/F0CBF176-4A9B-40CE-BF30-FAFF67BF79B1.png');
             background-repeat: no-repeat;
             background-position: center center;
@@ -520,12 +558,8 @@
             z-index: 1;
         }
 
-        .contract-content-wrapper {
-            position: relative;
-            z-index: 2;
-        }
-
-        .contract-title { text-align: center; font-weight: bold; font-size: 18px; color: var(--primary-color); margin-bottom: 20px; text-decoration: underline; }
+        .contract-content-wrapper { position: relative; z-index: 2; }
+        .contract-title { text-align: center; font-weight: bold; font-size: 18px; color: #1e3a8a; margin-bottom: 20px; text-decoration: underline; }
         .contract-body-text { margin-bottom: 12px; text-align: justify; }
 
         #watermarkLayer {
@@ -540,12 +574,9 @@
         }
 
         @media print {
-            @page {
-                size: A4;
-                margin: 0;
-            }
-            body { background: white !important; padding: 0 !important; margin: 0 !important; }
-            .container { border: none !important; box-shadow: none !important; width: 100% !important; padding: 0 !important; }
+            @page { size: A4; margin: 0; }
+            body { background: white !important; color: black !important; padding: 0 !important; margin: 0 !important; }
+            .container { border: none !important; box-shadow: none !important; width: 100% !important; padding: 0 !important; background: white !important; }
             #mainSystemView, .actions-section, .hide-on-print { display: none !important; }
             #watermarkLayer { opacity: 1 !important; }
             
@@ -560,13 +591,14 @@
                 box-shadow: none !important;
                 page-break-after: always;
                 box-sizing: border-box !important;
+                color: black !important;
+                background: white !important;
             }
             .contract-print-container::before {
                 opacity: 0.12 !important;
                 width: 100% !important;
                 height: 100% !important;
-                top: 0 !important;
-                left: 0 !important;
+                top: 0 !important; left: 0 !important;
                 background-size: 100% 100% !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
@@ -596,11 +628,12 @@
         
         <div id="watermarkLayer"><div class="watermark-text-style" id="watermarkDisplay"></div></div>
 
-        <!-- قسم النظام الرئيسي (يتم إخفائه عند المعاينة) -->
+        <!-- قسم النظام الرئيسي -->
         <div id="mainSystemView">
             <div class="user-bar">
                 <span>👤 المستخدم: <strong id="userEmailDisplay"></strong></span>
                 <div class="user-actions">
+                    <button type="button" id="darkModeBtn" class="btn-theme-toggle" onclick="toggleDarkMode()">🌙 ليلي</button>
                     <button type="button" class="btn-open-laws-top" onclick="openLawsPage()">📖 قوانين</button>
                     <button type="button" class="btn-open-contract-top" onclick="openContractModal()">📜 عقد محامي</button>
                     <button type="button" class="btn-open-financial-top" onclick="openFinancialModal()">💰 الأرشيف المالي</button>
@@ -622,21 +655,23 @@
             
             <div id="hearingAlertBox" class="hearing-alert"></div>
 
+            <!-- حقل البحث الصغير المخصص لـ 7 إلى 9 أرقام -->
             <div class="search-container-top">
                 <div class="search-box-item">
-                    <input type="text" id="searchQuery" placeholder="بحث برقم الدعوة...">
-                    <button type="button" class="btn-search" onclick="fetchDataFromFirebase()">🔍 بحث الدعوى</button>
+                    <input type="text" id="searchQuery" placeholder="بحث (7-9 أرقام)..." maxlength="9">
+                    <button type="button" class="btn-search" onclick="fetchDataFromFirebase()">🔍 بحث</button>
                 </div>
             </div>
 
             <form id="lawForm">
                 <div class="form-grid">
                     
-                    <div class="section-title">📌 البيانات الأساسية للدعوى</div>
+                    <!-- 1. البيانات الأساسية للدعوى -->
+                    <div class="section-title">📌 1. البيانات الأساسية للدعوى</div>
                     
                     <div class="form-group">
                         <label>رقم الدعوة:</label>
-                        <input type="text" id="caseNumber" placeholder="مثال: 2/ب/2026">
+                        <input type="text" id="caseNumber" placeholder="مثال: 1234567">
                     </div>
                     <div class="form-group">
                         <label>المحكمة المختصة:</label>
@@ -660,14 +695,16 @@
                         <input type="text" id="defendant" placeholder="الاسم الثلاثي">
                     </div>
 
-                    <div class="section-title">📅 موعد الجلسة القادمة</div>
+                    <!-- 2. موعد الجلسة القادمة -->
+                    <div class="section-title">📅 2. موعد الجلسة القادمة</div>
 
                     <div class="form-group full-width">
-                        <label>موعد الجلسة القادمة (التاريخ والوقت):</label>
-                        <input type="datetime-local" id="nextHearingDate" class="small-input-width" onchange="checkHearingAlert(this.value)">
+                        <label>تاريخ ووقت الجلسة:</label>
+                        <input type="datetime-local" id="nextHearingDate" onchange="checkHearingAlert(this.value)">
                     </div>
 
-                    <div class="section-title">⚙️ المرفقات والإعدادات الخاصة</div>
+                    <!-- 3. المرفقات والإعدادات الخاصة -->
+                    <div class="section-title">⚙️ 3. المرفقات والإعدادات الخاصة</div>
 
                     <div class="form-group">
                         <label>مرفقات الدعوة (صورة/ملف):</label>
@@ -679,7 +716,7 @@
                     </div>
                     <div class="form-group">
                         <label>النص السفلي للباركود:</label>
-                        <input type="text" id="barcodeSubText" placeholder="مثال: صالح للنشر والاعتماد">
+                        <input type="text" id="barcodeSubText" placeholder="مثال: صالح للنشر">
                     </div>
                     <div class="form-group">
                         <label>اسم المسؤول (الورقة المائية):</label>
@@ -690,12 +727,12 @@
                         <textarea id="privateNotes" placeholder="ملاحظات لا تظهر للعميل..."></textarea>
                     </div>
                     <div class="form-group full-width">
-                        <div id="fileInfo" style="font-size: 12px; color: #64748b;"></div>
+                        <div id="fileInfo" style="font-size: 12px; color: var(--label-color);"></div>
                     </div>
                 </div>
 
                 <div class="qrcode-section" id="qrcodeContainer">
-                    <span style="font-size: 12px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">QR Code الرسمي:</span>
+                    <span style="font-size: 12px; font-weight: 600; color: var(--label-color); display: block; margin-bottom: 4px;">QR Code الرسمي:</span>
                     <div id="qrcode"></div>
                     <div id="barcodeSubTextDisplay" class="barcode-sub-text"></div>
                 </div>
@@ -707,7 +744,7 @@
             </form>
         </div>
 
-        <!-- قسم صفحة معاينة عقد المحامي المستقلة بحجم A4 مع زر عودة وطباعة -->
+        <!-- قسم صفحة معاينة عقد المحامي المستقلة بحجم A4 -->
         <div id="contractPrintSection" class="contract-print-container">
             <div class="contract-content-wrapper">
                 <div class="contract-title">عقد أتعاب محاماة</div>
@@ -729,7 +766,6 @@
                     <div>الطرف الأول (المحامي):<br><br>....................................</div>
                 </div>
                 
-                <!-- أزرار المعاينة والعودة (تختفي عند الطباعة) -->
                 <div class="actions-section hide-on-print" style="margin-top: 30px;">
                     <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة العقد الرسمي</button>
                     <button type="button" class="btn-back" onclick="backToMainSystem()">⬅️ عودة للنظام</button>
@@ -808,7 +844,7 @@
                 </div>
                 <div class="form-group" style="margin: 0;">
                     <label>8. المبلغ الباقي (يحسب تلقائياً):</label>
-                    <input type="text" id="contractRemainingFees" readonly style="background-color: #f1f5f9; font-weight: bold; color: #dc2626;">
+                    <input type="text" id="contractRemainingFees" readonly style="background-color: var(--section-bg); font-weight: bold; color: var(--danger-color);">
                 </div>
                 <div class="form-group" style="margin: 0;">
                     <label>ملاحظات إضافية (اختياري):</label>
