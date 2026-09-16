@@ -214,8 +214,17 @@
             }
 
             closeContractModal();
+
+            // إخفاء واجهة النظام الرئيسية وإظهار صفحة المعاينة المستقلة
+            document.getElementById('mainSystemView').style.display = 'none';
             document.getElementById('contractPrintSection').style.display = 'block';
-            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        window.backToMainSystem = function() {
+            document.getElementById('contractPrintSection').style.display = 'none';
+            document.getElementById('mainSystemView').style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
         window.handleFileSelect = function(event) {
@@ -477,6 +486,7 @@
         .actions-section { display: flex; gap: 10px; justify-content: center; margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 15px; flex-wrap: wrap; }
         .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
         .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
+        .btn-back { background-color: #64748b; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
 
         /* تصميم وثيقة عقد المحاماة بحجم A4 وتوسيط الخلفية تماماً */
         .contract-print-container { 
@@ -536,10 +546,8 @@
             }
             body { background: white !important; padding: 0 !important; margin: 0 !important; }
             .container { border: none !important; box-shadow: none !important; width: 100% !important; padding: 0 !important; }
-            .user-bar, .search-container-top, .actions-section, .auth-card, #passwordSection, #lawForm, .header-title, .hearing-alert { display: none !important; }
-            .hide-on-print { display: none !important; }
+            #mainSystemView, .actions-section, .hide-on-print { display: none !important; }
             #watermarkLayer { opacity: 1 !important; }
-            .print-hidden-field { display: none !important; }
             
             .contract-print-container { 
                 display: block !important; 
@@ -588,115 +596,118 @@
         
         <div id="watermarkLayer"><div class="watermark-text-style" id="watermarkDisplay"></div></div>
 
-        <div class="user-bar">
-            <span>👤 المستخدم: <strong id="userEmailDisplay"></strong></span>
-            <div class="user-actions">
-                <button type="button" class="btn-open-laws-top" onclick="openLawsPage()">📖 قوانين</button>
-                <button type="button" class="btn-open-contract-top" onclick="openContractModal()">📜 عقد محامي</button>
-                <button type="button" class="btn-open-financial-top" onclick="openFinancialModal()">💰 الأرشيف المالي</button>
-                <button type="button" class="btn-settings" onclick="togglePasswordSection()">🔑 تغيير الرمز</button>
-                <button type="button" class="btn-logout" onclick="logoutUser()">خروج</button>
+        <!-- قسم النظام الرئيسي (يتم إخفائه عند المعاينة) -->
+        <div id="mainSystemView">
+            <div class="user-bar">
+                <span>👤 المستخدم: <strong id="userEmailDisplay"></strong></span>
+                <div class="user-actions">
+                    <button type="button" class="btn-open-laws-top" onclick="openLawsPage()">📖 قوانين</button>
+                    <button type="button" class="btn-open-contract-top" onclick="openContractModal()">📜 عقد محامي</button>
+                    <button type="button" class="btn-open-financial-top" onclick="openFinancialModal()">💰 الأرشيف المالي</button>
+                    <button type="button" class="btn-settings" onclick="togglePasswordSection()">🔑 تغيير الرمز</button>
+                    <button type="button" class="btn-logout" onclick="logoutUser()">خروج</button>
+                </div>
             </div>
+
+            <div id="passwordSection" class="password-box">
+                <h4 style="margin: 0 0 10px 0; font-size: 14px; color: var(--primary-color);">تغيير كلمة المرور</h4>
+                <div style="display: flex; gap: 8px;">
+                    <input type="password" id="newPassword" placeholder="الجديدة (6 رموز على الأقل)" style="flex: 1;">
+                    <button type="button" class="btn-search" onclick="changeUserPassword()">تحديث</button>
+                </div>
+                <div id="passMessage" style="font-size: 12px; margin-top: 6px;"></div>
+            </div>
+
+            <h2 class="header-title">⚖️ نظام إدارة وتوثيق الدعاوى</h2>
+            
+            <div id="hearingAlertBox" class="hearing-alert"></div>
+
+            <div class="search-container-top">
+                <div class="search-box-item">
+                    <input type="text" id="searchQuery" placeholder="بحث برقم الدعوة...">
+                    <button type="button" class="btn-search" onclick="fetchDataFromFirebase()">🔍 بحث الدعوى</button>
+                </div>
+            </div>
+
+            <form id="lawForm">
+                <div class="form-grid">
+                    
+                    <div class="section-title">📌 البيانات الأساسية للدعوى</div>
+                    
+                    <div class="form-group">
+                        <label>رقم الدعوة:</label>
+                        <input type="text" id="caseNumber" placeholder="مثال: 2/ب/2026">
+                    </div>
+                    <div class="form-group">
+                        <label>المحكمة المختصة:</label>
+                        <input type="text" id="court" placeholder="مثال: بداءة بغداد">
+                    </div>
+                    <div class="form-group">
+                        <label>عنوان الدعوة (موضوعها):</label>
+                        <input type="text" id="caseTitle" placeholder="أدخل موضوع الدعوة">
+                    </div>
+
+                    <div class="form-group">
+                        <label>اسم المشتكي / المدعي:</label>
+                        <input type="text" id="complainant" placeholder="الاسم الثلاثي">
+                    </div>
+                    <div class="form-group">
+                        <label>هاتف الموكل:</label>
+                        <input type="text" id="complainantPhone" placeholder="رقم الهاتف">
+                    </div>
+                    <div class="form-group">
+                        <label>اسم المشكو منه / الخصم:</label>
+                        <input type="text" id="defendant" placeholder="الاسم الثلاثي">
+                    </div>
+
+                    <div class="section-title">📅 موعد الجلسة القادمة</div>
+
+                    <div class="form-group full-width">
+                        <label>موعد الجلسة القادمة (التاريخ والوقت):</label>
+                        <input type="datetime-local" id="nextHearingDate" class="small-input-width" onchange="checkHearingAlert(this.value)">
+                    </div>
+
+                    <div class="section-title">⚙️ المرفقات والإعدادات الخاصة</div>
+
+                    <div class="form-group">
+                        <label>مرفقات الدعوة (صورة/ملف):</label>
+                        <input type="file" id="attachment" accept=".jpg, .jpeg, .png" onchange="handleFileSelect(event)">
+                    </div>
+                    <div class="form-group">
+                        <label>رابط موقع الدعوة (QR):</label>
+                        <input type="text" id="locationUrl" placeholder="https://example.com">
+                    </div>
+                    <div class="form-group">
+                        <label>النص السفلي للباركود:</label>
+                        <input type="text" id="barcodeSubText" placeholder="مثال: صالح للنشر والاعتماد">
+                    </div>
+                    <div class="form-group">
+                        <label>اسم المسؤول (الورقة المائية):</label>
+                        <input type="text" id="watermarkText" placeholder="مثال: المحامي فلان">
+                    </div>
+                    <div class="form-group full-width">
+                        <label>ملاحظات سرية / إدارية:</label>
+                        <textarea id="privateNotes" placeholder="ملاحظات لا تظهر للعميل..."></textarea>
+                    </div>
+                    <div class="form-group full-width">
+                        <div id="fileInfo" style="font-size: 12px; color: #64748b;"></div>
+                    </div>
+                </div>
+
+                <div class="qrcode-section" id="qrcodeContainer">
+                    <span style="font-size: 12px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">QR Code الرسمي:</span>
+                    <div id="qrcode"></div>
+                    <div id="barcodeSubTextDisplay" class="barcode-sub-text"></div>
+                </div>
+
+                <div class="actions-section">
+                    <button type="button" class="btn-save" onclick="saveDataToFirebase()">💾 حفظ بالكامل</button>
+                    <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة التقرير</button>
+                </div>
+            </form>
         </div>
 
-        <div id="passwordSection" class="password-box">
-            <h4 style="margin: 0 0 10px 0; font-size: 14px; color: var(--primary-color);">تغيير كلمة المرور</h4>
-            <div style="display: flex; gap: 8px;">
-                <input type="password" id="newPassword" placeholder="الجديدة (6 رموز على الأقل)" style="flex: 1;">
-                <button type="button" class="btn-search" onclick="changeUserPassword()">تحديث</button>
-            </div>
-            <div id="passMessage" style="font-size: 12px; margin-top: 6px;"></div>
-        </div>
-
-        <h2 class="header-title">⚖️ نظام إدارة وتوثيق الدعاوى</h2>
-        
-        <div id="hearingAlertBox" class="hearing-alert"></div>
-
-        <div class="search-container-top">
-            <div class="search-box-item">
-                <input type="text" id="searchQuery" placeholder="بحث برقم الدعوة...">
-                <button type="button" class="btn-search" onclick="fetchDataFromFirebase()">🔍 بحث الدعوى</button>
-            </div>
-        </div>
-
-        <form id="lawForm">
-            <div class="form-grid">
-                
-                <div class="section-title">📌 البيانات الأساسية للدعوى</div>
-                
-                <div class="form-group">
-                    <label>رقم الدعوة:</label>
-                    <input type="text" id="caseNumber" placeholder="مثال: 2/ب/2026">
-                </div>
-                <div class="form-group">
-                    <label>المحكمة المختصة:</label>
-                    <input type="text" id="court" placeholder="مثال: بداءة بغداد">
-                </div>
-                <div class="form-group">
-                    <label>عنوان الدعوة (موضوعها):</label>
-                    <input type="text" id="caseTitle" placeholder="أدخل موضوع الدعوة">
-                </div>
-
-                <div class="form-group">
-                    <label>اسم المشتكي / المدعي:</label>
-                    <input type="text" id="complainant" placeholder="الاسم الثلاثي">
-                </div>
-                <div class="form-group print-hidden-field">
-                    <label>هاتف الموكل:</label>
-                    <input type="text" id="complainantPhone" placeholder="رقم الهاتف">
-                </div>
-                <div class="form-group">
-                    <label>اسم المشكو منه / الخصم:</label>
-                    <input type="text" id="defendant" placeholder="الاسم الثلاثي">
-                </div>
-
-                <div class="section-title print-hidden-field">📅 موعد الجلسة القادمة</div>
-
-                <div class="form-group full-width print-hidden-field">
-                    <label>موعد الجلسة القادمة (التاريخ والوقت):</label>
-                    <input type="datetime-local" id="nextHearingDate" class="small-input-width" onchange="checkHearingAlert(this.value)">
-                </div>
-
-                <div class="section-title hide-on-print">⚙️ المرفقات والإعدادات الخاصة</div>
-
-                <div class="form-group hide-on-print">
-                    <label>مرفقات الدعوة (صورة/ملف):</label>
-                    <input type="file" id="attachment" accept=".jpg, .jpeg, .png" onchange="handleFileSelect(event)">
-                </div>
-                <div class="form-group hide-on-print">
-                    <label>رابط موقع الدعوة (QR):</label>
-                    <input type="text" id="locationUrl" placeholder="https://example.com">
-                </div>
-                <div class="form-group hide-on-print">
-                    <label>النص السفلي للباركود:</label>
-                    <input type="text" id="barcodeSubText" placeholder="مثال: صالح للنشر والاعتماد">
-                </div>
-                <div class="form-group hide-on-print">
-                    <label>اسم المسؤول (الورقة المائية):</label>
-                    <input type="text" id="watermarkText" placeholder="مثال: المحامي فلان">
-                </div>
-                <div class="form-group full-width hide-on-print">
-                    <label>ملاحظات سرية / إدارية:</label>
-                    <textarea id="privateNotes" placeholder="ملاحظات لا تظهر للعميل..."></textarea>
-                </div>
-                <div class="form-group full-width hide-on-print">
-                    <div id="fileInfo" style="font-size: 12px; color: #64748b;"></div>
-                </div>
-            </div>
-
-            <div class="qrcode-section" id="qrcodeContainer">
-                <span style="font-size: 12px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">QR Code الرسمي:</span>
-                <div id="qrcode"></div>
-                <div id="barcodeSubTextDisplay" class="barcode-sub-text"></div>
-            </div>
-
-            <div class="actions-section">
-                <button type="button" class="btn-save" onclick="saveDataToFirebase()">💾 حفظ بالكامل</button>
-                <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة التقرير</button>
-            </div>
-        </form>
-
-        <!-- قسم نموذج عقد محامي القابل للطباعة بحجم A4 -->
+        <!-- قسم صفحة معاينة عقد المحامي المستقلة بحجم A4 مع زر عودة وطباعة -->
         <div id="contractPrintSection" class="contract-print-container">
             <div class="contract-content-wrapper">
                 <div class="contract-title">عقد أتعاب محاماة</div>
@@ -718,8 +729,10 @@
                     <div>الطرف الأول (المحامي):<br><br>....................................</div>
                 </div>
                 
-                <div class="actions-section" style="margin-top: 30px;">
+                <!-- أزرار المعاينة والعودة (تختفي عند الطباعة) -->
+                <div class="actions-section hide-on-print" style="margin-top: 30px;">
                     <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة العقد الرسمي</button>
+                    <button type="button" class="btn-back" onclick="backToMainSystem()">⬅️ عودة للنظام</button>
                 </div>
             </div>
         </div>
