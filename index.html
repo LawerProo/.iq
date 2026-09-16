@@ -258,6 +258,12 @@
         .search-section { background: #eff6ff; border: 1px solid #bfdbfe; padding: 12px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
         .search-section input { flex: 1; padding: 8px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; background: #fff; outline: none; }
         .btn-search { background-color: var(--secondary-color); color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; }
+        
+        /* قسم البحث في القوانين السريعة */
+        .legal-search-bar { background: #f3e8ff; border: 1px solid #d8b4fe; padding: 12px; border-radius: 12px; margin-bottom: 20px; display: flex; gap: 10px; align-items: center; }
+        .legal-search-bar input { flex: 1; padding: 8px 12px; border: 1px solid #c084fc; border-radius: 8px; font-size: 14px; background: #fff; outline: none; }
+        .btn-legal-search { background-color: #7c3aed; color: white; border: none; padding: 8px 15px; border-radius: 8px; cursor: pointer; font-weight: 600; font-size: 13px; }
+
         .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
         .form-group { margin-bottom: 12px; }
         .form-group.full-width { grid-column: span 2; }
@@ -278,47 +284,6 @@
         .actions-section { display: flex; gap: 10px; justify-content: center; margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 15px; }
         .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; }
         .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; }
-
-        /* نافذة القوانين المنبثقة داخل الصفحة (Modal) */
-        #legalModal {
-            display: none;
-            position: fixed;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.6);
-            z-index: 10000;
-            justify-content: center;
-            align-items: center;
-        }
-        .legal-modal-content {
-            background: #ffffff;
-            width: 95%;
-            max-width: 900px;
-            height: 90vh;
-            border-radius: 16px;
-            padding: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-        }
-        .legal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #e2e8f0;
-            padding-bottom: 10px;
-            margin-bottom: 10px;
-        }
-        .legal-header h3 { margin: 0; color: var(--primary-color); font-size: 18px; }
-        .close-modal { background: var(--danger-color); color: white; border: none; padding: 6px 12px; border-radius: 6px; font-size: 14px; cursor: pointer; font-weight: bold; }
-        
-        .pdf-frame {
-            flex: 1;
-            width: 100%;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            background: #f1f5f9;
-        }
 
         #watermarkLayer {
             position: absolute;
@@ -344,7 +309,7 @@
         @media print {
             body { background: white !important; padding: 0 !important; }
             .container { border: none !important; box-shadow: none !important; width: 100% !important; padding: 0 !important; }
-            .user-bar, .search-section, .actions-section, .auth-card, #passwordSection { display: none !important; }
+            .user-bar, .search-section, .legal-search-bar, .actions-section, .auth-card, #passwordSection { display: none !important; }
             .hide-on-print { display: none !important; }
             #watermarkLayer { opacity: 1 !important; }
         }
@@ -367,17 +332,6 @@
         <div id="loginError" class="error-text"></div>
     </div>
 
-    <!-- نافذة عرض قانون العقوبات العراقي الرسمي داخل الصفحة (Modal) -->
-    <div id="legalModal">
-        <div class="legal-modal-content">
-            <div class="legal-header">
-                <h3>📜 موسوعة قانون العقوبات العراقي الرسمي (عرض مباشر)</h3>
-                <button type="button" class="close-modal" onclick="closeLegalModal()">إغلاق ✕</button>
-            </div>
-            <iframe src="https://www.rwi.uzh.ch/dam/jcr:00000000-0c03-6a0c-ffff-ffff96be3560/penalcode1969.pdf" class="pdf-frame"></iframe>
-        </div>
-    </div>
-
     <!-- واجهة النظام الرئيسية -->
     <div class="container" id="appSection" style="display: none;">
         
@@ -388,7 +342,7 @@
         <div class="user-bar">
             <span>👤 المستخدم: <strong id="userEmailDisplay"></strong></span>
             <div class="user-actions">
-                <button type="button" class="btn-legal" onclick="openLegalModal()">📜 قانونيات</button>
+                <button type="button" class="btn-legal" onclick="openPenalCode()">📜 قانون العقوبات العراقي</button>
                 <button type="button" class="btn-settings" onclick="togglePasswordSection()">🔑 تغيير الرمز</button>
                 <button type="button" class="btn-logout" onclick="logoutUser()">خروج</button>
             </div>
@@ -409,6 +363,12 @@
         <div class="search-section">
             <input type="text" id="searchQuery" placeholder="أدخل رقم الدعوة للبحث والاستعلام...">
             <button type="button" class="btn-search" onclick="fetchDataFromFirebase()">🔍 بحث برقم الدعوة</button>
+        </div>
+
+        <!-- شريط البحث السريع في قانون العقوبات (عبر الانتقال للبحث بالموقع أو المادة) -->
+        <div class="legal-search-bar">
+            <input type="text" id="legalSearchInput" placeholder="أبحث برقم المادة أو الكلمة في قانون العقوبات (مثال: المادة 406)...">
+            <button type="button" class="btn-legal-search" onclick="searchLegalCode()">⚖️ بحث في القانون</button>
         </div>
 
         <form id="lawForm">
@@ -476,12 +436,20 @@
     </div>
 
 <script>
-    function openLegalModal() {
-        document.getElementById('legalModal').style.display = 'flex';
+    // فتح قانون العقوبات العراقي في تبويب جديد لتجنب مشاكل الحظر الأمني للموقع الخارجي
+    function openPenalCode() {
+        window.open("https://www.rwi.uzh.ch/dam/jcr:00000000-0c03-6a0c-ffff-ffff96be3560/penalcode1969.pdf", "_blank");
     }
 
-    function closeLegalModal() {
-        document.getElementById('legalModal').style.display = 'none';
+    // زر البحث السريع داخل القوانين عبر جوجل موجهاً لملف القانون مباشرة
+    function searchLegalCode() {
+        const query = document.getElementById('legalSearchInput').value.trim();
+        if(!query) {
+            alert("يرجى إدخال رقم المادة أو النص المراد البحث عنه.");
+            return;
+        }
+        const searchUrl = `https://www.google.com/search?q=site:rwi.uzh.ch/dam/jcr:00000000-0c03-6a0c-ffff-ffff96be3560/penalcode1969.pdf+${encodeURIComponent(query)}`;
+        window.open(searchUrl, "_blank");
     }
 
     function generateQRCode() {
@@ -502,7 +470,7 @@
     }
     document.getElementById('locationUrl').addEventListener('input', generateQRCode);
 
-    document.getElementById('barcodeSubText').addEventListener('input', function() {
+    document.getElementById('barcodeSubTest').addEventListener('input', function() {
         document.getElementById('barcodeSubTextDisplay').textContent = this.value;
     });
 
