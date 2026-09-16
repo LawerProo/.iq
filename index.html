@@ -8,7 +8,7 @@
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, signInWithEmailAndPassword as reauthenticate } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -359,7 +359,6 @@
                         document.getElementById('fileInfo').textContent = "";
                     }
 
-                    // إظهار زر الحذف عند جلب الدعوة بنجاح
                     document.getElementById('deleteCaseBtn').style.display = 'inline-block';
                     alert("تم استرجاع الدعوة بنجاح! 🔍");
                 } else {
@@ -370,6 +369,23 @@
             } catch (error) {
                 alert("خطأ: " + error.message);
             }
+        };
+
+        // دالة تفريغ الحقول لإنشاء إدخال جديد
+        window.startNewEntry = function() {
+            document.getElementById('lawForm').reset();
+            document.getElementById('searchQuery').value = "";
+            document.getElementById('nextHearingDate').value = "";
+            document.getElementById('qrcodeContainer').style.display = 'none';
+            document.getElementById('hearingAlertBox').style.display = 'none';
+            document.getElementById('fileInfo').textContent = "";
+            document.getElementById('deleteCaseBtn').style.display = 'none';
+            currentLoadedDocId = "";
+            selectedFileBase64 = "";
+            selectedFileName = "";
+            document.getElementById('barcodeSubTextDisplay').textContent = "";
+            document.getElementById('watermarkDisplay').textContent = "";
+            alert("تم إفريغ الحقول بنجاح. يمكنك الآن إدخال دعوة جديدة.");
         };
 
         // دالة حذف الدعوة مع التحقق من الرمز السري
@@ -383,24 +399,11 @@
             if (!passwordInput) return;
 
             try {
-                // إعادة المصادقة للتأكد من صحة كلمة المرور المدخلة
                 await signInWithEmailAndPassword(auth, currentUser.email, passwordInput);
-
-                // تنفيذ الحذف من فايربيس
                 await deleteDoc(doc(db, "cases", currentLoadedDocId));
 
                 alert("تم حذف الدعوة من النظام وقاعدة البيانات بنجاح! 🗑️");
-
-                // تفريغ الحقول وإخفاء زر الحذف والباركود
-                document.getElementById('lawForm').reset();
-                document.getElementById('searchQuery').value = "";
-                document.getElementById('qrcodeContainer').style.display = 'none';
-                document.getElementById('hearingAlertBox').style.display = 'none';
-                document.getElementById('fileInfo').textContent = "";
-                document.getElementById('deleteCaseBtn').style.display = 'none';
-                currentLoadedDocId = "";
-                selectedFileBase64 = "";
-                selectedFileName = "";
+                startNewEntry();
 
             } catch (error) {
                 alert("فشل الحذف: كلمة المرور غير صحيحة أو حدث خطأ تقني. (" + error.message + ")");
@@ -539,14 +542,15 @@
         .header-title { text-align: center; color: var(--primary-color); margin-bottom: 15px; font-size: 22px; font-weight: 700; }
         
         .top-search-hearing-bar { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
-        .search-box-item { background: var(--section-bg); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 10px; display: flex; gap: 8px; align-items: center; width: 320px; height: 38px; box-sizing: border-box; }
+        .search-box-item { background: var(--section-bg); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 10px; display: flex; gap: 8px; align-items: center; width: 380px; height: 38px; box-sizing: border-box; }
         .search-box-item input { flex: 1; padding: 4px 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: var(--input-bg); color: var(--text-main); outline: none; text-align: center; letter-spacing: 1px; height: 26px; }
         .btn-search { background-color: var(--secondary-color); color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; white-space: nowrap; height: 26px; }
         .btn-delete-case { background-color: var(--danger-color); color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; white-space: nowrap; height: 26px; display: none; }
 
-        .hearing-box-top { background: var(--section-bg); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 10px; display: flex; gap: 8px; align-items: center; width: 320px; height: 38px; box-sizing: border-box; }
+        .hearing-box-top { background: var(--section-bg); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 10px; display: flex; gap: 8px; align-items: center; height: 38px; box-sizing: border-box; }
         .hearing-box-top label { font-size: 12px; font-weight: 600; color: var(--label-color); white-space: nowrap; margin: 0; }
-        .hearing-box-top input[type="datetime-local"] { flex: 1; padding: 4px 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px; background: var(--input-bg); color: var(--text-main); height: 26px; box-sizing: border-box; }
+        .hearing-box-top input[type="datetime-local"] { padding: 4px 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px; background: var(--input-bg); color: var(--text-main); height: 26px; box-sizing: border-box; width: 180px; }
+        .btn-new-entry { background-color: var(--success-color); color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; white-space: nowrap; height: 26px; }
 
         .section-title { font-size: 14px; font-weight: bold; color: var(--primary-color); border-bottom: 2px solid var(--border-color); padding-bottom: 6px; margin: 25px 0 15px 0; grid-column: span 3; background: var(--section-bg); padding-right: 10px; border-radius: 4px; }
         
@@ -701,7 +705,7 @@
             
             <div id="hearingAlertBox" class="hearing-alert"></div>
 
-            <!-- حقل البحث، زر الحذف، وحقل موعد الجلسة -->
+            <!-- حقل البحث، زر الحذف، وحقل موعد الجلسة مع زر إدخال جديد -->
             <div class="top-search-hearing-bar">
                 <div class="search-box-item" style="width: 380px;">
                     <input type="text" id="searchQuery" placeholder="بحث (7-9 أرقام)..." maxlength="9">
@@ -711,6 +715,7 @@
                 <div class="hearing-box-top">
                     <label>موعد الجلسة:</label>
                     <input type="datetime-local" id="nextHearingDate" onchange="checkHearingAlert(this.value)">
+                    <button type="button" class="btn-new-entry" onclick="startNewEntry()">➕ إدخال جديد</button>
                 </div>
             </div>
 
