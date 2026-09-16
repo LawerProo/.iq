@@ -478,7 +478,7 @@
         .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
         .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
 
-        /* تصميم وثيقة عقد المحاماة بحجم A4 وتوسيط الشعار المائي تماماً بالمنتصف */
+        /* تصميم وثيقة عقد المحاماة بحجم A4 وجعل الخلفية تغطي ورقة الطباعة تماماً */
         .contract-print-container { 
             background: #fff; 
             width: 210mm;
@@ -504,7 +504,7 @@
             background-image: url('https://raw.githubusercontent.com/abodabips-spec/Abo-Dabi/refs/heads/main/F0CBF176-4A9B-40CE-BF30-FAFF67BF79B1.png');
             background-repeat: no-repeat;
             background-position: center center;
-            background-size: 65% auto;
+            background-size: 100% 100%; /* تعديل الحجم ليغطي ورقة الطباعة تماماً */
             opacity: 0.10;
             pointer-events: none;
             z-index: 1;
@@ -540,14 +540,16 @@
             .contract-print-container { 
                 display: block !important; 
                 border: none !important; 
-                width: 100% !important;
-                height: 100% !important;
+                width: 210mm !important;
+                height: 297mm !important;
                 margin: 0 !important;
-                padding: 15mm !important;
+                padding: 20mm !important;
                 box-shadow: none !important;
+                page-break-after: always;
             }
             .contract-print-container::before {
                 opacity: 0.12 !important;
+                background-size: 100% 100% !important; /* ضمان ملء ورقة الطباعة عند الطباعة الفعلية */
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
