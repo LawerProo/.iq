@@ -9,7 +9,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, addDoc, query, where } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyCnAg_4zW8BHVjKp_C-38E-0LNBj8OmyFg",
@@ -27,7 +27,8 @@
         let currentUser = null;
         let selectedFileBase64 = "";
         let selectedFileName = "";
-        let currentLoadedDocId = ""; // لتخزين معرف الدعوى الحالية المعروضة
+        let currentLoadedDocId = ""; 
+        let activeSharedData = null; // لتخزين بيانات الدعوة المشتركة المراد فتحها
 
         onAuthStateChanged(auth, async (user) => {
             const loginBox = document.getElementById('loginSection');
@@ -40,6 +41,7 @@
                 appBox.style.display = 'block';
                 userEmailSpan.textContent = user.email;
                 checkAllCasesForHearings();
+                checkUserInbox(user.email);
             } else {
                 currentUser = null;
                 loginBox.style.display = 'block';
@@ -146,7 +148,6 @@
             window.open('https://www.rwi.uzh.ch/dam/jcr:00000000-0c03-6a0c-ffff-ffff96be3560/penalcode1969.pdf', '_blank');
         };
 
-        // دالة فتح صفحة محفظتي
         window.openMyWalletPage = function() {
             window.open('https://drive.google.com', '_blank');
         };
@@ -312,6 +313,7 @@
                 await setDoc(doc(db, "cases", docId), caseData);
                 currentLoadedDocId = docId;
                 document.getElementById('deleteCaseBtn').style.display = 'inline-block';
+                document.getElementById('shareCaseBtn').style.display = 'inline-block';
                 alert("تم حفظ الدعوة بنجاح تام! ✅");
             } catch (error) {
                 alert("خطأ أثناء الحفظ: " + error.message);
@@ -365,10 +367,12 @@
                     }
 
                     document.getElementById('deleteCaseBtn').style.display = 'inline-block';
+                    document.getElementById('shareCaseBtn').style.display = 'inline-block';
                     alert("تم استرجاع الدعوة بنجاح! 🔍");
                 } else {
                     currentLoadedDocId = "";
                     document.getElementById('deleteCaseBtn').style.display = 'none';
+                    document.getElementById('shareCaseBtn').style.display = 'none';
                     alert("لم يتم العثور على دعوة بهذا الرقم.");
                 }
             } catch (error) {
@@ -384,6 +388,7 @@
             document.getElementById('hearingAlertBox').style.display = 'none';
             document.getElementById('fileInfo').textContent = "";
             document.getElementById('deleteCaseBtn').style.display = 'none';
+            document.getElementById('shareCaseBtn').style.display = 'none';
             currentLoadedDocId = "";
             selectedFileBase64 = "";
             selectedFileName = "";
@@ -413,6 +418,120 @@
             }
         };
 
+        // --- وظائف مشاركة الدعوة وإرسالها للمستخدمين الآخرين ---
+        window.openShareModal = function() {
+            if (!currentLoadedDocId) {
+                alert("يرجى تحميل أو حفظ الدعوة أولاً لتمكين مشاركتها.");
+                return;
+            }
+            // ملء المعاينة الأولية في نافذة المشاركة
+            document.getElementById('previewCaseNum').textContent = document.getElementById('caseNumber').value;
+            document.getElementById('previewCourt').textContent = document.getElementById('court').value;
+            document.getElementById('previewTitle').textContent = document.getElementById('caseTitle').value;
+            document.getElementById('previewComplainant').textContent = document.getElementById('complainant').value;
+            document.getElementById('previewPhone').textContent = document.getElementById('complainantPhone').value;
+            document.getElementById('previewDefendant').textContent = document.getElementById('defendant').value;
+            document.getElementById('previewHearing').textContent = document.getElementById('nextHearingDate').value;
+            document.getElementById('previewFees').textContent = document.getElementById('totalFees').value + ' د.ع';
+            document.getElementById('previewNotes').textContent = document.getElementById('privateNotes').value;
+
+            document.getElementById('shareModal').style.display = 'flex';
+        };
+
+        window.closeShareModal = function() {
+            document.getElementById('shareModal').style.display = 'none';
+        };
+
+        window.sendSharedCaseToUser = async function() {
+            const targetEmail = document.getElementById('targetUserEmail').value.trim();
+            if (!targetEmail) {
+                alert("يرجى كتابة البريد الإلكتروني للمستخدم المراد إرسال الدعوة إليه.");
+                return;
+            }
+
+            // جمع الخيارات المراد إخفاؤها أو إرسالها بناءً على رغبة المستخدم
+            const hideFees = document.getElementById('hideFees').checked;
+            const hidePhone = document.getElementById('hidePhone').checked;
+            const hideNotes = document.getElementById('hideNotes').checked;
+
+            const sharedPackage = {
+                senderEmail: currentUser.email,
+                targetEmail: targetEmail,
+                timestamp: new Date().toISOString(),
+                isRead: false,
+                caseData: {
+                    caseNumber: document.getElementById('caseNumber').value,
+                    court: document.getElementById('court').value,
+                    caseTitle: document.getElementById('caseTitle').value,
+                    complainant: document.getElementById('complainant').value,
+                    complainantPhone: hidePhone ? "[محجوب]" : document.getElementById('complainantPhone').value,
+                    defendant: document.getElementById('defendant').value,
+                    nextHearingDate: document.getElementById('nextHearingDate').value,
+                    totalFees: hideFees ? "[محجوب]" : (document.getElementById('totalFees').value + ' د.ع'),
+                    privateNotes: hideNotes ? "[محجوب]" : document.getElementById('privateNotes').value
+                }
+            };
+
+            try {
+                await addDoc(collection(db, "inbox"), sharedPackage);
+                alert("تم إرسال الدعوة بنجاح إلى المستخدِم (" + targetEmail + ")! 📤");
+                closeShareModal();
+                document.getElementById('targetUserEmail').value = "";
+            } catch (error) {
+                alert("حدث خطأ أثناء الإرسال: " + error.message);
+            }
+        };
+
+        // فحص صندوق الوارد للمستخدم الحالي لتلقي الرسائل
+        async function checkUserInbox(userEmail) {
+            try {
+                const q = query(collection(db, "inbox"), where("targetEmail", "==", userEmail));
+                const querySnapshot = await getDocs(q);
+                let unreadMessages = [];
+
+                querySnapshot.forEach((docSnap) => {
+                    const msgData = docSnap.data();
+                    if (!msgData.isRead) {
+                        unreadMessages.push({ id: docSnap.id, ...msgData });
+                    }
+                });
+
+                const inboxAlert = document.getElementById('inboxAlertBox');
+                if (unreadMessages.length > 0) {
+                    // حفظ أحدث رسالة معلقة لعرضها
+                    window.latestInboxMsg = unreadMessages[0];
+                    inboxAlert.style.display = 'block';
+                    inboxAlert.innerHTML = `📬 لديك رسالة جديدة من (${window.latestInboxMsg.senderEmail}) <button type="button" class="btn-search btn-3d" style="margin-right: 15px; display:inline-flex;" onclick="openInboxMessageModal()">فتح الدعوة المرسلة</button>`;
+                } else {
+                    inboxAlert.style.display = 'none';
+                }
+            } catch (error) {
+                console.error("خطأ في جلب الرسائل:", error);
+            }
+        }
+
+        window.openInboxMessageModal = function() {
+            if (!window.latestInboxMsg) return;
+            const data = window.latestInboxMsg.caseData;
+
+            document.getElementById('incomingSender').textContent = window.latestInboxMsg.senderEmail;
+            document.getElementById('inc_caseNumber').textContent = data.caseNumber || '---';
+            document.getElementById('inc_court').textContent = data.court || '---';
+            document.getElementById('inc_caseTitle').textContent = data.caseTitle || '---';
+            document.getElementById('inc_complainant').textContent = data.complainant || '---';
+            document.getElementById('inc_complainantPhone').textContent = data.complainantPhone || '---';
+            document.getElementById('inc_defendant').textContent = data.defendant || '---';
+            document.getElementById('inc_nextHearingDate').textContent = data.nextHearingDate || '---';
+            document.getElementById('inc_totalFees').textContent = data.totalFees || '---';
+            document.getElementById('inc_privateNotes').textContent = data.privateNotes || '---';
+
+            document.getElementById('incomingMessageModal').style.display = 'flex';
+        };
+
+        window.closeIncomingMessageModal = function() {
+            document.getElementById('incomingMessageModal').style.display = 'none';
+        };
+
         async function checkAllCasesForHearings() {
             try {
                 const querySnapshot = await getDocs(collection(db, "cases"));
@@ -422,7 +541,7 @@
 
                 querySnapshot.forEach((docSnap) => {
                     const data = docSnap.data();
-                    if (data.nextHearingDate) {
+                    if (data.userId === currentUser.uid && data.nextHearingDate) {
                         const hearingDate = new Date(data.nextHearingDate);
                         const hearingDay = new Date(hearingDate.getFullYear(), hearingDate.getMonth(), hearingDate.getDate());
                         const diffTime = hearingDay - todayDay;
@@ -552,7 +671,6 @@
             box-shadow: 0 1px 0 rgba(0, 0, 0, 0.3) !important;
         }
 
-        /* 1. زر أزرق (تخويل / بحث / دخول) */
         .btn-main, .btn-search {
             background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
             color: white;
@@ -568,7 +686,6 @@
             box-shadow: 0 2px 0 #1e3a8a;
         }
 
-        /* 2. زر أخضر (حفظ / إدخال جديد) */
         .btn-save, .btn-new-entry {
             background: linear-gradient(135deg, #10b981 0%, #047857 100%);
             color: white;
@@ -584,7 +701,6 @@
             box-shadow: 0 2px 0 #065f46;
         }
 
-        /* 3. زر برتقالي/ذهبي (طباعة / إعدادات) */
         .btn-print, .btn-settings {
             background: linear-gradient(135deg, #f59e0b 0%, #b45309 100%);
             color: white;
@@ -600,7 +716,6 @@
             box-shadow: 0 2px 0 #78350f;
         }
 
-        /* 4. زر أحمر (حذف / خروج) */
         .btn-danger, .btn-delete-case, .btn-logout, .modal-close-btn {
             background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
             color: white;
@@ -616,30 +731,28 @@
             box-shadow: 0 2px 0 #7f1d1d;
         }
 
-        /* 5. الأزرار الثانوية (محفظتي، قوانين، عقد، أرشيف مالي، ليلي، عودة، رمادي) */
-        .btn-open-wallet-top, .btn-open-financial-top, .btn-open-contract-top, .btn-open-laws-top, .btn-theme-toggle, .btn-back {
+        .btn-open-wallet-top, .btn-open-financial-top, .btn-open-contract-top, .btn-open-laws-top, .btn-theme-toggle, .btn-back, .btn-share-case {
             background: linear-gradient(135deg, #64748b 0%, #334155 100%);
             color: white;
             box-shadow: 0 4px 0 #1e293b, 0 6px 12px rgba(100, 116, 139, 0.3);
         }
-        .btn-open-wallet-top:hover, .btn-open-financial-top:hover, .btn-open-contract-top:hover, .btn-open-laws-top:hover, .btn-theme-toggle:hover, .btn-back:hover {
+        .btn-open-wallet-top:hover, .btn-open-financial-top:hover, .btn-open-contract-top:hover, .btn-open-laws-top:hover, .btn-theme-toggle:hover, .btn-back:hover, .btn-share-case:hover {
             background: linear-gradient(135deg, #94a3b8 0%, #475569 100%);
             transform: translateY(-2px);
             box-shadow: 0 6px 0 #1e293b, 0 10px 16px rgba(100, 116, 139, 0.4);
         }
-        .btn-open-wallet-top:active, .btn-open-financial-top:active, .btn-open-contract-top:active, .btn-open-laws-top:active, .btn-theme-toggle:active, .btn-back:active {
+        .btn-open-wallet-top:active, .btn-open-financial-top:active, .btn-open-contract-top:active, .btn-open-laws-top:active, .btn-theme-toggle:active, .btn-back:active, .btn-share-case:active {
             transform: translateY(3px);
             box-shadow: 0 2px 0 #1e293b;
         }
 
-        /* تخصيص أحجام الأزرار حسب أماكنها في الواجهة */
         .btn-main { width: 100%; padding: 12px; font-size: 16px; margin-top: 10px; }
         
         .btn-settings, .btn-logout, .btn-open-wallet-top, .btn-open-financial-top, .btn-open-contract-top, .btn-open-laws-top, .btn-theme-toggle {
             padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px;
         }
 
-        .btn-search, .btn-delete-case, .btn-new-entry {
+        .btn-search, .btn-delete-case, .btn-new-entry, .btn-share-case {
             padding: 4px 10px; font-size: 12px; height: 26px; border-radius: 6px;
         }
 
@@ -659,7 +772,7 @@
         .header-title { text-align: center; color: var(--primary-color); margin-bottom: 15px; font-size: 22px; font-weight: 700; }
         
         .top-search-hearing-bar { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
-        .search-box-item { background: var(--section-bg); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 10px; display: flex; gap: 8px; align-items: center; width: 380px; height: 38px; box-sizing: border-box; }
+        .search-box-item { background: var(--section-bg); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 10px; display: flex; gap: 8px; align-items: center; width: 460px; height: 38px; box-sizing: border-box; }
         .search-box-item input { flex: 1; padding: 4px 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: var(--input-bg); color: var(--text-main); outline: none; text-align: center; letter-spacing: 1px; height: 26px; }
 
         .hearing-box-top { background: var(--section-bg); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 10px; display: flex; gap: 8px; align-items: center; height: 38px; box-sizing: border-box; }
@@ -677,11 +790,14 @@
         input[type="file"] { padding: 6px; background: var(--section-bg); cursor: pointer; }
         textarea { resize: vertical; height: 60px; }
 
-        .hearing-alert { padding: 10px 15px; border-radius: 8px; font-weight: bold; font-size: 13px; margin-bottom: 15px; border: 1px solid transparent; display: none; }
+        .hearing-alert, .inbox-alert { padding: 10px 15px; border-radius: 8px; font-weight: bold; font-size: 13px; margin-bottom: 15px; border: 1px solid transparent; display: none; }
+        .inbox-alert { background: #e0f2fe; color: #0369a1; border-color: #bae6fd; display: none; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 10000; }
         .modal-content { background: var(--card-bg); color: var(--text-main); padding: 25px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; border: 1px solid var(--border-color); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+
+        .preview-box { background: var(--section-bg); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; line-height: 1.6; }
 
         .qrcode-section { text-align: center; margin-top: 15px; padding: 10px; background: var(--section-bg); border: 2px dashed var(--border-color); border-radius: 10px; display: none; }
         #qrcode { display: inline-block; margin-top: 5px; padding: 5px; background: white; border-radius: 6px; }
@@ -814,14 +930,17 @@
 
             <h2 class="header-title">⚖️ نظام إدارة وتوثيق الدعاوى</h2>
             
+            <!-- تنبيهات صندوق الوارد للرسائل الجديدة -->
+            <div id="inboxAlertBox" class="inbox-alert"></div>
             <div id="hearingAlertBox" class="hearing-alert"></div>
 
             <!-- شريط البحث وموعد الجلسة -->
             <div class="top-search-hearing-bar">
-                <div class="search-box-item" style="width: 380px;">
+                <div class="search-box-item">
                     <input type="text" id="searchQuery" placeholder="بحث (7-9 أرقام)..." maxlength="9">
                     <button type="button" class="btn-search btn-3d" onclick="fetchDataFromFirebase()">🔍 بحث</button>
-                    <button type="button" id="deleteCaseBtn" class="btn-delete-case btn-3d" onclick="deleteCurrentCase()" style="display: none;">🗑️ حذف الدعوى</button>
+                    <button type="button" id="shareCaseBtn" class="btn-share-case btn-3d" onclick="openShareModal()" style="display: none;">🔗 مشاركة</button>
+                    <button type="button" id="deleteCaseBtn" class="btn-delete-case btn-3d" onclick="deleteCurrentCase()" style="display: none;">🗑️ حذف</button>
                 </div>
                 <div class="hearing-box-top">
                     <label>موعد الجلسة:</label>
@@ -932,6 +1051,68 @@
             </div>
         </div>
 
+    </div>
+
+    <!-- نافذة مشاركة الدعوى والمعاينة -->
+    <div id="shareModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-header">
+                <h3 style="margin: 0; color: var(--primary-color);">🔗 معاينة ومشاركة الدعوى</h3>
+                <button type="button" class="modal-close-btn btn-3d" onclick="closeShareModal()">✕ إغلاق</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div class="form-group" style="margin: 0;">
+                    <label>البريد الإلكتروني للمستخدم الآخر في السستم (مثال: ahmed@gmail.com):</label>
+                    <input type="email" id="targetUserEmail" placeholder="user@example.com">
+                </div>
+
+                <label style="margin-top: 5px;">حدد الأمور التي تريد إخفاءها عن المرسل إليه:</label>
+                <div style="display: flex; gap: 15px; font-size: 13px; font-weight: 600; flex-wrap: wrap;">
+                    <label style="cursor: pointer;"><input type="checkbox" id="hideFees"> إخفاء الأتعاب والمبالغ</label>
+                    <label style="cursor: pointer;"><input type="checkbox" id="hidePhone"> إخفاء رقم الهاتف</label>
+                    <label style="cursor: pointer;"><input type="checkbox" id="hideNotes"> إخفاء الملاحظات السرية</label>
+                </div>
+
+                <label style="margin-top: 5px;">معاينة الدعوى قبل الإرسال:</label>
+                <div class="preview-box">
+                    <div><b>رقم الدعوى:</b> <span id="previewCaseNum">---</span></div>
+                    <div><b>المحكمة:</b> <span id="previewCourt">---</span></div>
+                    <div><b>موضوعها:</b> <span id="previewTitle">---</span></div>
+                    <div><b>المشتكي:</b> <span id="previewComplainant">---</span> | <b>الهاتف:</b> <span id="previewPhone">---</span></div>
+                    <div><b>الخصم:</b> <span id="previewDefendant">---</span></div>
+                    <div><b>الجلسة القادمة:</b> <span id="previewHearing">---</span></div>
+                    <div><b>الأتعاب الكلية:</b> <span id="previewFees">---</span></div>
+                    <div><b>ملاحظات:</b> <span id="previewNotes">---</span></div>
+                </div>
+
+                <button type="button" class="btn-main btn-3d" onclick="sendSharedCaseToUser()">📤 تأكيد وإرسال الدعوى الآن</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة عرض الدعوى الواردة للمستخدم الآخر عند الضغط على رسالة جديدة -->
+    <div id="incomingMessageModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 550px;">
+            <div class="modal-header">
+                <h3 style="margin: 0; color: var(--primary-color);">📥 دعوى مشتركة جديدة</h3>
+                <button type="button" class="modal-close-btn btn-3d" onclick="closeIncomingMessageModal()">✕ إغلاق</button>
+            </div>
+            <div style="font-size: 13px; margin-bottom: 10px; color: var(--success-color);">تم إرسال هذه الدعوى إليك بواسطة: <b id="incomingSender">---</b></div>
+            
+            <div class="preview-box" style="background: var(--input-bg);">
+                <div><b>رقم الدعوى:</b> <span id="inc_caseNumber">---</span></div>
+                <div><b>المحكمة:</b> <span id="inc_court">---</span></div>
+                <div><b>موضوع الدعوى:</b> <span id="inc_caseTitle">---</span></div>
+                <div><b>المشتكي:</b> <span id="inc_complainant">---</span></div>
+                <div><b>هاتف الموكل:</b> <span id="inc_complainantPhone">---</span></div>
+                <div><b>الخصم:</b> <span id="inc_defendant">---</span></div>
+                <div><b>موعد الجلسة:</b> <span id="inc_nextHearingDate">---</span></div>
+                <div><b>الأتعاب:</b> <span id="inc_totalFees">---</span></div>
+                <div><b>الملاحظات:</b> <span id="inc_privateNotes">---</span></div>
+            </div>
+
+            <button type="button" class="btn-main btn-3d" onclick="closeIncomingMessageModal()">إغلاق المعاينة</button>
+        </div>
     </div>
 
     <!-- نافذة الأرشيف المالي -->
