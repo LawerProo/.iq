@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة وتوثيق الدعاوى القضائية</title>
+    <title>نظام إدارة الدعاوى مع محادثة Gemini الذكية</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <script type="module">
@@ -28,23 +28,23 @@
         let selectedFileBase64 = "";
         let selectedFileName = "";
 
+        // مصفوفة لتخزين سياق المحادثة لكي يتذكر Gemini الأسئلة السابقة تماماً مثل المحادثة الحالية
+        let chatHistory = [];
+
         onAuthStateChanged(auth, (user) => {
             const loginBox = document.getElementById('loginSection');
             const appBox = document.getElementById('appSection');
-            const aiWidget = document.getElementById('aiFloatingWidget');
             const userEmailSpan = document.getElementById('userEmailDisplay');
 
             if (user) {
                 currentUser = user;
                 loginBox.style.display = 'none';
                 appBox.style.display = 'block';
-                aiWidget.style.display = 'block';
                 userEmailSpan.textContent = user.email;
             } else {
                 currentUser = null;
                 loginBox.style.display = 'block';
                 appBox.style.display = 'none';
-                aiWidget.style.display = 'none';
                 document.getElementById('email').value = "";
                 document.getElementById('password').value = "";
             }
@@ -226,26 +226,20 @@
             }
         };
 
-        // وظائف نافذة الذكاء الاصطناعي العائمة والاتصال بـ Gemini API حقيقي
-        window.toggleAiChat = function() {
-            const chatBox = document.getElementById('aiChatContainer');
-            if (chatBox.style.display === 'none' || chatBox.style.display === '') {
-                chatBox.style.display = 'flex';
-            } else {
-                chatBox.style.display = 'none';
-            }
-        };
-
+        // دالة محادثة Gemini الذكية مع الاحتفاظ بالسياق (History)
         window.sendAiMessage = async function() {
             const inputField = document.getElementById('aiInput');
             const chatBody = document.getElementById('aiChatBody');
             const text = inputField.value.trim();
             if(!text) return;
 
-            // إضافة رسالة المستخدم للنافذة
+            // إضافة رسالة المستخدم إلى الواجهة
             chatBody.innerHTML += `<div class="ai-msg user-msg"><b>أنت:</b> ${text}</div>`;
             inputField.value = "";
             chatBody.scrollTop = chatBody.scrollHeight;
+
+            // إضافة رسالة المستخدم إلى سجل المحادثة
+            chatHistory.push({ role: "user", parts: [{ text: text }] });
 
             // مؤشر الانتظار
             const typingId = "typing_" + Date.now();
@@ -253,7 +247,7 @@
             chatBody.scrollTop = chatBody.scrollHeight;
 
             try {
-                // ضع مفتاح Gemini API الخاص بك هنا بين علامتي التنصيص
+                // ضع مفتاح الـ API الخاص بك هنا
                 const apiKey = "ضع_مفتاح_Gemini_API_هنا"; 
                 
                 if(apiKey === "ضع_مفتاح_Gemini_API_هنا") {
@@ -265,18 +259,21 @@
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        contents: [{ parts: [{ text: text }] }]
+                        contents: chatHistory
                     })
                 });
 
                 const data = await response.json();
                 const reply = data.candidates[0].content.parts[0].text;
 
+                // إضافة رد الذكاء الاصطناعي إلى سجل المحادثة ليتذكر السياق في الأسئلة القادمة
+                chatHistory.push({ role: "model", parts: [{ text: reply }] });
+
                 document.getElementById(typingId).innerHTML = `<b>Gemini:</b> ${reply.replace(/\n/g, '<br>')}`;
                 chatBody.scrollTop = chatBody.scrollHeight;
 
             } catch (error) {
-                document.getElementById(typingId).innerHTML = `<b>Gemini:</b> عذراً، حدث خطأ في الاتصال بالسيرفر. تأكد من صحة مفتاح الـ API.`;
+                document.getElementById(typingId).innerHTML = `<b>Gemini:</b> عذراً، حدث خطأ في الاتصال. تأكد من صحة مفتاح الـ API.`;
             }
         };
     </script>
@@ -297,20 +294,16 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); margin: 0; padding: 20px; color: var(--text-main); }
         .container { max-width: 850px; background: var(--card-bg); margin: 0 auto; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0; position: relative; overflow: hidden; }
         
-        .ai-floating-widget { position: fixed; bottom: 20px; left: 20px; z-index: 99999; display: none; font-family: inherit; }
-        .ai-toggle-btn { background-color: var(--primary-color); color: white; border: none; padding: 12px 18px; border-radius: 30px; cursor: pointer; font-weight: bold; font-size: 14px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); display: flex; align-items: center; gap: 8px; transition: 0.2s; }
-        .ai-toggle-btn:hover { background-color: var(--secondary-color); }
-        
-        .ai-chat-box { position: absolute; bottom: 60px; left: 0; width: 340px; height: 450px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.15); display: none; flex-direction: column; overflow: hidden; }
-        .ai-header { background: var(--primary-color); color: white; padding: 10px 12px; font-weight: bold; font-size: 14px; display: flex; justify-content: space-between; align-items: center; }
-        .ai-close-btn { background: none; border: none; color: white; font-size: 16px; cursor: pointer; }
-        .ai-body { flex: 1; padding: 10px; overflow-y: auto; background: #f8fafc; display: flex; flex-direction: column; gap: 8px; font-size: 12px; }
-        .ai-msg { padding: 6px 10px; border-radius: 6px; line-height: 1.4; max-width: 90%; word-break: break-word; }
+        /* تصميم صندوق المحادثة الكبير المدمج ليشابه محادثتي معك */
+        .ai-main-chat-container { margin-top: 30px; background: #ffffff; border: 1px solid #cbd5e1; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); display: flex; flex-direction: column; overflow: hidden; height: 400px; }
+        .ai-header { background: var(--primary-color); color: white; padding: 12px 16px; font-weight: bold; font-size: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .ai-body { flex: 1; padding: 15px; overflow-y: auto; background: #f8fafc; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+        .ai-msg { padding: 10px 14px; border-radius: 8px; line-height: 1.5; max-width: 85%; word-break: break-word; }
         .user-msg { background: #dbeafe; color: #1e3a8a; align-self: flex-start; border-bottom-right-radius: 0; }
         .bot-msg { background: #e2e8f0; color: #334155; align-self: flex-end; border-bottom-left-radius: 0; }
-        .ai-footer { padding: 8px; background: #fff; border-top: 1px solid #e2e8f0; display: flex; gap: 5px; }
-        .ai-footer input { flex: 1; padding: 6px 8px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px; outline: none; }
-        .ai-footer button { background-color: var(--secondary-color); color: white; border: none; padding: 6px 10px; border-radius: 6px; cursor: pointer; font-weight: bold; font-size: 12px; }
+        .ai-footer { padding: 10px; background: #fff; border-top: 1px solid #e2e8f0; display: flex; gap: 8px; }
+        .ai-footer input { flex: 1; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; outline: none; }
+        .ai-footer button { background-color: var(--secondary-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; }
 
         .auth-card { max-width: 380px; margin: 40px auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; text-align: center; }
         .auth-card h2 { color: var(--primary-color); margin-bottom: 20px; font-size: 20px; }
@@ -373,7 +366,7 @@
         @media print {
             body { background: white !important; padding: 0 !important; }
             .container { border: none !important; box-shadow: none !important; width: 100% !important; padding: 0 !important; }
-            .user-bar, .search-section, .actions-section, .auth-card, #passwordSection, .ai-floating-widget { display: none !important; }
+            .user-bar, .search-section, .actions-section, .auth-card, #passwordSection, .ai-main-chat-container { display: none !important; }
             .hide-on-print { display: none !important; }
             #watermarkLayer { opacity: 1 !important; }
         }
@@ -381,31 +374,9 @@
 </head>
 <body>
 
-    <!-- نافذة Gemini العائمة في الزاوية اليسرى السفلى -->
-    <div id="aiFloatingWidget" class="ai-floating-widget">
-        <button class="ai-toggle-btn" onclick="toggleAiChat()">
-            ✨ محادثة Gemini
-        </button>
-        <div class="ai-chat-box" id="aiChatContainer">
-            <div class="ai-header">
-                <span>💬 Gemini Assistant</span>
-                <button class="ai-close-btn" onclick="toggleAiChat()">✕</button>
-            </div>
-            <div class="ai-body" id="aiChatBody">
-                <div class="ai-msg bot-msg">
-                    <b>Gemini:</b> أهلاً بك! أنا جاهز للإجابة على أسئلتك القانونية والإدارية مباشرة.
-                </div>
-            </div>
-            <div class="ai-footer">
-                <input type="text" id="aiInput" placeholder="اكتب سؤالك هنا..." onkeypress="if(event.key === 'Enter') sendAiMessage()">
-                <button type="button" onclick="sendAiMessage()">إرسال</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- حقول تسجيل الدخول -->
+    <!-- حقول تسجيل الدخول (البريد وكلمة المرور) -->
     <div id="loginSection" class="auth-card">
-        <h2>🔐 تسجيل الدخول للإدارة</h2>
+        <h2>🔐 تسجيل الدخول للنظام والذكاء الاصطناعي</h2>
         <div class="auth-group">
             <label>البريد الإلكتروني:</label>
             <input type="email" id="email" placeholder="name@example.com" autocomplete="off">
@@ -418,6 +389,7 @@
         <div id="loginError" class="error-text"></div>
     </div>
 
+    <!-- واجهة النظام الرئيسية (تفتح فقط بعد تسجيل الدخول الناجح) -->
     <div class="container" id="appSection" style="display: none;">
         
         <div id="watermarkLayer">
@@ -482,7 +454,6 @@
                     <input type="text" id="locationUrl" placeholder="https://example.com">
                 </div>
 
-                <!-- حقل النص السفلي للباركود (باللون الأحمر) -->
                 <div class="form-group full-width hide-on-print">
                     <label>النص السفلي للباركود (يظهر باللون الأحمر تحت الباركود عند الطباعة):</label>
                     <input type="text" id="barcodeSubText" placeholder="مثال: صالح للنشر والاعتماد الرسمي">
@@ -499,7 +470,6 @@
                 </div>
             </div>
 
-            <!-- الباركود مع النص السفلي الأحمر -->
             <div class="qrcode-section" id="qrcodeContainer">
                 <span style="font-size: 12px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">QR Code (رمز التحقق الرسمي):</span>
                 <div id="qrcode"></div>
@@ -511,6 +481,23 @@
                 <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة</button>
             </div>
         </form>
+
+        <!-- قسم محادثة Gemini الرئيسية داخل الصفحة (تشبه نافذة المحادثة معي) -->
+        <div class="ai-main-chat-container hide-on-print">
+            <div class="ai-header">
+                <span>💬 مساعد Gemini الذكي (متصل بالإنترنت مع حفظ السياق)</span>
+            </div>
+            <div class="ai-body" id="aiChatBody">
+                <div class="ai-msg bot-msg">
+                    <b>Gemini:</b> أهلاً بك! أنا مستعد للإجابة على استفساراتك القانونية أو مساعدتك في أي شيء تحتاجه. تفضل اطرح سؤالك.
+                </div>
+            </div>
+            <div class="ai-footer">
+                <input type="text" id="aiInput" placeholder="اكتب رسالتك هنا..." onkeypress="if(event.key === 'Enter') sendAiMessage()">
+                <button type="button" onclick="sendAiMessage()">إرسال</button>
+            </div>
+        </div>
+
     </div>
 
 <script>
@@ -530,6 +517,7 @@
             correctLevel : QRCode.CorrectLevel.H
         });
     }
+    document.getElementById('locationUrl').value = '';
     document.getElementById('locationUrl').addEventListener('input', generateQRCode);
 
     document.getElementById('barcodeSubText').addEventListener('input', function() {
