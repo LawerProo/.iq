@@ -8,8 +8,8 @@
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, addDoc, query, where } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, setPersistence, browserSessionPersistence, updatePassword } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, addDoc, query, where, updateDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyCnAg_4zW8BHVjKp_C-38E-0LNBj8OmyFg",
@@ -24,13 +24,17 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
+        // جعل الجلسة مؤقتة لتتطلب تسجيل الدخول في كل مرة يتم فتح النظام
+        setPersistence(auth, browserSessionPersistence);
+
         let currentUser = null;
         let selectedFileBase64 = "";
         let selectedFileName = "";
         let currentLoadedDocId = ""; 
-        let activeSharedData = null; // لتخزين بيانات الدعوة المشتركة المراد فتحها
+        let activeInboxMsgId = null; // لتخزين معرف الرسالة الحالية المفتوحة في صندوق الوارد
 
-        onAuthStateChanged(auth, async (user) => {
+        // مراقبة حالة المصادقة دون الدخول التلقائي المستمر
+        auth.onAuthStateChanged(async (user) => {
             const loginBox = document.getElementById('loginSection');
             const appBox = document.getElementById('appSection');
             const userEmailSpan = document.getElementById('userEmailDisplay');
@@ -418,13 +422,12 @@
             }
         };
 
-        // --- وظائف مشاركة الدعوة وإرسالها للمستخدمين الآخرين ---
+        // --- وظائف مشاركة الدعوة مع تضمين الباركود وخيارات الإخفاء ---
         window.openShareModal = function() {
             if (!currentLoadedDocId) {
                 alert("يرجى تحميل أو حفظ الدعوة أولاً لتمكين مشاركتها.");
                 return;
             }
-            // ملء المعاينة الأولية في نافذة المشاركة
             document.getElementById('previewCaseNum').textContent = document.getElementById('caseNumber').value;
             document.getElementById('previewCourt').textContent = document.getElementById('court').value;
             document.getElementById('previewTitle').textContent = document.getElementById('caseTitle').value;
@@ -434,6 +437,8 @@
             document.getElementById('previewHearing').textContent = document.getElementById('nextHearingDate').value;
             document.getElementById('previewFees').textContent = document.getElementById('totalFees').value + ' د.ع';
             document.getElementById('previewNotes').textContent = document.getElementById('privateNotes').value;
+            document.getElementById('previewBarcodeSub').textContent = document.getElementById('barcodeSubText').value || '---';
+            document.getElementById('previewLocationUrl').textContent = document.getElementById('locationUrl').value || '---';
 
             document.getElementById('shareModal').style.display = 'flex';
         };
@@ -449,10 +454,10 @@
                 return;
             }
 
-            // جمع الخيارات المراد إخفاؤها أو إرسالها بناءً على رغبة المستخدم
             const hideFees = document.getElementById('hideFees').checked;
             const hidePhone = document.getElementById('hidePhone').checked;
             const hideNotes = document.getElementById('hideNotes').checked;
+            const hideBarcode = document.getElementById('hideBarcode').checked; // خيار إخفاء الباركود
 
             const sharedPackage = {
                 senderEmail: currentUser.email,
@@ -468,13 +473,15 @@
                     defendant: document.getElementById('defendant').value,
                     nextHearingDate: document.getElementById('nextHearingDate').value,
                     totalFees: hideFees ? "[محجوب]" : (document.getElementById('totalFees').value + ' د.ع'),
-                    privateNotes: hideNotes ? "[محجوب]" : document.getElementById('privateNotes').value
+                    privateNotes: hideNotes ? "[محجوب]" : document.getElementById('privateNotes').value,
+                    barcodeSubText: hideBarcode ? "[محجوب]" : document.getElementById('barcodeSubText').value,
+                    locationUrl: hideBarcode ? "[محجوب]" : document.getElementById('locationUrl').value
                 }
             };
 
             try {
                 await addDoc(collection(db, "inbox"), sharedPackage);
-                alert("تم إرسال الدعوة بنجاح إلى المستخدِم (" + targetEmail + ")! 📤");
+                alert("تم إرسال الدعوة مع تفاصيل الباركود بنجاح إلى المستخدم (" + targetEmail + ")! 📤");
                 closeShareModal();
                 document.getElementById('targetUserEmail').value = "";
             } catch (error) {
@@ -482,7 +489,7 @@
             }
         };
 
-        // فحص صندوق الوارد للمستخدم الحالي لتلقي الرسائل
+        // فحص صندوق الوارد لتلقي الرسائل
         async function checkUserInbox(userEmail) {
             try {
                 const q = query(collection(db, "inbox"), where("targetEmail", "==", userEmail));
@@ -498,8 +505,8 @@
 
                 const inboxAlert = document.getElementById('inboxAlertBox');
                 if (unreadMessages.length > 0) {
-                    // حفظ أحدث رسالة معلقة لعرضها
                     window.latestInboxMsg = unreadMessages[0];
+                    activeInboxMsgId = unreadMessages[0].id;
                     inboxAlert.style.display = 'block';
                     inboxAlert.innerHTML = `📬 لديك رسالة جديدة من (${window.latestInboxMsg.senderEmail}) <button type="button" class="btn-search btn-3d" style="margin-right: 15px; display:inline-flex;" onclick="openInboxMessageModal()">فتح الدعوة المرسلة</button>`;
                 } else {
@@ -524,12 +531,64 @@
             document.getElementById('inc_nextHearingDate').textContent = data.nextHearingDate || '---';
             document.getElementById('inc_totalFees').textContent = data.totalFees || '---';
             document.getElementById('inc_privateNotes').textContent = data.privateNotes || '---';
+            document.getElementById('inc_barcodeSubText').textContent = data.barcodeSubText || '---';
+            document.getElementById('inc_locationUrl').textContent = data.locationUrl || '---';
 
             document.getElementById('incomingMessageModal').style.display = 'flex';
         };
 
         window.closeIncomingMessageModal = function() {
             document.getElementById('incomingMessageModal').style.display = 'none';
+        };
+
+        // زر التعديل أو إضافة شيء على الرسالة الواردة ووضعها في النظام الرئيسي
+        window.editIncomingMessage = function() {
+            if (!window.latestInboxMsg) return;
+            const data = window.latestInboxMsg.caseData;
+
+            document.getElementById('caseNumber').value = data.caseNumber !== "[محجوب]" ? data.caseNumber : "";
+            document.getElementById('court').value = data.court !== "[محجوب]" ? data.court : "";
+            document.getElementById('caseTitle').value = data.caseTitle !== "[محجوب]" ? data.caseTitle : "";
+            document.getElementById('complainant').value = data.complainant !== "[محجوب]" ? data.complainant : "";
+            document.getElementById('complainantPhone').value = data.complainantPhone !== "[محجوب]" ? data.complainantPhone : "";
+            document.getElementById('defendant').value = data.defendant !== "[محجوب]" ? data.defendant : "";
+            document.getElementById('nextHearingDate').value = data.nextHearingDate !== "[محجوب]" ? data.nextHearingDate : "";
+            document.getElementById('totalFees').value = data.totalFees !== "[محجوب]" ? data.totalFees.replace(' د.ع', '') : "";
+            document.getElementById('privateNotes').value = data.privateNotes !== "[محجوب]" ? data.privateNotes : "";
+            document.getElementById('barcodeSubText').value = data.barcodeSubText !== "[محجوب]" ? data.barcodeSubText : "";
+            document.getElementById('locationUrl').value = data.locationUrl !== "[محجوب]" ? data.locationUrl : "";
+
+            if (data.locationUrl && data.locationUrl !== "[محجوب]") {
+                generateQRCode();
+            }
+            if (data.barcodeSubText && data.barcodeSubText !== "[محجوب]") {
+                document.getElementById('barcodeSubTextDisplay').textContent = data.barcodeSubText;
+            }
+
+            closeIncomingMessageModal();
+            alert("تم تحميل محتوى الدعوة الواردة بنجاح في حقول النظام. يمكنك التعديل عليها أو إضافة ما تحتاجه ثم حفظها! 📝");
+        };
+
+        // زر حذف الرسالة بحيث تحذف نهائياً من قاعدة البيانات ومن الطرف الآخر
+        window.deleteIncomingMessage = async function() {
+            if (!activeInboxMsgId) {
+                alert("لا توجد رسالة محددة للحذف.");
+                return;
+            }
+
+            const confirmDel = confirm("⚠️ هل أنت متأكد من حذف هذه الرسالة؟ سيتم حذفها نهائياً ولن تظهر لديك أو لدى الطرف الآخر.");
+            if (!confirmDel) return;
+
+            try {
+                await deleteDoc(doc(db, "inbox", activeInboxMsgId));
+                alert("تم حذف الرسالة بنجاح من النظام للطرفين! 🗑️");
+                closeIncomingMessageModal();
+                document.getElementById('inboxAlertBox').style.display = 'none';
+                window.latestInboxMsg = null;
+                activeInboxMsgId = null;
+            } catch (error) {
+                alert("حدث خطأ أثناء حذف الرسالة: " + error.message);
+            }
         };
 
         async function checkAllCasesForHearings() {
@@ -648,9 +707,6 @@
         .auth-group label { display: block; margin-bottom: 5px; font-weight: 600; font-size: 14px; color: var(--label-color); }
         .auth-group input { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; box-sizing: border-box; font-size: 15px; background: var(--input-bg); color: var(--text-main); }
         
-        /* ---------------------------------------------------- */
-        /* تصميم الأزرار الاحترافية بنمط 3D (ثلاثي الأبعاد)      */
-        /* ---------------------------------------------------- */
         .btn-3d {
             position: relative;
             display: inline-flex;
@@ -681,10 +737,6 @@
             transform: translateY(-2px);
             box-shadow: 0 7px 0 #1e3a8a, 0 12px 20px rgba(59, 130, 246, 0.4);
         }
-        .btn-main:active, .btn-search:active {
-            transform: translateY(3px);
-            box-shadow: 0 2px 0 #1e3a8a;
-        }
 
         .btn-save, .btn-new-entry {
             background: linear-gradient(135deg, #10b981 0%, #047857 100%);
@@ -695,10 +747,6 @@
             background: linear-gradient(135deg, #34d399 0%, #059669 100%);
             transform: translateY(-2px);
             box-shadow: 0 7px 0 #065f46, 0 12px 20px rgba(16, 185, 129, 0.4);
-        }
-        .btn-save:active, .btn-new-entry:active {
-            transform: translateY(3px);
-            box-shadow: 0 2px 0 #065f46;
         }
 
         .btn-print, .btn-settings {
@@ -711,10 +759,6 @@
             transform: translateY(-2px);
             box-shadow: 0 7px 0 #78350f, 0 12px 20px rgba(245, 158, 11, 0.4);
         }
-        .btn-print:active, .btn-settings:active {
-            transform: translateY(3px);
-            box-shadow: 0 2px 0 #78350f;
-        }
 
         .btn-danger, .btn-delete-case, .btn-logout, .modal-close-btn {
             background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
@@ -725,10 +769,6 @@
             background: linear-gradient(135deg, #f87171 0%, #dc2626 100%);
             transform: translateY(-2px);
             box-shadow: 0 7px 0 #7f1d1d, 0 12px 20px rgba(239, 68, 68, 0.4);
-        }
-        .btn-danger:active, .btn-delete-case:active, .btn-logout:active, .modal-close-btn:active {
-            transform: translateY(3px);
-            box-shadow: 0 2px 0 #7f1d1d;
         }
 
         .btn-open-wallet-top, .btn-open-financial-top, .btn-open-contract-top, .btn-open-laws-top, .btn-theme-toggle, .btn-back, .btn-share-case {
@@ -741,29 +781,12 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 0 #1e293b, 0 10px 16px rgba(100, 116, 139, 0.4);
         }
-        .btn-open-wallet-top:active, .btn-open-financial-top:active, .btn-open-contract-top:active, .btn-open-laws-top:active, .btn-theme-toggle:active, .btn-back:active, .btn-share-case:active {
-            transform: translateY(3px);
-            box-shadow: 0 2px 0 #1e293b;
-        }
 
         .btn-main { width: 100%; padding: 12px; font-size: 16px; margin-top: 10px; }
-        
-        .btn-settings, .btn-logout, .btn-open-wallet-top, .btn-open-financial-top, .btn-open-contract-top, .btn-open-laws-top, .btn-theme-toggle {
-            padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px;
-        }
-
-        .btn-search, .btn-delete-case, .btn-new-entry, .btn-share-case {
-            padding: 4px 10px; font-size: 12px; height: 26px; border-radius: 6px;
-        }
-
-        .modal-close-btn {
-            padding: 5px 10px; font-size: 12px; border-radius: 4px;
-        }
-
-        .btn-save, .btn-print, .btn-back {
-            padding: 10px 20px; font-size: 13px; font-weight: 600;
-        }
-        /* ---------------------------------------------------- */
+        .btn-settings, .btn-logout, .btn-open-wallet-top, .btn-open-financial-top, .btn-open-contract-top, .btn-open-laws-top, .btn-theme-toggle { padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; }
+        .btn-search, .btn-delete-case, .btn-new-entry, .btn-share-case { padding: 4px 10px; font-size: 12px; height: 26px; border-radius: 6px; }
+        .modal-close-btn { padding: 5px 10px; font-size: 12px; border-radius: 4px; }
+        .btn-save, .btn-print, .btn-back { padding: 10px 20px; font-size: 13px; font-weight: 600; }
 
         .user-bar { display: flex; justify-content: space-between; align-items: center; background: var(--userbar-bg); padding: 10px 20px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; border: 1px solid var(--userbar-border); flex-wrap: wrap; gap: 10px; }
         .user-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -794,7 +817,7 @@
         .inbox-alert { background: #e0f2fe; color: #0369a1; border-color: #bae6fd; display: none; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 10000; }
-        .modal-content { background: var(--card-bg); color: var(--text-main); padding: 25px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; border: 1px solid var(--border-color); }
+        .modal-content { background: var(--card-bg); color: var(--text-main); padding: 25px; border-radius: 10px; width: 90%; max-width: 550px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; border: 1px solid var(--border-color); }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
 
         .preview-box { background: var(--section-bg); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; line-height: 1.6; }
@@ -884,7 +907,7 @@
 </head>
 <body>
 
-    <!-- تسجيل الدخول -->
+    <!-- تسجيل الدخول الإجباري -->
     <div id="loginSection" class="auth-card">
         <h2>🔐 تسجيل الدخول للنظام</h2>
         <div class="auth-group">
@@ -896,7 +919,7 @@
             <input type="password" id="password" placeholder="********">
         </div>
         <button type="button" class="btn-main btn-3d" onclick="loginUser()">دخول للنظام</button>
-        <div id="loginError" class="error-text"></div>
+        <div id="loginError" style="font-size: 13px; margin-top: 10px;"></div>
     </div>
 
     <!-- التطبيق الرئيسي -->
@@ -930,7 +953,7 @@
 
             <h2 class="header-title">⚖️ نظام إدارة وتوثيق الدعاوى</h2>
             
-            <!-- تنبيهات صندوق الوارد للرسائل الجديدة -->
+            <!-- تنبيهات صندوق الوارد -->
             <div id="inboxAlertBox" class="inbox-alert"></div>
             <div id="hearingAlertBox" class="hearing-alert"></div>
 
@@ -1022,7 +1045,7 @@
             </form>
         </div>
 
-        <!-- قسم صفحة معاينة عقد المحامي المستقلة بحجم A4 -->
+        <!-- قسم عقد المحامي -->
         <div id="contractPrintSection" class="contract-print-container">
             <div class="contract-content-wrapper">
                 <div class="contract-title">عقد أتعاب محاماة</div>
@@ -1053,7 +1076,7 @@
 
     </div>
 
-    <!-- نافذة مشاركة الدعوى والمعاينة -->
+    <!-- نافذة مشاركة الدعوى مع خيار إخفاء الباركود -->
     <div id="shareModal" class="modal-overlay">
         <div class="modal-content" style="max-width: 550px;">
             <div class="modal-header">
@@ -1068,9 +1091,10 @@
 
                 <label style="margin-top: 5px;">حدد الأمور التي تريد إخفاءها عن المرسل إليه:</label>
                 <div style="display: flex; gap: 15px; font-size: 13px; font-weight: 600; flex-wrap: wrap;">
-                    <label style="cursor: pointer;"><input type="checkbox" id="hideFees"> إخفاء الأتعاب والمبالغ</label>
-                    <label style="cursor: pointer;"><input type="checkbox" id="hidePhone"> إخفاء رقم الهاتف</label>
-                    <label style="cursor: pointer;"><input type="checkbox" id="hideNotes"> إخفاء الملاحظات السرية</label>
+                    <label style="cursor: pointer;"><input type="checkbox" id="hideFees"> إخفاء الأتعاب</label>
+                    <label style="cursor: pointer;"><input type="checkbox" id="hidePhone"> إخفاء الهاتف</label>
+                    <label style="cursor: pointer;"><input type="checkbox" id="hideNotes"> إخفاء الملاحظات</label>
+                    <label style="cursor: pointer;"><input type="checkbox" id="hideBarcode"> إخفاء الباركود والرابط</label>
                 </div>
 
                 <label style="margin-top: 5px;">معاينة الدعوى قبل الإرسال:</label>
@@ -1083,6 +1107,8 @@
                     <div><b>الجلسة القادمة:</b> <span id="previewHearing">---</span></div>
                     <div><b>الأتعاب الكلية:</b> <span id="previewFees">---</span></div>
                     <div><b>ملاحظات:</b> <span id="previewNotes">---</span></div>
+                    <div><b>نص الباركود:</b> <span id="previewBarcodeSub">---</span></div>
+                    <div><b>رابط الموقع:</b> <span id="previewLocationUrl">---</span></div>
                 </div>
 
                 <button type="button" class="btn-main btn-3d" onclick="sendSharedCaseToUser()">📤 تأكيد وإرسال الدعوى الآن</button>
@@ -1090,7 +1116,7 @@
         </div>
     </div>
 
-    <!-- نافذة عرض الدعوى الواردة للمستخدم الآخر عند الضغط على رسالة جديدة -->
+    <!-- نافذة عرض الدعوى الواردة مع أزرار التعديل والحذف للطرف الآخر -->
     <div id="incomingMessageModal" class="modal-overlay">
         <div class="modal-content" style="max-width: 550px;">
             <div class="modal-header">
@@ -1109,9 +1135,14 @@
                 <div><b>موعد الجلسة:</b> <span id="inc_nextHearingDate">---</span></div>
                 <div><b>الأتعاب:</b> <span id="inc_totalFees">---</span></div>
                 <div><b>الملاحظات:</b> <span id="inc_privateNotes">---</span></div>
+                <div><b>نص الباركود:</b> <span id="inc_barcodeSubText">---</span></div>
+                <div><b>رابط موقع الدعوى:</b> <span id="inc_locationUrl">---</span></div>
             </div>
 
-            <button type="button" class="btn-main btn-3d" onclick="closeIncomingMessageModal()">إغلاق المعاينة</button>
+            <div style="display: flex; gap: 10px; justify-content: space-between; margin-top: 15px;">
+                <button type="button" class="btn-search btn-3d" style="flex: 1; background: linear-gradient(135deg, #059669 0%, #047857 100%);" onclick="editIncomingMessage()">✏️ تعديل أو إضافة شيء</button>
+                <button type="button" class="btn-danger btn-3d" style="flex: 1;" onclick="deleteIncomingMessage()">🗑️ حذف الرسالة نهائياً</button>
+            </div>
         </div>
     </div>
 
@@ -1140,7 +1171,7 @@
         </div>
     </div>
 
-    <!-- نافذة إدخال بيانات عقد محامي الجديدة -->
+    <!-- نافذة عقد محامي -->
     <div id="contractModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
