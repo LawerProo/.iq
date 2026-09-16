@@ -123,16 +123,18 @@
             document.getElementById('contractModal').style.display = 'none';
         };
 
+        // دالة فتح صفحة القوانين في تبويب منفصل
         window.openLawsPage = function() {
             window.open('https://www.rwi.uzh.ch/dam/jcr:00000000-0c03-6a0c-ffff-ffff96be3560/penalcode1969.pdf', '_blank');
         };
 
+        // تعبئة قوائم التواريخ (السنة، الشهر، اليوم)
         function populateDateDropdowns() {
             const yearSelect = document.getElementById('contractYear');
             const monthSelect = document.getElementById('contractMonth');
             const daySelect = document.getElementById('contractDay');
 
-            if (yearSelect.options.length > 1) return;
+            if (yearSelect.options.length > 1) return; // تم التعبئة مسبقاً
 
             const currentYear = new Date().getFullYear();
             for (let y = currentYear - 2; y <= currentYear + 5; y++) {
@@ -198,9 +200,8 @@
 
             document.getElementById('p_totalFees').textContent = (document.getElementById('contractTotalFees').value || '..............') + ' د.ع';
             
-            // تم تغيير لون المبلغ المستلم إلى الأسود الاعتيادي
             const paidVal = document.getElementById('contractPaidFees').value || '..............';
-            document.getElementById('p_paidFees').innerHTML = `<span style="font-weight: bold;">${paidVal} د.ع</span>`;
+            document.getElementById('p_paidFees').innerHTML = `<span style="color: #16a34a; font-weight: bold;">${paidVal} د.ع</span>`;
 
             const remVal = document.getElementById('contractRemainingFees').value || '..............';
             document.getElementById('p_remainingFees').innerHTML = `<span style="color: #dc2626; font-weight: bold;">${remVal} د.ع</span>`;
@@ -479,9 +480,58 @@
         .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
         .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
 
-        .contract-print-container { background: #fff; padding: 30px; margin-top: 25px; border: 1px solid #cbd5e1; border-radius: 8px; display: none; line-height: 1.8; font-size: 14px; position: relative; }
-        .contract-title { text-align: center; font-weight: bold; font-size: 18px; color: var(--primary-color); margin-bottom: 20px; text-decoration: underline; }
-        .contract-body-text { margin-bottom: 12px; text-align: justify; }
+        /* تصميم وثيقة عقد المحاماة القابلة للطباعة */
+        /* =========================
+           خلفية خاصة بعقد المحامي
+           تظهر عند معاينة/طباعة العقد فقط
+           ========================= */
+        .contract-print-container {
+            background: #fff;
+            padding: 30px;
+            margin-top: 25px;
+            border: 1px solid #cbd5e1;
+            border-radius: 8px;
+            display: none;
+            line-height: 1.8;
+            font-size: 14px;
+            position: relative;
+            overflow: hidden;
+            isolation: isolate;
+        }
+
+        .contract-print-container::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            background-image: url("https://raw.githubusercontent.com/abodabips-spec/Abo-Dabi/refs/heads/main/F0CBF176-4A9B-40CE-BF30-FAFF67BF79B1.png");
+            background-position: center center;
+            background-repeat: no-repeat;
+            background-size: cover;
+            opacity: 0.16;
+            pointer-events: none;
+            z-index: -1;
+            -webkit-print-color-adjust: exact;
+            print-color-adjust: exact;
+        }
+
+        .contract-print-container > * {
+            position: relative;
+            z-index: 1;
+        }
+
+        .contract-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 18px;
+            color: var(--primary-color);
+            margin-bottom: 20px;
+            text-decoration: underline;
+        }
+
+        .contract-body-text {
+            margin-bottom: 12px;
+            text-align: justify;
+        }
 
         #watermarkLayer {
             position: absolute;
@@ -501,12 +551,31 @@
             .hide-on-print { display: none !important; }
             #watermarkLayer { opacity: 1 !important; }
             .print-hidden-field { display: none !important; }
-            .contract-print-container { display: block !important; border: none !important; padding: 0 !important; margin: 0 !important; }
+            .contract-print-container {
+                display: block !important;
+                border: none !important;
+                padding: 30px !important;
+                margin: 0 !important;
+                min-height: 100vh;
+                box-sizing: border-box;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+
+            .contract-print-container::before {
+                opacity: 0.16 !important;
+                background-image: url("https://raw.githubusercontent.com/abodabips-spec/Abo-Dabi/refs/heads/main/F0CBF176-4A9B-40CE-BF30-FAFF67BF79B1.png") !important;
+                background-size: cover !important;
+                background-position: center center !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
         }
     </style>
 </head>
 <body>
 
+    <!-- تسجيل الدخول -->
     <div id="loginSection" class="auth-card">
         <h2>🔐 تسجيل الدخول للنظام</h2>
         <div class="auth-group">
@@ -521,6 +590,7 @@
         <div id="loginError" class="error-text"></div>
     </div>
 
+    <!-- التطبيق الرئيسي -->
     <div class="container" id="appSection" style="display: none;">
         
         <div id="watermarkLayer"><div class="watermark-text-style" id="watermarkDisplay"></div></div>
@@ -633,6 +703,7 @@
             </div>
         </form>
 
+        <!-- قسم نموذج عقد محامي القابل للطباعة -->
         <div id="contractPrintSection" class="contract-print-container">
             <div class="contract-title">عقد أتعاب محاماة</div>
             <div class="contract-body-text">حرر هذا العقد بين كل من:</div>
@@ -660,6 +731,7 @@
 
     </div>
 
+    <!-- نافذة الأرشيف المالي -->
     <div id="financialModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
@@ -684,6 +756,7 @@
         </div>
     </div>
 
+    <!-- نافذة إدخال بيانات عقد محامي الجديدة -->
     <div id="contractModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
