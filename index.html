@@ -24,7 +24,6 @@
         const auth = getAuth(app);
         const db = getFirestore(app);
 
-        // جعل الجلسة مؤقتة لتتطلب تسجيل الدخول في كل مرة يتم فتح النظام
         setPersistence(auth, browserSessionPersistence);
 
         let currentUser = null;
@@ -153,6 +152,96 @@
 
         window.openMyWalletPage = function() {
             window.open('https://drive.google.com', '_blank');
+        };
+
+        // فتح نافذة إدارة الأرشيف البريدي (المرسلة والمستلمة)
+        window.openMailArchiveModal = async function() {
+            if (!currentUser) return;
+            document.getElementById('mailArchiveModal').style.display = 'flex';
+            await loadMailArchiveData();
+        };
+
+        window.closeMailArchiveModal = function() {
+            document.getElementById('mailArchiveModal').style.display = 'none';
+        };
+
+        async function loadMailArchiveData() {
+            const sentContainer = document.getElementById('sentMessagesList');
+            const receivedContainer = document.getElementById('receivedMessagesList');
+            
+            sentContainer.innerHTML = "جاري تحميل المرسلات...";
+            receivedContainer.innerHTML = "جاري تحميل الواردات...";
+
+            try {
+                // جلب الرسائل المرسلة بواسطة المستخدم الحالي
+                const sentQuery = query(collection(db, "inbox"), where("senderEmail", "==", currentUser.email));
+                const sentSnap = await getDocs(sentQuery);
+                let sentHtml = "";
+                
+                if (sentSnap.empty) {
+                    sentHtml = "<p style='color: var(--label-color); font-size:12px;'>لا توجد رسائل مرسلة.</p>";
+                } else {
+                    sentSnap.forEach(docSnap => {
+                        const data = docSnap.data();
+                        sentHtml += `
+                            <div class="preview-box" style="margin-bottom: 8px; padding: 8px;">
+                                <div><b>إلى:</b> ${data.targetEmail} | <b>الدعوى:</b> ${data.caseData.caseNumber || '---'}</div>
+                                <div style="font-size: 11px; color: var(--label-color);">التاريخ: ${new Date(data.timestamp).toLocaleString('ar-IQ')}</div>
+                                <button type="button" class="btn-danger btn-3d" style="padding: 2px 6px; font-size: 11px; margin-top: 5px;" onclick="deleteSentMessage('${docSnap.id}')">🗑️ حذف المرسلة</button>
+                            </div>
+                        `;
+                    });
+                }
+                sentContainer.innerHTML = sentHtml;
+
+                // جلب الرسائل المستلمة للمستخدم الحالي
+                const recvQuery = query(collection(db, "inbox"), where("targetEmail", "==", currentUser.email));
+                const recvSnap = await getDocs(recvQuery);
+                let recvHtml = "";
+
+                if (recvSnap.empty) {
+                    recvHtml = "<p style='color: var(--label-color); font-size:12px;'>لا توجد رسائل مستلمة.</p>";
+                } else {
+                    recvSnap.forEach(docSnap => {
+                        const data = docSnap.data();
+                        recvHtml += `
+                            <div class="preview-box" style="margin-bottom: 8px; padding: 8px;">
+                                <div><b>من:</b> ${data.senderEmail} | <b>الدعوى:</b> ${data.caseData.caseNumber || '---'}</div>
+                                <div style="font-size: 11px; color: var(--label-color);">التاريخ: ${new Date(data.timestamp).toLocaleString('ar-IQ')}</div>
+                                <button type="button" class="btn-danger btn-3d" style="padding: 2px 6px; font-size: 11px; margin-top: 5px;" onclick="deleteReceivedMessage('${docSnap.id}')">🗑️ حذف الرسالة (للمستلم)</button>
+                            </div>
+                        `;
+                    });
+                }
+                receivedContainer.innerHTML = recvHtml;
+
+            } catch (error) {
+                sentContainer.innerHTML = "خطأ في التحميل.";
+                receivedContainer.innerHTML = "خطأ في التحميل.";
+            }
+        }
+
+        window.deleteSentMessage = async function(msgId) {
+            if (!confirm("هل أنت متأكد من حذف هذه الرسالة المرسلة؟")) return;
+            try {
+                await deleteDoc(doc(db, "inbox", msgId));
+                alert("تم حذف الرسالة المرسلة بنجاح.");
+                loadMailArchiveData();
+            } catch (error) {
+                alert("خطأ أثناء الحذف: " + error.message);
+            }
+        };
+
+        window.deleteReceivedMessage = async function(msgId) {
+            if (!confirm("هل أنت متأكد من حذف هذه الرسالة من صندوقك؟")) return;
+            try {
+                await deleteDoc(doc(db, "inbox", msgId));
+                alert("تم حذف الرسالة بنجاح.");
+                loadMailArchiveData();
+                checkUserInbox(currentUser.email);
+            } catch (error) {
+                alert("خطأ أثناء الحذف: " + error.message);
+            }
         };
 
         function populateDateDropdowns() {
@@ -538,7 +627,6 @@
             document.getElementById('incomingMessageModal').style.display = 'none';
         };
 
-        // زر حذف الرسالة للطرف المستلم فقط (يحذفها نهائياً للطرفين)
         window.deleteIncomingMessage = async function() {
             if (!activeInboxMsgId) {
                 alert("لا توجد رسالة محددة للحذف.");
@@ -740,19 +828,19 @@
             box-shadow: 0 7px 0 #7f1d1d, 0 12px 20px rgba(239, 68, 68, 0.4);
         }
 
-        .btn-open-wallet-top, .btn-open-financial-top, .btn-open-contract-top, .btn-open-laws-top, .btn-theme-toggle, .btn-back, .btn-share-case {
+        .btn-open-wallet-top, .btn-open-financial-top, .btn-open-contract-top, .btn-open-laws-top, .btn-theme-toggle, .btn-back, .btn-share-case, .btn-archive-top {
             background: linear-gradient(135deg, #64748b 0%, #334155 100%);
             color: white;
             box-shadow: 0 4px 0 #1e293b, 0 6px 12px rgba(100, 116, 139, 0.3);
         }
-        .btn-open-wallet-top:hover, .btn-open-financial-top:hover, .btn-open-contract-top:hover, .btn-open-laws-top:hover, .btn-theme-toggle:hover, .btn-back:hover, .btn-share-case:hover {
+        .btn-open-wallet-top:hover, .btn-open-financial-top:hover, .btn-open-contract-top:hover, .btn-open-laws-top:hover, .btn-theme-toggle:hover, .btn-back:hover, .btn-share-case:hover, .btn-archive-top:hover {
             background: linear-gradient(135deg, #94a3b8 0%, #475569 100%);
             transform: translateY(-2px);
             box-shadow: 0 6px 0 #1e293b, 0 10px 16px rgba(100, 116, 139, 0.4);
         }
 
         .btn-main { width: 100%; padding: 12px; font-size: 16px; margin-top: 10px; }
-        .btn-settings, .btn-logout, .btn-open-wallet-top, .btn-open-financial-top, .btn-open-contract-top, .btn-open-laws-top, .btn-theme-toggle { padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; }
+        .btn-settings, .btn-logout, .btn-open-wallet-top, .btn-open-financial-top, .btn-open-contract-top, .btn-open-laws-top, .btn-theme-toggle, .btn-archive-top { padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; }
         .btn-search, .btn-delete-case, .btn-new-entry, .btn-share-case { padding: 4px 10px; font-size: 12px; height: 26px; border-radius: 6px; }
         .modal-close-btn { padding: 5px 10px; font-size: 12px; border-radius: 4px; }
         .btn-save, .btn-print, .btn-back { padding: 10px 20px; font-size: 13px; font-weight: 600; }
@@ -896,7 +984,6 @@
         
         <div id="watermarkLayer"><div class="watermark-text-style" id="watermarkDisplay"></div></div>
 
-        <!-- قسم النظام الرئيسي (خاص بالمرسل ومن يملك الدعوة) -->
         <div id="mainSystemView">
             <div class="user-bar">
                 <span>👤 المستخدم: <strong id="userEmailDisplay"></strong></span>
@@ -906,6 +993,7 @@
                     <button type="button" class="btn-open-wallet-top btn-3d" onclick="openMyWalletPage()">📁 محفظتي</button>
                     <button type="button" class="btn-open-contract-top btn-3d" onclick="openContractModal()">📜 عقد محامي</button>
                     <button type="button" class="btn-open-financial-top btn-3d" onclick="openFinancialModal()">💰 الأرشيف المالي</button>
+                    <button type="button" class="btn-archive-top btn-3d" onclick="openMailArchiveModal()">📬 الأرشيف البريدي</button>
                     <button type="button" class="btn-settings btn-3d" onclick="togglePasswordSection()">🔑 تغيير الرمز</button>
                     <button type="button" class="btn-logout btn-3d" onclick="logoutUser()">خروج</button>
                 </div>
@@ -1040,6 +1128,26 @@
 
     </div>
 
+    <!-- نافذة الأرشيف البريدي (المرسلة والمستلمة) -->
+    <div id="mailArchiveModal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3 style="margin: 0; color: var(--primary-color);">📬 الأرشيف البريدي (المرسلة والمستلمة)</h3>
+                <button type="button" class="modal-close-btn btn-3d" onclick="closeMailArchiveModal()">✕ إغلاق</button>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                <div>
+                    <h4 style="color: var(--secondary-color); margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">📤 الرسائل المرسلة</h4>
+                    <div id="sentMessagesList" style="max-height: 350px; overflow-y: auto;"></div>
+                </div>
+                <div>
+                    <h4 style="color: var(--success-color); margin-top: 0; border-bottom: 1px solid var(--border-color); padding-bottom: 5px;">📥 الرسائل المستلمة</h4>
+                    <div id="receivedMessagesList" style="max-height: 350px; overflow-y: auto;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- نافذة مشاركة الدعوى -->
     <div id="shareModal" class="modal-overlay">
         <div class="modal-content" style="max-width: 550px;">
@@ -1080,7 +1188,7 @@
         </div>
     </div>
 
-    <!-- نافذة عرض الدعوى الواردة (خاصة بالمستلم - تحتوي على زر الحذف فقط) -->
+    <!-- نافذة عرض الدعوى الواردة -->
     <div id="incomingMessageModal" class="modal-overlay">
         <div class="modal-content" style="max-width: 550px;">
             <div class="modal-header">
@@ -1103,7 +1211,6 @@
                 <div><b>رابط موقع الدعوى:</b> <span id="inc_locationUrl">---</span></div>
             </div>
 
-            <!-- زر حذف الرسالة فقط للمستلم -->
             <div style="display: flex; justify-content: center; margin-top: 15px;">
                 <button type="button" class="btn-danger btn-3d" style="width: 100%;" onclick="deleteIncomingMessage()">🗑️ حذف الرسالة نهائياً من الطرفين</button>
             </div>
