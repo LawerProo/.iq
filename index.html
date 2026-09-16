@@ -123,18 +123,16 @@
             document.getElementById('contractModal').style.display = 'none';
         };
 
-        // دالة فتح صفحة القوانين في تبويب منفصل
         window.openLawsPage = function() {
             window.open('https://www.rwi.uzh.ch/dam/jcr:00000000-0c03-6a0c-ffff-ffff96be3560/penalcode1969.pdf', '_blank');
         };
 
-        // تعبئة قوائم التواريخ (السنة، الشهر، اليوم)
         function populateDateDropdowns() {
             const yearSelect = document.getElementById('contractYear');
             const monthSelect = document.getElementById('contractMonth');
             const daySelect = document.getElementById('contractDay');
 
-            if (yearSelect.options.length > 1) return; // تم التعبئة مسبقاً
+            if (yearSelect.options.length > 1) return;
 
             const currentYear = new Date().getFullYear();
             for (let y = currentYear - 2; y <= currentYear + 5; y++) {
@@ -480,58 +478,45 @@
         .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
         .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
 
-        /* تصميم وثيقة عقد المحاماة القابلة للطباعة */
-        /* =========================
-           خلفية خاصة بعقد المحامي
-           تظهر عند معاينة/طباعة العقد فقط
-           ========================= */
-        .contract-print-container {
-            background: #fff;
-            padding: 30px;
-            margin-top: 25px;
-            border: 1px solid #cbd5e1;
-            border-radius: 8px;
-            display: none;
-            line-height: 1.8;
-            font-size: 14px;
-            position: relative;
+        /* تصميم وثيقة عقد المحاماة القابلة للطباعة مع الخلفية الجديدة */
+        .contract-print-container { 
+            background: #fff; 
+            padding: 40px 30px; 
+            margin-top: 25px; 
+            border: 1px solid #cbd5e1; 
+            border-radius: 8px; 
+            display: none; 
+            line-height: 1.8; 
+            font-size: 14px; 
+            position: relative; 
             overflow: hidden;
-            isolation: isolate;
         }
 
+        /* تنسيق صورة الخلفية المائية للعقد */
         .contract-print-container::before {
             content: "";
             position: absolute;
-            inset: 0;
-            background-image: url("https://raw.githubusercontent.com/abodabips-spec/Abo-Dabi/refs/heads/main/F0CBF176-4A9B-40CE-BF30-FAFF67BF79B1.png");
-            background-position: center center;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-image: url('https://raw.githubusercontent.com/abodabips-spec/Abo-Dabi/refs/heads/main/F0CBF176-4A9B-40CE-BF30-FAFF67BF79B1.png');
             background-repeat: no-repeat;
-            background-size: cover;
-            opacity: 0.16;
+            background-position: center;
+            background-size: 60% auto; /* تحكم في حجم شعار الخلفية */
+            opacity: 0.12; /* شفافة لتكون بمثابة علامة مائية لا تعيق قراءة النص */
             pointer-events: none;
-            z-index: -1;
-            -webkit-print-color-adjust: exact;
-            print-color-adjust: exact;
-        }
-
-        .contract-print-container > * {
-            position: relative;
             z-index: 1;
         }
 
-        .contract-title {
-            text-align: center;
-            font-weight: bold;
-            font-size: 18px;
-            color: var(--primary-color);
-            margin-bottom: 20px;
-            text-decoration: underline;
+        /* جعل محتوى العقد يظهر فوق الخلفية دائماً */
+        .contract-content-wrapper {
+            position: relative;
+            z-index: 2;
         }
 
-        .contract-body-text {
-            margin-bottom: 12px;
-            text-align: justify;
-        }
+        .contract-title { text-align: center; font-weight: bold; font-size: 18px; color: var(--primary-color); margin-bottom: 20px; text-decoration: underline; }
+        .contract-body-text { margin-bottom: 12px; text-align: justify; }
 
         #watermarkLayer {
             position: absolute;
@@ -551,24 +536,16 @@
             .hide-on-print { display: none !important; }
             #watermarkLayer { opacity: 1 !important; }
             .print-hidden-field { display: none !important; }
-            .contract-print-container {
-                display: block !important;
-                border: none !important;
-                padding: 30px !important;
-                margin: 0 !important;
-                min-height: 100vh;
-                box-sizing: border-box;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
+            .contract-print-container { 
+                display: block !important; 
+                border: none !important; 
+                padding: 10px 0 !important; 
+                margin: 0 !important; 
             }
-
             .contract-print-container::before {
-                opacity: 0.16 !important;
-                background-image: url("https://raw.githubusercontent.com/abodabips-spec/Abo-Dabi/refs/heads/main/F0CBF176-4A9B-40CE-BF30-FAFF67BF79B1.png") !important;
-                background-size: cover !important;
-                background-position: center center !important;
-                -webkit-print-color-adjust: exact !important;
-                print-color-adjust: exact !important;
+                opacity: 0.15 !important; /* زيادة الوضوح قليلاً عند الطباعة الفعلية */
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
             }
         }
     </style>
@@ -703,29 +680,31 @@
             </div>
         </form>
 
-        <!-- قسم نموذج عقد محامي القابل للطباعة -->
+        <!-- قسم نموذج عقد محامي القابل للطباعة مع الخلفية -->
         <div id="contractPrintSection" class="contract-print-container">
-            <div class="contract-title">عقد أتعاب محاماة</div>
-            <div class="contract-body-text">حرر هذا العقد بين كل من:</div>
-            <div class="contract-body-text">1- الطرف الأول السيد المحامي: <b id="p_lawyerName">....................</b></div>
-            <div class="contract-body-text">2- الطرف الثاني السيد الموكل: <b id="p_clientName">....................</b></div>
-            <div class="contract-body-text">وأقر الطرفان على أهليتهما للتعاقد واتفقا على ما يلي:-</div>
-            <div class="contract-body-text"><b>البند الأول:-</b> يقوم الطرف الأول أو من ينوب عنه بإكمال الدعوى الخاصة بـ (<b id="p_caseTitle">..........................</b>) امام محكمة (<b id="p_court">..........................</b>) ومتابعتها حتى نهاية الدعوى وهو غير مسؤول أو ملزم بالقرار الصادر عن المحكمة.</div>
-            <div class="contract-body-text"><b>البند الثاني:-</b> يلتزم الطرف الثاني في مقابل ما يقوم به المحامي من عناية وبذل جهد بأداء مبلغ وقدره <b id="p_totalFees">..............</b> كدفعة أولى غير قابله للرد بعد توقيع العقد، والدفعة الثانية <b id="p_paidFees">..............</b> بعد انتهاء الدعوى وتسليم القرار إلى الطرف الثاني مباشرة وينتهي عمل المحامي. (الباقي المستحق: <b id="p_remainingFees">..............</b>).</div>
-            <div class="contract-body-text"><b>البند الثالث:-</b> يقدم الطرف الثاني جميع المستندات الضرورية لإقامة الدعوى أو التي تتطلب منه لاحقاً على أنها مستندات حقيقية وغير مزورة ولا يرقى إليها الشك وأنه مسؤول عنها جزائياً ومدنياً بالإضافة إلى وكالة المحاماة يخول فيها المحامي حق الخصومة وكافة الصلاحيات الأخرى اللازمة للترافع ومسؤولية التأخير في تقديم ما يطلبه منه المحامي من مستندات إضافية من قبل القضاء أو الجهات المعنية تقع على عاتق الطرف الثاني.</div>
-            <div class="contract-body-text"><b>البند الرابع:-</b> إذا قام الطرف الثاني بعزل الطرف الأول أو فسخ العقد أو امتنع عن تسليم الأتعاب عند انتهاء النزاع صلحاً مع الخصم أو من قبل المحكمة فإن الطرف الأول يستحق باقي الأتعاب والأجور المضافة المسمى في هذا العقد.</div>
-            
-            <div class="contract-body-text" id="p_notesRow" style="display:none; background: #f8fafc; padding: 8px; border: 1px dashed #cbd5e1;"><b>ملاحظات إضافية:</b> <span id="p_notes"></span></div>
+            <div class="contract-content-wrapper">
+                <div class="contract-title">عقد أتعاب محاماة</div>
+                <div class="contract-body-text">حرر هذا العقد بين كل من:</div>
+                <div class="contract-body-text">1- الطرف الأول السيد المحامي: <b id="p_lawyerName">....................</b></div>
+                <div class="contract-body-text">2- الطرف الثاني السيد الموكل: <b id="p_clientName">....................</b></div>
+                <div class="contract-body-text">وأقر الطرفان على أهليتهما للتعاقد واتفقا على ما يلي:-</div>
+                <div class="contract-body-text"><b>البند الأول:-</b> يقوم الطرف الأول أو من ينوب عنه بإكمال الدعوى الخاصة بـ (<b id="p_caseTitle">..........................</b>) امام محكمة (<b id="p_court">..........................</b>) ومتابعتها حتى نهاية الدعوى وهو غير مسؤول أو ملزم بالقرار الصادر عن المحكمة.</div>
+                <div class="contract-body-text"><b>البند الثاني:-</b> يلتزم الطرف الثاني في مقابل ما يقوم به المحامي من عناية وبذل جهد بأداء مبلغ وقدره <b id="p_totalFees">..............</b> كدفعة أولى غير قابله للرد بعد توقيع العقد، والدفعة الثانية <b id="p_paidFees">..............</b> بعد انتهاء الدعوى وتسليم القرار إلى الطرف الثاني مباشرة وينتهي عمل المحامي. (الباقي المستحق: <b id="p_remainingFees">..............</b>).</div>
+                <div class="contract-body-text"><b>البند الثالث:-</b> يقدم الطرف الثاني جميع المستندات الضرورية لإقامة الدعوى أو التي تتطلب منه لاحقاً على أنها مستندات حقيقية وغير مزورة ولا يرقى إليها الشك وأنه مسؤول عنها جزائياً ومدنياً بالإضافة إلى وكالة المحاماة يخول فيها المحامي حق الخصومة وكافة الصلاحيات الأخرى اللازمة للترافع ومسؤولية التأخير في تقديم ما يطلبه منه المحامي من مستندات إضافية من قبل القضاء أو الجهات المعنية تقع على عاتق الطرف الثاني.</div>
+                <div class="contract-body-text"><b>البند الرابع:-</b> إذا قام الطرف الثاني بعزل الطرف الأول أو فسخ العقد أو امتنع عن تسليم الأتعاب عند انتهاء النزاع صلحاً مع الخصم أو من قبل المحكمة فإن الطرف الأول يستحق باقي الأتعاب والأجور المضافة المسمى في هذا العقد.</div>
+                
+                <div class="contract-body-text" id="p_notesRow" style="display:none; background: #f8fafc; padding: 8px; border: 1px dashed #cbd5e1;"><b>ملاحظات إضافية:</b> <span id="p_notes"></span></div>
 
-            <div class="contract-body-text" style="margin-top: 15px;">حرر في تاريخ: <b id="p_date">.... / .... / 202...</b></div>
-            
-            <div style="display: flex; justify-content: space-between; margin-top: 40px; font-weight: bold;">
-                <div>الطرف الثاني (الموكل):<br><br>....................................</div>
-                <div>الطرف الأول (المحامي):<br><br>....................................</div>
-            </div>
-            
-            <div class="actions-section" style="margin-top: 30px;">
-                <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة العقد الرسمي</button>
+                <div class="contract-body-text" style="margin-top: 15px;">حرر في تاريخ: <b id="p_date">.... / .... / 202...</b></div>
+                
+                <div style="display: flex; justify-content: space-between; margin-top: 40px; font-weight: bold;">
+                    <div>الطرف الثاني (الموكل):<br><br>....................................</div>
+                    <div>الطرف الأول (المحامي):<br><br>....................................</div>
+                </div>
+                
+                <div class="actions-section" style="margin-top: 30px;" class="hide-on-print">
+                    <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة العقد الرسمي</button>
+                </div>
             </div>
         </div>
 
@@ -813,7 +792,7 @@
 
 <script>
     function generateQRCode() {
-        const urlInput = document.getElementById('locationUrl').value.trim();
+        const urlInput = document.getElementById('locationUrl').value.trim;
         const qrcodeContainer = document.getElementById('qrcodeContainer');
         const qrcodeDiv = document.getElementById('qrcode');
         if (urlInput === "") return;
