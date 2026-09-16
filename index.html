@@ -478,38 +478,41 @@
         .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
         .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
 
-        /* تصميم وثيقة عقد المحاماة القابلة للطباعة مع الخلفية الجديدة */
+        /* تصميم وثيقة عقد المحاماة القابلة للطباعة بحجم A4 وبشكل متناسق */
         .contract-print-container { 
             background: #fff; 
-            padding: 40px 30px; 
-            margin-top: 25px; 
+            width: 210mm;
+            min-height: 297mm;
+            padding: 20mm;
+            margin: 25px auto; 
             border: 1px solid #cbd5e1; 
             border-radius: 8px; 
             display: none; 
             line-height: 1.8; 
             font-size: 14px; 
             position: relative; 
+            box-sizing: border-box;
             overflow: hidden;
         }
 
-        /* تنسيق صورة الخلفية المائية للعقد */
+        /* تنسيق صورة الخلفية المائية متوسطة تماماً بحجم A4 */
         .contract-print-container::before {
             content: "";
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            height: 80%;
             background-image: url('https://raw.githubusercontent.com/abodabips-spec/Abo-Dabi/refs/heads/main/F0CBF176-4A9B-40CE-BF30-FAFF67BF79B1.png');
             background-repeat: no-repeat;
             background-position: center;
-            background-size: 60% auto; /* تحكم في حجم شعار الخلفية */
-            opacity: 0.12; /* شفافة لتكون بمثابة علامة مائية لا تعيق قراءة النص */
+            background-size: contain;
+            opacity: 0.10;
             pointer-events: none;
             z-index: 1;
         }
 
-        /* جعل محتوى العقد يظهر فوق الخلفية دائماً */
         .contract-content-wrapper {
             position: relative;
             z-index: 2;
@@ -530,20 +533,24 @@
         }
 
         @media print {
-            body { background: white !important; padding: 0 !important; }
+            body { background: white !important; padding: 0 !important; margin: 0 !important; }
             .container { border: none !important; box-shadow: none !important; width: 100% !important; padding: 0 !important; }
             .user-bar, .search-container-top, .actions-section, .auth-card, #passwordSection, #lawForm, .header-title, .hearing-alert { display: none !important; }
             .hide-on-print { display: none !important; }
             #watermarkLayer { opacity: 1 !important; }
             .print-hidden-field { display: none !important; }
+            
             .contract-print-container { 
                 display: block !important; 
                 border: none !important; 
-                padding: 10px 0 !important; 
-                margin: 0 !important; 
+                width: 100% !important;
+                height: 100% !important;
+                margin: 0 !important;
+                padding: 15mm !important;
+                box-shadow: none !important;
             }
             .contract-print-container::before {
-                opacity: 0.15 !important; /* زيادة الوضوح قليلاً عند الطباعة الفعلية */
+                opacity: 0.12 !important;
                 -webkit-print-color-adjust: exact;
                 print-color-adjust: exact;
             }
@@ -680,7 +687,7 @@
             </div>
         </form>
 
-        <!-- قسم نموذج عقد محامي القابل للطباعة مع الخلفية -->
+        <!-- قسم نموذج عقد محامي القابل للطباعة بحجم A4 -->
         <div id="contractPrintSection" class="contract-print-container">
             <div class="contract-content-wrapper">
                 <div class="contract-title">عقد أتعاب محاماة</div>
@@ -702,7 +709,7 @@
                     <div>الطرف الأول (المحامي):<br><br>....................................</div>
                 </div>
                 
-                <div class="actions-section" style="margin-top: 30px;" class="hide-on-print">
+                <div class="actions-section" style="margin-top: 30px;">
                     <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة العقد الرسمي</button>
                 </div>
             </div>
@@ -792,7 +799,7 @@
 
 <script>
     function generateQRCode() {
-        const urlInput = document.getElementById('locationUrl').value.trim;
+        const urlInput = document.getElementById('locationUrl').value.trim();
         const qrcodeContainer = document.getElementById('qrcodeContainer');
         const qrcodeDiv = document.getElementById('qrcode');
         if (urlInput === "") return;
