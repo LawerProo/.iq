@@ -105,17 +105,13 @@
             section.style.display = section.style.display === 'none' ? 'block' : 'none';
         };
 
-        // زر إظهار/إخفاء الأرشيف المالي داخل الصفحة
-        window.toggleFinancialSection = function() {
-            const box = document.getElementById('financialBox');
-            const btn = document.getElementById('toggleFinancialBtn');
-            if (box.style.display === 'none') {
-                box.style.display = 'grid';
-                btn.textContent = '📂 إخفاء الأرشيف المالي';
-            } else {
-                box.style.display = 'none';
-                btn.textContent = '💰 عرض الأرشيف المالي';
-            }
+        // إظهار وإخفاء نافذة الأرشيف المالي المنفصلة
+        window.openFinancialModal = function() {
+            document.getElementById('financialModal').style.display = 'flex';
+        };
+
+        window.closeFinancialModal = function() {
+            document.getElementById('financialModal').style.display = 'none';
         };
 
         window.handleFileSelect = function(event) {
@@ -237,35 +233,38 @@
             }
         };
 
-        // التحقق من موعد الجلسة والتنبيه قبل يوم أو اليوم نفسه
-        window.checkHearingAlert = function(dateStr) {
+        // التحقق من موعد الجلسة والوقت والتنبيه قبل يوم أو اليوم نفسه
+        window.checkHearingAlert = function(dateTimeStr) {
             const alertBox = document.getElementById('hearingAlertBox');
-            if (!dateStr) {
+            if (!dateTimeStr) {
                 alertBox.style.display = 'none';
                 return;
             }
 
-            const hearingDate = new Date(dateStr);
+            const hearingDate = new Date(dateTimeStr);
             const today = new Date();
-            // تصفير الوقت للمقارنة الدقيقة بالأيام
-            hearingDate.setHours(0,0,0,0);
-            today.setHours(0,0,0,0);
+            
+            // مقارنة الأيام فقط للتنبيه المسبق قبل يوم أو في نفس اليوم
+            const hearingDay = new Date(hearingDate.getFullYear(), hearingDate.getMonth(), hearingDate.getDate());
+            const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
-            const diffTime = hearingDate - today;
+            const diffTime = hearingDay - todayDay;
             const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+            
+            const timeFormatted = hearingDate.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
 
             if (diffDays === 0) {
                 alertBox.style.display = 'block';
                 alertBox.style.background = '#fee2e2';
                 alertBox.style.color = '#991b1b';
                 alertBox.style.borderColor = '#fca5a5';
-                alertBox.textContent = `⚠️ تنبيه هام: موعد جلسة هذه الدعوة هو اليوم (${dateStr})!`;
+                alertBox.textContent = `⚠️ تنبيه هام: موعد جلسة هذه الدعوة هو اليوم في تمام الساعة (${timeFormatted})!`;
             } else if (diffDays === 1) {
                 alertBox.style.display = 'block';
                 alertBox.style.background = '#fef3c7';
                 alertBox.style.color = '#92400e';
                 alertBox.style.borderColor = '#fde68a';
-                alertBox.textContent = `⚠️ تنبيه: موعد جلسة هذه الدعوة غداً (${dateStr}) يرجى الاستعداد!`;
+                alertBox.textContent = `⚠️ تنبيه: موعد جلسة هذه الدعوة غداً في تمام الساعة (${timeFormatted}) يرجى الاستعداد!`;
             } else {
                 alertBox.style.display = 'none';
             }
@@ -316,17 +315,21 @@
         .form-group.full-width { grid-column: span 3; }
         
         label { display: block; margin-bottom: 4px; font-weight: 600; color: #475569; font-size: 12.5px; }
-        input[type="text"], input[type="url"], input[type="file"], input[type="email"], input[type="password"], input[type="date"], input[type="number"], select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13.5px; box-sizing: border-box; background: #fdfdfd; font-family: inherit; }
+        input[type="text"], input[type="url"], input[type="file"], input[type="email"], input[type="password"], input[type="datetime-local"], input[type="number"], select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13.5px; box-sizing: border-box; background: #fdfdfd; font-family: inherit; }
         input[type="file"] { padding: 5px; background: #f8fafc; cursor: pointer; }
         textarea { resize: vertical; height: 50px; }
 
         /* صندوق التنبيه بالجلسة */
         .hearing-alert { padding: 10px 15px; border-radius: 8px; font-weight: bold; font-size: 13px; margin-bottom: 15px; border: 1px solid transparent; display: none; }
 
-        /* الأرشيف المالي القابل للإخفاء والإظهار */
-        .financial-toggle-bar { grid-column: span 3; margin: 10px 0; }
-        .btn-toggle-financial { background-color: #64748b; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; }
-        .financial-box-container { grid-column: span 3; display: none; grid-template-columns: 1fr 1fr 1fr; gap: 15px; background: #f8fafc; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; }
+        /* زر فتح الأرشيف المالي كصفحة منفصلة Modal */
+        .financial-modal-btn-bar { grid-column: span 3; margin: 15px 0; }
+        .btn-open-financial { background-color: #475569; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 13px; }
+        
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 10000; }
+        .modal-content { background: white; padding: 25px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
+        .modal-close-btn { background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
         .qrcode-section { text-align: center; margin-top: 10px; padding: 10px; background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 10px; display: none; }
         #qrcode { display: inline-block; margin-top: 5px; padding: 5px; background: white; border-radius: 6px; }
@@ -350,10 +353,9 @@
         @media print {
             body { background: white !important; padding: 0 !important; }
             .container { border: none !important; box-shadow: none !important; width: 100% !important; padding: 0 !important; }
-            .user-bar, .search-container-top, .actions-section, .auth-card, #passwordSection, .financial-toggle-bar { display: none !important; }
+            .user-bar, .search-container-top, .actions-section, .auth-card, #passwordSection, .financial-modal-btn-bar { display: none !important; }
             .hide-on-print { display: none !important; }
             #watermarkLayer { opacity: 1 !important; }
-            .financial-box-container { display: grid !important; } /* لضمان طباعة الأرشيف المالي إذا كان مطلوباً */
         }
     </style>
 </head>
@@ -442,32 +444,17 @@
                     <input type="text" id="defendant" placeholder="الاسم الثلاثي">
                 </div>
 
-                <!-- تاريخ الجلسة القادمة -->
-                <div class="section-title">📅 موعد الجلسة القادمة</div>
+                <!-- تاريخ ووقت الجلسة القادمة -->
+                <div class="section-title">📅 موعد الجلسة القادمة (التاريخ والوقت)</div>
 
                 <div class="form-group full-width">
-                    <label>تاريخ الجلسة القادمة:</label>
-                    <input type="date" id="nextHearingDate" onchange="checkHearingAlert(this.value)">
+                    <label>موعد الجلسة القادمة (التاريخ والوقت):</label>
+                    <input type="datetime-local" id="nextHearingDate" onchange="checkHearingAlert(this.value)">
                 </div>
 
-                <!-- الأرشيف المالي (مخفي خلف زر) -->
-                <div class="financial-toggle-bar hide-on-print">
-                    <button type="button" id="toggleFinancialBtn" class="btn-toggle-financial" onclick="toggleFinancialSection()">💰 عرض الأرشيف المالي</button>
-                </div>
-
-                <div id="financialBox" class="financial-box-container">
-                    <div class="form-group" style="margin: 0;">
-                        <label>أتعاب المحاماة الكلية (د.ع):</label>
-                        <input type="number" id="totalFees" placeholder="مثال: 1000000">
-                    </div>
-                    <div class="form-group" style="margin: 0;">
-                        <label>المبالغ المستلمة مقدماً:</label>
-                        <input type="number" id="paidFees" placeholder="مثال: 500000">
-                    </div>
-                    <div class="form-group" style="margin: 0;">
-                        <label>المصاريف القضائية المدفوعة:</label>
-                        <input type="number" id="courtExpenses" placeholder="رسوم، خبراء...">
-                    </div>
+                <!-- زر فتح صفحة الأرشيف المالي المنفصلة -->
+                <div class="financial-modal-btn-bar hide-on-print">
+                    <button type="button" class="btn-open-financial" onclick="openFinancialModal()">💰 فتح صفحة الأرشيف المالي</button>
                 </div>
 
                 <!-- إعدادات المرفقات -->
@@ -511,6 +498,31 @@
         </form>
     </div>
 
+    <!-- نافذة صفحة الأرشيف المالي المنفصلة (Modal) -->
+    <div id="financialModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin: 0; color: var(--primary-color);">💰 الأرشيف المالي للدعوى</h3>
+                <button type="button" class="modal-close-btn" onclick="closeFinancialModal()">✕ إغلاق</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div class="form-group" style="margin: 0;">
+                    <label>أتعاب المحاماة الكلية (د.ع):</label>
+                    <input type="number" id="totalFees" placeholder="مثال: 1000000">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label>المبالغ المستلمة مقدماً:</label>
+                    <input type="number" id="paidFees" placeholder="مثال: 500000">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label>المصاريف القضائية المدفوعة:</label>
+                    <input type="number" id="courtExpenses" placeholder="رسوم، خبراء...">
+                </div>
+                <button type="button" class="btn-main" style="margin-top: 10px;" onclick="closeFinancialModal()">حفظ وإغلاق النافذة</button>
+            </div>
+        </div>
+    </div>
+
 <script>
     function generateQRCode() {
         const urlInput = document.getElementById('locationUrl').value.trim();
@@ -524,7 +536,7 @@
         });
     }
     document.getElementById('locationUrl').addEventListener('input', generateQRCode);
-    document.getElementById('barcodeSubText')?.addEventListener('input', function() {
+    document.getElementById('barcodeSubTest')?.addEventListener('input', function() {
         document.getElementById('barcodeSubTextDisplay').textContent = this.value;
     });
     document.getElementById('watermarkText').addEventListener('input', function() {
