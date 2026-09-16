@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة وتوثيق الدعاوى القضائية</title>
+    <title>نظام إدارة وتوثيق الدعاوى القضائية المتطور</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
         import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, getDoc, collection, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyCnAg_4zW8BHVjKp_C-38E-0LNBj8OmyFg",
@@ -27,8 +27,9 @@
         let currentUser = null;
         let selectedFileBase64 = "";
         let selectedFileName = "";
+        let userRole = "admin"; // افتراضي أو يتم جيبه من قاعدة البيانات
 
-        onAuthStateChanged(auth, (user) => {
+        onAuthStateChanged(auth, async (user) => {
             const loginBox = document.getElementById('loginSection');
             const appBox = document.getElementById('appSection');
             const userEmailSpan = document.getElementById('userEmailDisplay');
@@ -38,6 +39,16 @@
                 loginBox.style.display = 'none';
                 appBox.style.display = 'block';
                 userEmailSpan.textContent = user.email;
+                
+                // تحديد الصلاحية تجريبياً حسب البريد أو جلبها
+                if(user.email.includes("assistant")) {
+                    userRole = "assistant";
+                    document.getElementById('adminOnlySection').style.display = "none";
+                } else {
+                    userRole = "admin";
+                    document.getElementById('adminOnlySection').style.display = "block";
+                }
+                loadClientsList();
             } else {
                 currentUser = null;
                 loginBox.style.display = 'block';
@@ -108,27 +119,22 @@
         window.handleFileSelect = function(event) {
             const file = event.target.files[0];
             if (!file) return;
-
             selectedFileName = file.name;
             const reader = new FileReader();
             reader.onload = function(e) {
                 const img = new Image();
                 img.onload = function() {
                     const canvas = document.createElement('canvas');
-                    let width = img.width;
-                    let height = img.height;
-                    
+                    let width = img.width, height = img.height;
                     const maxWidth = 800;
                     if (width > maxWidth) {
                         height = Math.round((height * maxWidth) / width);
                         width = maxWidth;
                     }
-
                     canvas.width = width;
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
-
                     selectedFileBase64 = canvas.toDataURL('image/jpeg', 0.7);
                     document.getElementById('fileInfo').innerHTML = `📎 تم ضغط وتجهيز الصورة بنجاح: <b>${file.name}</b>`;
                 };
@@ -137,30 +143,33 @@
             reader.readAsDataURL(file);
         };
 
+        // حفظ الدعوة مع الميزات المضافة
         window.saveDataToFirebase = async function() {
-            if (!currentUser) {
-                alert("يرجى تسجيل الدخول أولاً!");
-                return;
-            }
-
+            if (!currentUser) return;
             const caseNumber = document.getElementById('caseNumber').value.trim();
             const complainant = document.getElementById('complainant').value.trim();
             
             if (!caseNumber || !complainant) {
-                alert("يرجى إدخال رقم الدعوة واسم المشتكي!");
+                alert("يرجى إدخال رقم الدعوة واسم المشتكي/الموكل!");
                 return;
             }
 
             try {
                 const docId = caseNumber.replace(/\//g, '_');
-                
                 const caseData = {
                     userId: currentUser.uid,
                     caseNumber: caseNumber,
                     caseTitle: document.getElementById('caseTitle').value,
                     complainant: complainant,
+                    complainantPhone: document.getElementById('complainantPhone').value,
                     defendant: document.getElementById('defendant').value,
                     court: document.getElementById('court').value,
+                    nextHearingDate: document.getElementById('nextHearingDate').value,
+                    hearingNotes: document.getElementById('hearingNotes').value,
+                    caseStage: document.getElementById('caseStage').value,
+                    totalFees: document.getElementById('totalFees').value,
+                    paidFees: document.getElementById('paidFees').value,
+                    courtExpenses: document.getElementById('courtExpenses').value,
                     locationUrl: document.getElementById('locationUrl').value,
                     privateNotes: document.getElementById('privateNotes').value,
                     watermarkText: document.getElementById('watermarkText').value,
@@ -170,7 +179,15 @@
                 };
 
                 await setDoc(doc(db, "cases", docId), caseData);
-                alert("تم حفظ الدعوة بنجاح تام! ✅");
+                
+                // حفظ الموكل في جدول الموكلين بشكل مستقل
+                await setDoc(doc(db, "clients", complainant.replace(/\s+/g, '_')), {
+                    name: complainant,
+                    phone: document.getElementById('complainantPhone').value
+                });
+
+                alert("تم حفظ الدعوة وتحديث الأرشيف المالي والجلسات بنجاح تام! ✅");
+                loadClientsList();
             } catch (error) {
                 alert("خطأ أثناء الحفظ: " + error.message);
             }
@@ -186,16 +203,22 @@
 
             try {
                 const docId = queryNum.replace(/\//g, '_');
-                const docRef = doc(db, "cases", docId);
-                const docSnap = await getDoc(docRef);
+                const docSnap = await getDoc(doc(db, "cases", docId));
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     document.getElementById('caseNumber').value = data.caseNumber || '';
                     document.getElementById('caseTitle').value = data.caseTitle || '';
                     document.getElementById('complainant').value = data.complainant || '';
+                    document.getElementById('complainantPhone').value = data.complainantPhone || '';
                     document.getElementById('defendant').value = data.defendant || '';
                     document.getElementById('court').value = data.court || '';
+                    document.getElementById('nextHearingDate').value = data.nextHearingDate || '';
+                    document.getElementById('hearingNotes').value = data.hearingNotes || '';
+                    document.getElementById('caseStage').value = data.caseStage || 'تسجيل الدعوى';
+                    document.getElementById('totalFees').value = data.totalFees || '';
+                    document.getElementById('paidFees').value = data.paidFees || '';
+                    document.getElementById('courtExpenses').value = data.courtExpenses || '';
                     document.getElementById('locationUrl').value = data.locationUrl || '';
                     document.getElementById('privateNotes').value = data.privateNotes || '';
                     document.getElementById('watermarkText').value = data.watermarkText || '';
@@ -222,6 +245,76 @@
                 alert("خطأ: " + error.message);
             }
         };
+
+        async function loadClientsList() {
+            try {
+                const querySnapshot = await getDocs(collection(db, "clients"));
+                const selectList = document.getElementById('clientsListSelect');
+                selectList.innerHTML = '<option value="">-- اختر موكلاً مسجلاً --</option>';
+                querySnapshot.forEach((doc) => {
+                    const client = doc.data();
+                    const opt = document.createElement('option');
+                    opt.value = client.name;
+                    opt.textContent = `${client.name} (${client.phone || 'بدون هاتف'})`;
+                    selectList.appendChild(opt);
+                });
+            } catch(e) { console.log(e); }
+        }
+
+        window.selectClientFromDropdown = function() {
+            const val = document.getElementById('clientsListSelect').value;
+            if(val) {
+                document.getElementById('complainant').value = val;
+            }
+        };
+
+        // توليد قوالب الطباعة الرسمية
+        window.printOfficialPetition = function(type) {
+            const caseNum = document.getElementById('caseNumber').value || '.......';
+            const court = document.getElementById('court').value || 'محكمة البداءة المختصة';
+            const complainant = document.getElementById('complainant').value || '.......';
+            const defendant = document.getElementById('defendant').value || '.......';
+            const subject = document.getElementById('caseTitle').value || '.......';
+
+            let titleDoc = type === 'petition' ? 'عريضة دعوى قضائية رسمية' : 'لائحة دفوع قانونية';
+            
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <html lang="ar" dir="rtl">
+                <head>
+                    <meta charset="UTF-8">
+                    <title>${titleDoc}</title>
+                    <style>
+                        body { font-family: 'Traditional Arabic', 'Segoe UI', serif; padding: 40px; font-size: 18px; line-height: 1.8; color: #000; }
+                        .header { text-align: center; font-weight: bold; margin-bottom: 30px; font-size: 22px; }
+                        .content { margin-bottom: 20px; }
+                        .footer-sign { margin-top: 60px; display: flex; justify-content: space-between; }
+                    </style>
+                </head>
+                <body>
+                    <div class="header">
+                        لدى ${court}<br>
+                        العدد: ${caseNum} / ${new Date().getFullYear()}<br>
+                        الموضوع: ${titleDoc}
+                    </div>
+                    <div class="content">
+                        <strong>السيد رئيس المحكمة المحترم،</strong><br>
+                        <strong>المجهد / المدعي:</strong> ${complainant}<br>
+                        <strong>المشكو منه / المدعى عليه:</strong> ${defendant}<br><br>
+                        <strong>جهة الدعوى / موضوعها:</strong><br>
+                        موكلنا يطالب بـ (${subject}) استناداً للقانون، وحيث أن المشكو منه امتنع عن أداء ما يلزم، لذا نطلب من محكمتكم الموقرة دعوته للمرافعة والحكم بإلزامه بالطلب مع المصاريف والرسوم وأتعاب المحاماة.<br><br>
+                        <strong>ولكم الحשת الفائق الاحترام والتقدير.</strong>
+                    </div>
+                    <div class="footer-sign">
+                        <div>وكيل المدعي / المحامي</div>
+                        <div>التوقيع: ...................</div>
+                    </div>
+                    <script>window.print();<\/script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        };
     </script>
 
     <style>
@@ -238,8 +331,6 @@
         }
 
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--bg-color); margin: 0; padding: 10px; color: var(--text-main); }
-        
-        /* جعل التصميم بعرض الشاشة الكاملة مع هوامش بسيطة مريحة للعين */
         .container { width: 100%; max-width: 100%; background: var(--card-bg); margin: 0 auto; padding: 20px 30px; box-sizing: border-box; border-radius: 12px; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04); position: relative; }
         
         .auth-card { max-width: 380px; margin: 60px auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; text-align: center; }
@@ -259,54 +350,42 @@
         .password-box { background: #fff; border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: none; }
         .header-title { text-align: center; color: var(--primary-color); margin-bottom: 15px; font-size: 22px; font-weight: 700; }
         
-        /* تنظيم شريطي البحث جنباً إلى جنب بشكل احترافي وصغير */
         .search-container-top { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
         .search-box-item { background: #f8fafc; border: 1px solid #e2e8f0; padding: 10px 15px; border-radius: 10px; display: flex; gap: 8px; align-items: center; }
         .search-box-item.legal { background: #f3e8ff; border-color: #d8b4fe; }
-        .search-box-item input { flex: 1; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: #fff; outline: none; }
-        .search-box-item.legal input { border-color: #c084fc; }
-        
+        .search-box-item input, .search-box-item select { flex: 1; padding: 6px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: #fff; outline: none; }
         .btn-search { background-color: var(--secondary-color); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; white-space: nowrap; }
         .btn-legal-search { background-color: #7c3aed; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; white-space: nowrap; }
 
-        /* شبكة النماذج بعرض الشاشة */
-        .form-grid { display: grid; grid-template-columns: 1.2fr 1.8fr 3fr; gap: 15px; align-items: end; }
-        .form-group { margin-bottom: 12px; }
+        .section-title { font-size: 14px; font-weight: bold; color: var(--primary-color); border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin: 20px 0 10px 0; grid-column: span 3; }
+        
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: 15px; align-items: end; }
+        .form-group { margin-bottom: 10px; }
         .form-group.full-width { grid-column: span 3; }
         
         label { display: block; margin-bottom: 4px; font-weight: 600; color: #475569; font-size: 12.5px; }
-        input[type="text"], input[type="url"], input[type="file"], input[type="email"], input[type="password"], textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13.5px; box-sizing: border-box; background: #fdfdfd; font-family: inherit; }
+        input[type="text"], input[type="url"], input[type="file"], input[type="email"], input[type="password"], input[type="date"], input[type="number"], select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13.5px; box-sizing: border-box; background: #fdfdfd; font-family: inherit; }
         input[type="file"] { padding: 5px; background: #f8fafc; cursor: pointer; }
-        textarea { resize: vertical; height: 60px; }
+        textarea { resize: vertical; height: 50px; }
         
         .qrcode-section { text-align: center; margin-top: 10px; padding: 10px; background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 10px; display: none; }
         #qrcode { display: inline-block; margin-top: 5px; padding: 5px; background: white; border-radius: 6px; }
-        
         .barcode-sub-text { margin-top: 4px; font-size: 13px; font-weight: bold; color: #dc2626; }
 
-        .actions-section { display: flex; gap: 10px; justify-content: center; margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 15px; }
-        .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 25px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
-        .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 25px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 600; }
+        .actions-section { display: flex; gap: 10px; justify-content: center; margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 15px; flex-wrap: wrap; }
+        .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
+        .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
+        .btn-template { background-color: #0284c7; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
 
         #watermarkLayer {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            pointer-events: none;
-            z-index: 9999;
-            overflow: hidden;
-            opacity: 0;
+            display: flex; justify-content: center; align-items: center;
+            pointer-events: none; z-index: 9999; overflow: hidden; opacity: 0;
         }
         .watermark-text-style {
-            font-size: 60px;
-            font-weight: bold;
-            color: rgba(30, 58, 138, 0.08);
-            transform: rotate(-35deg);
-            white-space: nowrap;
-            text-align: center;
-            user-select: none;
+            font-size: 60px; font-weight: bold; color: rgba(30, 58, 138, 0.08);
+            transform: rotate(-35deg); white-space: nowrap; text-align: center; user-select: none;
         }
 
         @media print {
@@ -320,32 +399,30 @@
 </head>
 <body>
 
-    <!-- شاشة تسجيل الدخول -->
+    <!-- تسجيل الدخول -->
     <div id="loginSection" class="auth-card">
-        <h2>🔐 تسجيل الدخول للنظام</h2>
+        <h2>🔐 تسجيل الدخول للنظام المتطور</h2>
         <div class="auth-group">
             <label>البريد الإلكتروني:</label>
-            <input type="email" id="email" placeholder="name@example.com" autocomplete="off">
+            <input type="email" id="email" placeholder="name@example.com">
         </div>
         <div class="auth-group">
             <label>كلمة المرور:</label>
-            <input type="password" id="password" placeholder="********" autocomplete="new-password">
+            <input type="password" id="password" placeholder="********">
         </div>
-        <button type="button" class="btn-main" onclick="loginUser()">تسجيل الدخول</button>
+        <button type="button" class="btn-main" onclick="loginUser()">دخول للنظام</button>
         <div id="loginError" class="error-text"></div>
     </div>
 
-    <!-- واجهة النظام الرئيسية -->
+    <!-- التطبيق الرئيسي -->
     <div class="container" id="appSection" style="display: none;">
         
-        <div id="watermarkLayer">
-            <div class="watermark-text-style" id="watermarkDisplay"></div>
-        </div>
+        <div id="watermarkLayer"><div class="watermark-text-style" id="watermarkDisplay"></div></div>
 
         <div class="user-bar">
             <span>👤 المستخدم: <strong id="userEmailDisplay"></strong></span>
             <div class="user-actions">
-                <button type="button" class="btn-legal" onclick="openPenalCode()">📜 قانون العقوبات العراقي</button>
+                <button type="button" class="btn-legal" onclick="window.open('https://www.rwi.uzh.ch/dam/jcr:00000000-0c03-6a0c-ffff-ffff96be3560/penalcode1969.pdf', '_blank')">📜 قانون العقوبات</button>
                 <button type="button" class="btn-settings" onclick="togglePasswordSection()">🔑 تغيير الرمز</button>
                 <button type="button" class="btn-logout" onclick="logoutUser()">خروج</button>
             </div>
@@ -360,9 +437,9 @@
             <div id="passMessage" style="font-size: 12px; margin-top: 6px;"></div>
         </div>
 
-        <h2 class="header-title">⚖️ نظام إدارة وتوثيق الدعاوى</h2>
+        <h2 class="header-title">⚖️ نظام إدارة وتوثيق الدعاوى المتطور</h2>
         
-        <!-- حقول البحث في أعلى الصفحة جنباً إلى جنب بشكل احترافي وصغير -->
+        <!-- أشرطة البحث -->
         <div class="search-container-top">
             <div class="search-box-item">
                 <input type="text" id="searchQuery" placeholder="بحث برقم الدعوة...">
@@ -370,16 +447,19 @@
             </div>
             <div class="search-box-item legal">
                 <input type="text" id="legalSearchInput" placeholder="بحث بالمادة القانونية (مثال: 406)...">
-                <button type="button" class="btn-legal-search" onclick="searchLegalCode()">⚖️ بحث بالقانون</button>
+                <button type="button" class="btn-legal-search" onclick="window.open('https://www.google.com/search?q=site:rwi.uzh.ch/dam/jcr:00000000-0c03-6a0c-ffff-ffff96be3560/penalcode1969.pdf+' + encodeURIComponent(document.getElementById('legalSearchInput').value), '_blank')">⚖️ بحث بالقانون</button>
             </div>
         </div>
 
         <form id="lawForm">
             <div class="form-grid">
-                <!-- الصف الأول: رقم الدعوة صغير + المحكمة + موضوع الدعوة ممتد -->
+                
+                <!-- بيانات أساسية -->
+                <div class="section-title">📌 البيانات الأساسية للدعوى</div>
+                
                 <div class="form-group">
                     <label>رقم الدعوة:</label>
-                    <input type="text" id="caseNumber" placeholder="مثال: 2">
+                    <input type="text" id="caseNumber" placeholder="مثال: 2/ب/2026">
                 </div>
                 <div class="form-group">
                     <label>المحكمة المختصة:</label>
@@ -390,72 +470,109 @@
                     <input type="text" id="caseTitle" placeholder="أدخل موضوع الدعوة">
                 </div>
 
-                <!-- الصف الثاني: الأطراف وباقي الحقول -->
+                <!-- الأطراف وقاعدة الموكلين -->
                 <div class="form-group">
-                    <label>اسم المشتكي:</label>
+                    <label>اختر من الموكلين المسجلين:</label>
+                    <select id="clientsListSelect" onchange="selectClientFromDropdown()">
+                        <option value="">-- اختر موكلاً مسجلاً --</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>اسم المشتكي / المدعي:</label>
                     <input type="text" id="complainant" placeholder="الاسم الثلاثي">
                 </div>
                 <div class="form-group">
-                    <label>اسم المشكو منه:</label>
+                    <label>هاتف الموكل:</label>
+                    <input type="text" id="complainantPhone" placeholder="رقم الهاتف">
+                </div>
+                <div class="form-group">
+                    <label>اسم المشكو منه / الخصم:</label>
                     <input type="text" id="defendant" placeholder="الاسم الثلاثي">
                 </div>
+
+                <!-- إدارة الجلسات والمواعيد -->
+                <div class="section-title">📅 إدارة الجلسات والمواعيد وحركة الدعوى</div>
+
+                <div class="form-group">
+                    <label>تاريخ الجلسة القادمة:</label>
+                    <input type="date" id="nextHearingDate">
+                </div>
+                <div class="form-group">
+                    <label>مرحلة الدعوى الحالية (Timeline):</label>
+                    <select id="caseStage">
+                        <option value="تسجيل الدعوى">تسجيل الدعوى</option>
+                        <option value="المرافعة والتبليغ">المرافعة والتبليغ</option>
+                        <option value="إحالة للخبير">إحالة للخبير</option>
+                        <option value="المرافعة النهائية">المرافعة النهائية</option>
+                        <option value="صدور القرار النهائي">صدور القرار النهائي</option>
+                        <option value="التمييز والاعتراض">التمييز والاعتراض</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>ملاحظات الجلسة أو الإجراء:</label>
+                    <input type="text" id="hearingNotes" placeholder="ما تم في الجلسة السابقة...">
+                </div>
+
+                <!-- الأرشيف المالي -->
+                <div class="section-title">💰 الأرشيف المالي (الأتعاب والمصاريف)</div>
+
+                <div class="form-group">
+                    <label>أتعاب المحاماة الكلية (د.ع):</label>
+                    <input type="number" id="totalFees" placeholder="مثال: 1000000">
+                </div>
+                <div class="form-group">
+                    <label>المبالغ المستلمة مقدماً:</label>
+                    <input type="number" id="paidFees" placeholder="مثال: 500000">
+                </div>
+                <div class="form-group">
+                    <label>المصاريف القضائية المدفوعة:</label>
+                    <input type="number" id="courtExpenses" placeholder="رسوم، خبراء...">
+                </div>
+
+                <!-- إعدادات الطباعة والمرفقات -->
+                <div class="section-title" id="adminOnlySection">⚙️ المرفقات والإعدادات الخاصة</div>
+
                 <div class="form-group hide-on-print">
                     <label>مرفقات الدعوة (صورة/ملف):</label>
                     <input type="file" id="attachment" accept=".jpg, .jpeg, .png" onchange="handleFileSelect(event)">
                 </div>
-
-                <div class="form-group full-width hide-on-print" style="grid-column: span 3;">
-                    <div id="fileInfo" style="font-size: 12px; color: #64748b;"></div>
-                </div>
-
-                <div class="form-group full-width hide-on-print" style="grid-column: span 1;">
-                    <label>رابط موقع الدعوة (الإلكتروني):</label>
+                <div class="form-group hide-on-print">
+                    <label>رابط موقع الدعوة (QR):</label>
                     <input type="text" id="locationUrl" placeholder="https://example.com">
                 </div>
-                <div class="form-group full-width hide-on-print" style="grid-column: span 1;">
+                <div class="form-group hide-on-print">
                     <label>النص السفلي للباركود:</label>
                     <input type="text" id="barcodeSubText" placeholder="مثال: صالح للنشر والاعتماد">
                 </div>
-                <div class="form-group full-width hide-on-print" style="grid-column: span 1;">
-                    <label>اسم المسؤول / المدقق (الورقة المائية):</label>
-                    <input type="text" id="watermarkText" placeholder="مثال: م, أحمد العزاوي">
+                <div class="form-group hide-on-print">
+                    <label>اسم المسؤول (الورقة المائية):</label>
+                    <input type="text" id="watermarkText" placeholder="مثال: المحامي فلان">
                 </div>
-
-                <div class="form-group full-width hide-on-print" style="grid-column: span 3;">
-                    <label>ملاحظات إضافية (خاصة بالحفظ الداخلي):</label>
-                    <textarea id="privateNotes" placeholder="أدخل أي ملاحظات سرية أو إدارية خاصة بالدعوة..."></textarea>
+                <div class="form-group full-width hide-on-print">
+                    <label>ملاحظات سرية / إدارية:</label>
+                    <textarea id="privateNotes" placeholder="ملاحظات لا تظهر للعميل..."></textarea>
+                </div>
+                <div class="form-group full-width hide-on-print">
+                    <div id="fileInfo" style="font-size: 12px; color: #64748b;"></div>
                 </div>
             </div>
 
             <div class="qrcode-section" id="qrcodeContainer">
-                <span style="font-size: 12px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">QR Code (رمز التحقق الرسمي):</span>
+                <span style="font-size: 12px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">QR Code الرسمي:</span>
                 <div id="qrcode"></div>
                 <div id="barcodeSubTextDisplay" class="barcode-sub-text"></div>
             </div>
 
             <div class="actions-section">
-                <button type="button" class="btn-save" onclick="saveDataToFirebase()">💾 حفظ في النظام</button>
-                <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة</button>
+                <button type="button" class="btn-save" onclick="saveDataToFirebase()">💾 حفظ بالكامل</button>
+                <button type="button" class="btn-template" onclick="printOfficialPetition('petition')">📄 طباعة عريضة دعوى</button>
+                <button type="button" class="btn-template" onclick="printOfficialPetition('defense')">📜 طباعة لائحة دفوع</button>
+                <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة التقرير</button>
             </div>
         </form>
-
     </div>
 
 <script>
-    function openPenalCode() {
-        window.open("https://www.rwi.uzh.ch/dam/jcr:00000000-0c03-6a0c-ffff-ffff96be3560/penalcode1969.pdf", "_blank");
-    }
-
-    function searchLegalCode() {
-        const query = document.getElementById('legalSearchInput').value.trim();
-        if(!query) {
-            alert("يرجى إدخال رقم المادة أو النص المراد البحث عنه.");
-            return;
-        }
-        const searchUrl = `https://www.google.com/search?q=site:rwi.uzh.ch/dam/jcr:00000000-0c03-6a0c-ffff-ffff96be3560/penalcode1969.pdf+${encodeURIComponent(query)}`;
-        window.open(searchUrl, "_blank");
-    }
-
     function generateQRCode() {
         const urlInput = document.getElementById('locationUrl').value.trim();
         const qrcodeContainer = document.getElementById('qrcodeContainer');
@@ -464,20 +581,13 @@
         qrcodeContainer.style.display = "block";
         qrcodeDiv.innerHTML = "";
         new QRCode(qrcodeDiv, {
-            text: urlInput,
-            width: 80,
-            height: 80,
-            colorDark : "#1e3a8a",
-            colorLight : "#ffffff",
-            correctLevel : QRCode.CorrectLevel.H
+            text: urlInput, width: 80, height: 80, colorDark : "#1e3a8a", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H
         });
     }
     document.getElementById('locationUrl').addEventListener('input', generateQRCode);
-
     document.getElementById('barcodeSubTest')?.addEventListener('input', function() {
         document.getElementById('barcodeSubTextDisplay').textContent = this.value;
     });
-
     document.getElementById('watermarkText').addEventListener('input', function() {
         document.getElementById('watermarkDisplay').textContent = this.value;
     });
