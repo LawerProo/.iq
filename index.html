@@ -154,7 +154,6 @@
             window.open('https://drive.google.com', '_blank');
         };
 
-        // فتح نافذة إدارة الأرشيف البريدي (المرسلة والمستلمة)
         window.openMailArchiveModal = async function() {
             if (!currentUser) return;
             document.getElementById('mailArchiveModal').style.display = 'flex';
@@ -173,7 +172,6 @@
             receivedContainer.innerHTML = "جاري تحميل الواردات...";
 
             try {
-                // جلب الرسائل المرسلة بواسطة المستخدم الحالي
                 const sentQuery = query(collection(db, "inbox"), where("senderEmail", "==", currentUser.email));
                 const sentSnap = await getDocs(sentQuery);
                 let sentHtml = "";
@@ -194,7 +192,6 @@
                 }
                 sentContainer.innerHTML = sentHtml;
 
-                // جلب الرسائل المستلمة للمستخدم الحالي
                 const recvQuery = query(collection(db, "inbox"), where("targetEmail", "==", currentUser.email));
                 const recvSnap = await getDocs(recvQuery);
                 let recvHtml = "";
@@ -370,6 +367,7 @@
             reader.readAsDataURL(file);
         };
 
+        // ** التعديل هنا: الحفظ داخل مجلد المستخدم الخاص users/{userId}/cases **
         window.saveDataToFirebase = async function() {
             if (!currentUser) return;
             const caseNumber = document.getElementById('caseNumber').value.trim();
@@ -382,8 +380,9 @@
 
             try {
                 const docId = caseNumber.replace(/\//g, '_');
+                const userId = currentUser.uid;
                 const caseData = {
-                    userId: currentUser.uid,
+                    userId: userId,
                     caseNumber: caseNumber,
                     caseTitle: document.getElementById('caseTitle').value,
                     complainant: complainant,
@@ -402,7 +401,7 @@
                     fileName: selectedFileName || ""
                 };
 
-                await setDoc(doc(db, "cases", docId), caseData);
+                await setDoc(doc(db, `users/${userId}/cases`, docId), caseData);
                 currentLoadedDocId = docId;
                 document.getElementById('deleteCaseBtn').style.display = 'inline-block';
                 document.getElementById('shareCaseBtn').style.display = 'inline-block';
@@ -412,6 +411,7 @@
             }
         };
 
+        // ** التعديل هنا: الجلب من مجلد المستخدم الخاص users/{userId}/cases **
         window.fetchDataFromFirebase = async function() {
             if (!currentUser) return;
             const queryNum = document.getElementById('searchQuery').value.trim();
@@ -422,7 +422,8 @@
 
             try {
                 const docId = queryNum.replace(/\//g, '_');
-                const docSnap = await getDoc(doc(db, "cases", docId));
+                const userId = currentUser.uid;
+                const docSnap = await getDoc(doc(db, `users/${userId}/cases`, docId));
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
@@ -489,6 +490,7 @@
             alert("تم إفريغ الحقول بنجاح. يمكنك الآن إدخال دعوة جديدة.");
         };
 
+        // ** التعديل هنا: الحذف من مجلد المستخدم الخاص users/{userId}/cases **
         window.deleteCurrentCase = async function() {
             if (!currentLoadedDocId || !currentUser) {
                 alert("لا توجد دعوة محددة للحذف حالياً.");
@@ -500,7 +502,8 @@
 
             try {
                 await signInWithEmailAndPassword(auth, currentUser.email, passwordInput);
-                await deleteDoc(doc(db, "cases", currentLoadedDocId));
+                const userId = currentUser.uid;
+                await deleteDoc(doc(db, `users/${userId}/cases`, currentLoadedDocId));
 
                 alert("تم حذف الدعوة من النظام وقاعدة البيانات بنجاح! 🗑️");
                 startNewEntry();
@@ -648,16 +651,18 @@
             }
         };
 
+        // ** التعديل هنا: فحص الجلسات من مجلد المستخدم الخاص users/{userId}/cases **
         async function checkAllCasesForHearings() {
             try {
-                const querySnapshot = await getDocs(collection(db, "cases"));
+                const userId = currentUser.uid;
+                const querySnapshot = await getDocs(collection(db, `users/${userId}/cases`));
                 let alertsList = [];
                 const today = new Date();
                 const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
                 querySnapshot.forEach((docSnap) => {
                     const data = docSnap.data();
-                    if (data.userId === currentUser.uid && data.nextHearingDate) {
+                    if (data.nextHearingDate) {
                         const hearingDate = new Date(data.nextHearingDate);
                         const hearingDay = new Date(hearingDate.getFullYear(), hearingDate.getMonth(), hearingDate.getDate());
                         const diffTime = hearingDay - todayDay;
