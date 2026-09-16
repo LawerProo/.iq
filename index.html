@@ -103,7 +103,7 @@
             section.style.display = section.style.display === 'none' ? 'block' : 'none';
         };
 
-        // دالة ذكية لضغط وتصغير الصورة تلقائياً لكي لا تتجاوز حجم فايربيس
+        // دالة ضغط الصورة تلقائياً
         window.handleFileSelect = function(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -116,20 +116,16 @@
                     const canvas = document.createElement('canvas');
                     let width = img.width;
                     let height = img.height;
-                    
-                    // تصغير أبعاد الصورة إذا كانت كبيرة جداً (أقصى عرض 800 بكسل)
                     const maxWidth = 800;
                     if (width > maxWidth) {
                         height = Math.round((height * maxWidth) / width);
                         width = maxWidth;
                     }
-
                     canvas.width = width;
                     canvas.height = height;
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
 
-                    // تحويل الصورة لصيغة ضغط جودة 70% لضمان صغر حجمها
                     selectedFileBase64 = canvas.toDataURL('image/jpeg', 0.7);
                     document.getElementById('fileInfo').innerHTML = `📎 تم ضغط وتجهيز الصورة بنجاح: <b>${file.name}</b>`;
                 };
@@ -162,13 +158,14 @@
                     complainant: complainant,
                     defendant: document.getElementById('defendant').value,
                     court: document.getElementById('court').value,
+                    notes: document.getElementById('notes').value, // حقل الملاحظات الجديد
                     locationUrl: document.getElementById('locationUrl').value,
                     fileData: selectedFileBase64 || "",
                     fileName: selectedFileName || ""
                 };
 
                 await setDoc(doc(db, "cases", docId), caseData);
-                alert("تم حفظ الدعوة بنجاح تام! ✅");
+                alert("تم حفظ الدعوة بنجاح تام مع الملاحظات! ✅");
             } catch (error) {
                 alert("خطأ أثناء الحفظ: " + error.message);
             }
@@ -194,6 +191,7 @@
                     document.getElementById('complainant').value = data.complainant || '';
                     document.getElementById('defendant').value = data.defendant || '';
                     document.getElementById('court').value = data.court || '';
+                    document.getElementById('notes').value = data.notes || ''; // استرجاع الملاحظات
                     document.getElementById('locationUrl').value = data.locationUrl || '';
                     
                     if (data.locationUrl) generateQRCode();
@@ -251,13 +249,29 @@
         .form-group { margin-bottom: 12px; }
         .form-group.full-width { grid-column: span 2; }
         label { display: block; margin-bottom: 5px; font-weight: 600; color: #475569; font-size: 13px; }
-        input[type="text"], input[type="url"], input[type="file"], input[type="email"], input[type="password"] { width: 100%; padding: 9px 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background: #fdfdfd; }
+        input[type="text"], input[type="url"], input[type="file"], input[type="email"], input[type="password"], textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--border-color); border-radius: 8px; font-size: 14px; box-sizing: border-box; background: #fdfdfd; font-family: inherit; }
+        textarea { resize: vertical; min-height: 80px; }
         input[type="file"] { padding: 6px; background: #f8fafc; cursor: pointer; }
         .qrcode-section { text-align: center; margin-top: 12px; padding: 12px; background: #f8fafc; border: 2px dashed #e2e8f0; border-radius: 12px; display: none; }
         #qrcode { display: inline-block; margin-top: 6px; padding: 6px; background: white; border-radius: 8px; }
         .actions-section { display: flex; gap: 10px; justify-content: center; margin-top: 20px; border-top: 1px solid #f1f5f9; padding-top: 15px; }
         .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; }
         .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 20px; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 600; }
+
+        /* الترويسة الخاصة بالطباعة الاحترافية */
+        .print-header { display: none; text-align: center; margin-bottom: 20px; border-bottom: 2px solid #1e3a8a; padding-bottom: 10px; }
+        
+        @media print {
+            body { background: white; padding: 0; }
+            .container { box-shadow: none; border: none; padding: 0; max-width: 100%; }
+            .auth-card, .user-bar, .password-box, .search-section, .actions-section, .btn-save, .btn-print, input[type="file"] { display: none !important; }
+            .print-header { display: block; }
+            input, textarea { border: none !important; background: transparent !important; padding: 0 !important; font-size: 15px !important; color: #000 !important; }
+            .form-grid { display: block !important; }
+            .form-group { margin-bottom: 15px; border-bottom: 1px dotted #ccc; padding-bottom: 8px; }
+            label { color: #1e3a8a !important; font-weight: bold; display: inline-block; width: 150px; }
+            .qrcode-section { border: none; display: block !important; background: transparent; text-align: left; }
+        }
     </style>
 </head>
 <body>
@@ -294,6 +308,13 @@
             <div id="passMessage" style="font-size: 12px; margin-top: 6px;"></div>
         </div>
 
+        <!-- رأس الصفحة الاحترافي للطباعة -->
+        <div class="print-header">
+            <h2 style="margin: 0; color: #1e3a8a; font-size: 24px;">جمهورية العراق</h2>
+            <h3 style="margin: 5px 0; color: #475569; font-size: 18px;">نظام توثيق وإدارة الدعاوى القضائية</h3>
+            <p style="margin: 5px 0; font-size: 12px; color: #64748b;">تاريخ التقرير: <span id="printDate"></span></p>
+        </div>
+
         <h2 class="header-title">⚖️ نظام إدارة وتوثيق الدعاوى</h2>
         
         <div class="search-section">
@@ -324,6 +345,10 @@
                     <input type="text" id="defendant" placeholder="الاسم الثلاثي">
                 </div>
                 <div class="form-group full-width">
+                    <label>ملاحظات الدعوة:</label>
+                    <textarea id="notes" placeholder="أدخل تفاصيل وملاحظات الدعوة المهمة هنا..."></textarea>
+                </div>
+                <div class="form-group full-width">
                     <label>مرفقات الدعوة (صورة أو ملف):</label>
                     <input type="file" id="attachment" accept=".jpg, .jpeg, .png" onchange="handleFileSelect(event)">
                     <div id="fileInfo" style="margin-top: 5px; font-size: 12px; color: #64748b;"></div>
@@ -335,13 +360,13 @@
             </div>
 
             <div class="qrcode-section" id="qrcodeContainer">
-                <span style="font-size: 12px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">QR Code:</span>
+                <span style="font-size: 12px; font-weight: 600; color: #64748b; display: block; margin-bottom: 4px;">QR Code الموقع:</span>
                 <div id="qrcode"></div>
             </div>
 
             <div class="actions-section">
                 <button type="button" class="btn-save" onclick="saveDataToFirebase()">💾 حفظ في النظام</button>
-                <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة</button>
+                <button type="button" class="btn-print" onclick="preparePrint()">🖨️ طباعة تقرير رسمي</button>
             </div>
         </form>
     </div>
@@ -364,6 +389,12 @@
         });
     }
     document.getElementById('locationUrl').addEventListener('input', generateQRCode);
+
+    function preparePrint() {
+        const d = new Date();
+        document.getElementById('printDate').textContent = d.toLocaleDateString('ar-IQ');
+        window.print();
+    }
 </script>
 </body>
 </html>
