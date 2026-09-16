@@ -367,7 +367,6 @@
             reader.readAsDataURL(file);
         };
 
-        // ** التعديل هنا: الحفظ داخل مجلد المستخدم الخاص users/{userId}/cases **
         window.saveDataToFirebase = async function() {
             if (!currentUser) return;
             const caseNumber = document.getElementById('caseNumber').value.trim();
@@ -411,7 +410,6 @@
             }
         };
 
-        // ** التعديل هنا: الجلب من مجلد المستخدم الخاص users/{userId}/cases **
         window.fetchDataFromFirebase = async function() {
             if (!currentUser) return;
             const queryNum = document.getElementById('searchQuery').value.trim();
@@ -490,7 +488,6 @@
             alert("تم إفريغ الحقول بنجاح. يمكنك الآن إدخال دعوة جديدة.");
         };
 
-        // ** التعديل هنا: الحذف من مجلد المستخدم الخاص users/{userId}/cases **
         window.deleteCurrentCase = async function() {
             if (!currentLoadedDocId || !currentUser) {
                 alert("لا توجد دعوة محددة للحذف حالياً.");
@@ -528,7 +525,19 @@
             document.getElementById('previewFees').textContent = document.getElementById('totalFees').value + ' د.ع';
             document.getElementById('previewNotes').textContent = document.getElementById('privateNotes').value;
             document.getElementById('previewBarcodeSub').textContent = document.getElementById('barcodeSubText').value || '---';
-            document.getElementById('previewLocationUrl').textContent = document.getElementById('locationUrl').value || '---';
+            
+            // توليد الباركود في معاينة المشاركة
+            const previewQrDiv = document.getElementById('previewQrcode');
+            previewQrDiv.innerHTML = "";
+            const locUrl = document.getElementById('locationUrl').value;
+            if (locUrl) {
+                new QRCode(previewQrDiv, {
+                    text: locUrl, width: 70, height: 70, colorDark : "#1e3a8a", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H
+                });
+                document.getElementById('previewQrcodeContainer').style.display = 'block';
+            } else {
+                document.getElementById('previewQrcodeContainer').style.display = 'none';
+            }
 
             document.getElementById('shareModal').style.display = 'flex';
         };
@@ -548,12 +557,14 @@
             const hidePhone = document.getElementById('hidePhone').checked;
             const hideNotes = document.getElementById('hideNotes').checked;
             const hideBarcode = document.getElementById('hideBarcode').checked; 
+            const customMessage = document.getElementById('customShareMessage').value.trim();
 
             const sharedPackage = {
                 senderEmail: currentUser.email,
                 targetEmail: targetEmail,
                 timestamp: new Date().toISOString(),
                 isRead: false,
+                customMessage: customMessage,
                 caseData: {
                     caseNumber: document.getElementById('caseNumber').value,
                     court: document.getElementById('court').value,
@@ -571,9 +582,10 @@
 
             try {
                 await addDoc(collection(db, "inbox"), sharedPackage);
-                alert("تم إرسال الدعوة مع تفاصيل الباركود بنجاح إلى المستخدم (" + targetEmail + ")! 📤");
+                alert("تم إرسال الدعوة مع رسالتك والباركود بنجاح إلى المستخدم (" + targetEmail + ")! 📤");
                 closeShareModal();
                 document.getElementById('targetUserEmail').value = "";
+                document.getElementById('customShareMessage').value = "";
             } catch (error) {
                 alert("حدث خطأ أثناء الإرسال: " + error.message);
             }
@@ -611,6 +623,16 @@
             const data = window.latestInboxMsg.caseData;
 
             document.getElementById('incomingSender').textContent = window.latestInboxMsg.senderEmail;
+            
+            // عرض رسالة المرسل إن وجدت
+            const msgBox = document.getElementById('incomingCustomMsgBox');
+            if (window.latestInboxMsg.customMessage) {
+                msgBox.style.display = 'block';
+                document.getElementById('inc_customMessageText').textContent = window.latestInboxMsg.customMessage;
+            } else {
+                msgBox.style.display = 'none';
+            }
+
             document.getElementById('inc_caseNumber').textContent = data.caseNumber || '---';
             document.getElementById('inc_court').textContent = data.court || '---';
             document.getElementById('inc_caseTitle').textContent = data.caseTitle || '---';
@@ -621,7 +643,18 @@
             document.getElementById('inc_totalFees').textContent = data.totalFees || '---';
             document.getElementById('inc_privateNotes').textContent = data.privateNotes || '---';
             document.getElementById('inc_barcodeSubText').textContent = data.barcodeSubText || '---';
-            document.getElementById('inc_locationUrl').textContent = data.locationUrl || '---';
+
+            // توليد الباركود في النافذة الواردة
+            const incQrDiv = document.getElementById('inc_qrcode');
+            incQrDiv.innerHTML = "";
+            if (data.locationUrl && data.locationUrl !== "[محجوب]") {
+                new QRCode(incQrDiv, {
+                    text: data.locationUrl, width: 80, height: 80, colorDark : "#1e3a8a", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H
+                });
+                document.getElementById('inc_qrcodeContainer').style.display = 'block';
+            } else {
+                document.getElementById('inc_qrcodeContainer').style.display = 'none';
+            }
 
             document.getElementById('incomingMessageModal').style.display = 'flex';
         };
@@ -651,7 +684,6 @@
             }
         };
 
-        // ** التعديل هنا: فحص الجلسات من مجلد المستخدم الخاص users/{userId}/cases **
         async function checkAllCasesForHearings() {
             try {
                 const userId = currentUser.uid;
@@ -885,7 +917,7 @@
         .preview-box { background: var(--section-bg); border: 1px solid var(--border-color); padding: 12px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; line-height: 1.6; }
 
         .qrcode-section { text-align: center; margin-top: 15px; padding: 10px; background: var(--section-bg); border: 2px dashed var(--border-color); border-radius: 10px; display: none; }
-        #qrcode { display: inline-block; margin-top: 5px; padding: 5px; background: white; border-radius: 6px; }
+        #qrcode, #previewQrcode, #inc_qrcode { display: inline-block; margin-top: 5px; padding: 5px; background: white; border-radius: 6px; }
         .barcode-sub-text { margin-top: 4px; font-size: 13px; font-weight: bold; color: var(--danger-color); }
 
         .actions-section { display: flex; gap: 10px; justify-content: center; margin-top: 25px; border-top: 1px solid var(--border-color); padding-top: 20px; flex-wrap: wrap; }
@@ -1162,8 +1194,13 @@
             </div>
             <div style="display: flex; flex-direction: column; gap: 12px;">
                 <div class="form-group" style="margin: 0;">
-                    <label>البريد الإلكتروني للمستخدم الآخر في السستم (مثال: ahmed@gmail.com):</label>
+                    <label>البريد الإلكتروني للمستلم:</label>
                     <input type="email" id="targetUserEmail" placeholder="user@example.com">
+                </div>
+
+                <div class="form-group" style="margin: 0;">
+                    <label>رسالة شخصية للمستلم (اختياري):</label>
+                    <textarea id="customShareMessage" placeholder="اكتب رسالة مرفقة مع الدعوة..."></textarea>
                 </div>
 
                 <label style="margin-top: 5px;">حدد الأمور التي تريد إخفاءها عن المرسل إليه:</label>
@@ -1171,7 +1208,7 @@
                     <label style="cursor: pointer;"><input type="checkbox" id="hideFees"> إخفاء الأتعاب</label>
                     <label style="cursor: pointer;"><input type="checkbox" id="hidePhone"> إخفاء الهاتف</label>
                     <label style="cursor: pointer;"><input type="checkbox" id="hideNotes"> إخفاء الملاحظات</label>
-                    <label style="cursor: pointer;"><input type="checkbox" id="hideBarcode"> إخفاء الباركود والرابط</label>
+                    <label style="cursor: pointer;"><input type="checkbox" id="hideBarcode"> إخفاء الباركود</label>
                 </div>
 
                 <label style="margin-top: 5px;">معاينة الدعوى قبل الإرسال:</label>
@@ -1185,7 +1222,10 @@
                     <div><b>الأتعاب الكلية:</b> <span id="previewFees">---</span></div>
                     <div><b>ملاحظات:</b> <span id="previewNotes">---</span></div>
                     <div><b>نص الباركود:</b> <span id="previewBarcodeSub">---</span></div>
-                    <div><b>رابط الموقع:</b> <span id="previewLocationUrl">---</span></div>
+                    <div id="previewQrcodeContainer" style="margin-top: 10px; text-align: center;">
+                        <span style="font-size: 11px; color: var(--label-color); display: block;">الباركود المرتبط:</span>
+                        <div id="previewQrcode"></div>
+                    </div>
                 </div>
 
                 <button type="button" class="btn-main btn-3d" onclick="sendSharedCaseToUser()">📤 تأكيد وإرسال الدعوى الآن</button>
@@ -1202,6 +1242,10 @@
             </div>
             <div style="font-size: 13px; margin-bottom: 10px; color: var(--success-color);">تم إرسال هذه الدعوى إليك بواسطة: <b id="incomingSender">---</b></div>
             
+            <div id="incomingCustomMsgBox" class="preview-box" style="background: #fef3c7; color: #92400e; display: none; border-color: #fde68a;">
+                <b>💬 رسالة من المرسل:</b> <span id="inc_customMessageText">---</span>
+            </div>
+
             <div class="preview-box" style="background: var(--input-bg);">
                 <div><b>رقم الدعوى:</b> <span id="inc_caseNumber">---</span></div>
                 <div><b>المحكمة:</b> <span id="inc_court">---</span></div>
@@ -1213,7 +1257,11 @@
                 <div><b>الأتعاب:</b> <span id="inc_totalFees">---</span></div>
                 <div><b>الملاحظات:</b> <span id="inc_privateNotes">---</span></div>
                 <div><b>نص الباركود:</b> <span id="inc_barcodeSubText">---</span></div>
-                <div><b>رابط موقع الدعوى:</b> <span id="inc_locationUrl">---</span></div>
+                
+                <div id="inc_qrcodeContainer" style="margin-top: 15px; text-align: center;">
+                    <span style="font-size: 11px; color: var(--label-color); display: block;">باركود الدعوى:</span>
+                    <div id="inc_qrcode"></div>
+                </div>
             </div>
 
             <div style="display: flex; justify-content: center; margin-top: 15px;">
