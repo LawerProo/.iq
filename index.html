@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>نظام إدارة وتوثيق الدعاوى القضائية</title>
+    <title>نظام إدارة وتوثيق الدعاوى القضائية وعقود الأتعاب</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     
     <script type="module">
@@ -112,6 +112,112 @@
 
         window.closeFinancialModal = function() {
             document.getElementById('financialModal').style.display = 'none';
+        };
+
+        window.openContractModal = function() {
+            document.getElementById('contractModal').style.display = 'flex';
+            populateDateDropdowns();
+        };
+
+        window.closeContractModal = function() {
+            document.getElementById('contractModal').style.display = 'none';
+        };
+
+        // دالة فتح صفحة القوانين في تبويب منفصل
+        window.openLawsPage = function() {
+            window.open('https://www.rwi.uzh.ch/dam/jcr:00000000-0c03-6a0c-ffff-ffff96be3560/penalcode1969.pdf', '_blank');
+        };
+
+        // تعبئة قوائم التواريخ (السنة، الشهر، اليوم)
+        function populateDateDropdowns() {
+            const yearSelect = document.getElementById('contractYear');
+            const monthSelect = document.getElementById('contractMonth');
+            const daySelect = document.getElementById('contractDay');
+
+            if (yearSelect.options.length > 1) return; // تم التعبئة مسبقاً
+
+            const currentYear = new Date().getFullYear();
+            for (let y = currentYear - 2; y <= currentYear + 5; y++) {
+                let opt = document.createElement('option');
+                opt.value = y;
+                opt.textContent = y;
+                if (y === currentYear) opt.selected = true;
+                yearSelect.appendChild(opt);
+            }
+
+            for (let m = 1; m <= 12; m++) {
+                let opt = document.createElement('option');
+                opt.value = m < 10 ? '0' + m : m;
+                opt.textContent = m < 10 ? '0' + m : m;
+                if (m === (new Date().getMonth() + 1)) opt.selected = true;
+                monthSelect.appendChild(opt);
+            }
+
+            for (let d = 1; d <= 31; d++) {
+                let opt = document.createElement('option');
+                opt.value = d < 10 ? '0' + d : d;
+                opt.textContent = d < 10 ? '0' + d : d;
+                if (d === new Date().getDate()) opt.selected = true;
+                daySelect.appendChild(opt);
+            }
+        }
+
+        window.formatNumberInput = function(input) {
+            let value = input.value.replace(/\D/g, "");
+            if (value !== "") {
+                value = Number(value).toLocaleString('en-US').replace(/,/g, ".");
+            }
+            input.value = value;
+            calculateRemainingFees();
+        };
+
+        window.calculateRemainingFees = function() {
+            const totalStr = document.getElementById('contractTotalFees').value.replace(/\./g, "");
+            const paidStr = document.getElementById('contractPaidFees').value.replace(/\./g, "");
+            
+            const total = parseFloat(totalStr) || 0;
+            const paid = parseFloat(paidStr) || 0;
+            const remaining = total - paid;
+
+            const remInput = document.getElementById('contractRemainingFees');
+            if (remaining >= 0) {
+                remInput.value = remaining.toLocaleString('en-US').replace(/,/g, ".");
+            } else {
+                remInput.value = "0";
+            }
+        };
+
+        window.previewContract = function() {
+            document.getElementById('p_lawyerName').textContent = document.getElementById('contractLawyer').value || '....................';
+            document.getElementById('p_clientName').textContent = document.getElementById('contractClient').value || '....................';
+            document.getElementById('p_caseTitle').textContent = document.getElementById('contractCaseTitle').value || '..........................';
+            document.getElementById('p_court').textContent = document.getElementById('contractCourt').value || '..........................';
+            
+            const year = document.getElementById('contractYear').value;
+            const month = document.getElementById('contractMonth').value;
+            const day = document.getElementById('contractDay').value;
+            document.getElementById('p_date').textContent = `${year} / ${month} / ${day}`;
+
+            document.getElementById('p_totalFees').textContent = (document.getElementById('contractTotalFees').value || '..............') + ' د.ع';
+            
+            const paidVal = document.getElementById('contractPaidFees').value || '..............';
+            document.getElementById('p_paidFees').innerHTML = `<span style="color: #16a34a; font-weight: bold;">${paidVal} د.ع</span>`;
+
+            const remVal = document.getElementById('contractRemainingFees').value || '..............';
+            document.getElementById('p_remainingFees').innerHTML = `<span style="color: #dc2626; font-weight: bold;">${remVal} د.ع</span>`;
+            
+            const notes = document.getElementById('contractNotes').value;
+            const notesRow = document.getElementById('p_notesRow');
+            if(notes) {
+                notesRow.style.display = 'block';
+                document.getElementById('p_notes').textContent = notes;
+            } else {
+                notesRow.style.display = 'none';
+            }
+
+            closeContractModal();
+            document.getElementById('contractPrintSection').style.display = 'block';
+            window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
         };
 
         window.handleFileSelect = function(event) {
@@ -334,8 +440,9 @@
         .btn-settings { background-color: var(--print-color); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; }
         .btn-logout { background-color: var(--danger-color); color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 12px; }
         
-        /* زر فتح الأرشيف المالي العلوي */
         .btn-open-financial-top { background-color: #475569; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; }
+        .btn-open-contract-top { background-color: #0d9488; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; }
+        .btn-open-laws-top { background-color: #8b5cf6; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; }
         
         .password-box { background: #fff; border: 1px solid #cbd5e1; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: none; }
         .header-title { text-align: center; color: var(--primary-color); margin-bottom: 15px; font-size: 22px; font-weight: 700; }
@@ -358,11 +465,10 @@
 
         .small-input-width { max-width: 280px; }
 
-        /* صندوق التنبيه بالجلسة */
         .hearing-alert { padding: 10px 15px; border-radius: 8px; font-weight: bold; font-size: 13px; margin-bottom: 15px; border: 1px solid transparent; display: none; }
 
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 10000; }
-        .modal-content { background: white; padding: 25px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); }
+        .modal-content { background: white; padding: 25px; border-radius: 10px; width: 90%; max-width: 500px; box-shadow: 0 5px 20px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
         .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #e2e8f0; padding-bottom: 10px; }
         .modal-close-btn { background: #ef4444; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer; font-weight: bold; }
 
@@ -373,6 +479,11 @@
         .actions-section { display: flex; gap: 10px; justify-content: center; margin-top: 15px; border-top: 1px solid #e2e8f0; padding-top: 15px; flex-wrap: wrap; }
         .btn-save { background-color: var(--success-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
         .btn-print { background-color: var(--print-color); color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 13px; font-weight: 600; }
+
+        /* تصميم وثيقة عقد المحاماة القابلة للطباعة */
+        .contract-print-container { background: #fff; padding: 30px; margin-top: 25px; border: 1px solid #cbd5e1; border-radius: 8px; display: none; line-height: 1.8; font-size: 14px; position: relative; }
+        .contract-title { text-align: center; font-weight: bold; font-size: 18px; color: var(--primary-color); margin-bottom: 20px; text-decoration: underline; }
+        .contract-body-text { margin-bottom: 12px; text-align: justify; }
 
         #watermarkLayer {
             position: absolute;
@@ -385,16 +496,14 @@
             transform: rotate(-35deg); white-space: nowrap; text-align: center; user-select: none;
         }
 
-        /* تعديلات الطباعة لإخفاء التنبيهات والحقول المطلوبة تماماً */
         @media print {
             body { background: white !important; padding: 0 !important; }
             .container { border: none !important; box-shadow: none !important; width: 100% !important; padding: 0 !important; }
-            .user-bar, .search-container-top, .actions-section, .auth-card, #passwordSection { display: none !important; }
+            .user-bar, .search-container-top, .actions-section, .auth-card, #passwordSection, #lawForm, .header-title, .hearing-alert { display: none !important; }
             .hide-on-print { display: none !important; }
             #watermarkLayer { opacity: 1 !important; }
-            
-            /* إخفاء تنبيهات الجلسات، موعد الجلسة، هاتف الموكل، وقسم المرفقات عند الطباعة */
-            .print-hidden-field, .hearing-alert { display: none !important; }
+            .print-hidden-field { display: none !important; }
+            .contract-print-container { display: block !important; border: none !important; padding: 0 !important; margin: 0 !important; }
         }
     </style>
 </head>
@@ -423,6 +532,8 @@
         <div class="user-bar">
             <span>👤 المستخدم: <strong id="userEmailDisplay"></strong></span>
             <div class="user-actions">
+                <button type="button" class="btn-open-laws-top" onclick="openLawsPage()">📖 قوانين</button>
+                <button type="button" class="btn-open-contract-top" onclick="openContractModal()">📜 عقد محامي</button>
                 <button type="button" class="btn-open-financial-top" onclick="openFinancialModal()">💰 الأرشيف المالي</button>
                 <button type="button" class="btn-settings" onclick="togglePasswordSection()">🔑 تغيير الرمز</button>
                 <button type="button" class="btn-logout" onclick="logoutUser()">خروج</button>
@@ -440,10 +551,8 @@
 
         <h2 class="header-title">⚖️ نظام إدارة وتوثيق الدعاوى</h2>
         
-        <!-- تنبيه الجلسات التلقائي (يختفي عند الطباعة) -->
         <div id="hearingAlertBox" class="hearing-alert"></div>
 
-        <!-- أشرطة البحث -->
         <div class="search-container-top">
             <div class="search-box-item">
                 <input type="text" id="searchQuery" placeholder="بحث برقم الدعوة...">
@@ -454,7 +563,6 @@
         <form id="lawForm">
             <div class="form-grid">
                 
-                <!-- بيانات أساسية -->
                 <div class="section-title">📌 البيانات الأساسية للدعوى</div>
                 
                 <div class="form-group">
@@ -470,7 +578,6 @@
                     <input type="text" id="caseTitle" placeholder="أدخل موضوع الدعوة">
                 </div>
 
-                <!-- الأطراف (هاتف الموكل مخفي عند الطباعة) -->
                 <div class="form-group">
                     <label>اسم المشتكي / المدعي:</label>
                     <input type="text" id="complainant" placeholder="الاسم الثلاثي">
@@ -484,7 +591,6 @@
                     <input type="text" id="defendant" placeholder="الاسم الثلاثي">
                 </div>
 
-                <!-- تاريخ ووقت الجلسة القادمة (مخفي عند الطباعة، وحجم صغير) -->
                 <div class="section-title print-hidden-field">📅 موعد الجلسة القادمة</div>
 
                 <div class="form-group full-width print-hidden-field">
@@ -492,7 +598,6 @@
                     <input type="datetime-local" id="nextHearingDate" class="small-input-width" onchange="checkHearingAlert(this.value)">
                 </div>
 
-                <!-- إعدادات المرفقات (مخفية بالكامل عند الطباعة) -->
                 <div class="section-title hide-on-print">⚙️ المرفقات والإعدادات الخاصة</div>
 
                 <div class="form-group hide-on-print">
@@ -531,9 +636,36 @@
                 <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة التقرير</button>
             </div>
         </form>
+
+        <!-- قسم نموذج عقد محامي القابل للطباعة -->
+        <div id="contractPrintSection" class="contract-print-container">
+            <div class="contract-title">عقد أتعاب محاماة</div>
+            <div class="contract-body-text">حرر هذا العقد بين كل من:</div>
+            <div class="contract-body-text">1- الطرف الأول السيد المحامي: <b id="p_lawyerName">....................</b></div>
+            <div class="contract-body-text">2- الطرف الثاني السيد الموكل: <b id="p_clientName">....................</b></div>
+            <div class="contract-body-text">وأقر الطرفان على أهليتهما للتعاقد واتفقا على ما يلي:-</div>
+            <div class="contract-body-text"><b>البند الأول:-</b> يقوم الطرف الأول أو من ينوب عنه بإكمال الدعوى الخاصة بـ (<b id="p_caseTitle">..........................</b>) امام محكمة (<b id="p_court">..........................</b>) ومتابعتها حتى نهاية الدعوى وهو غير مسؤول أو ملزم بالقرار الصادر عن المحكمة.</div>
+            <div class="contract-body-text"><b>البند الثاني:-</b> يلتزم الطرف الثاني في مقابل ما يقوم به المحامي من عناية وبذل جهد بأداء مبلغ وقدره <b id="p_totalFees">..............</b> كدفعة أولى غير قابله للرد بعد توقيع العقد، والدفعة الثانية <b id="p_paidFees">..............</b> بعد انتهاء الدعوى وتسليم القرار إلى الطرف الثاني مباشرة وينتهي عمل المحامي. (الباقي المستحق: <b id="p_remainingFees">..............</b>).</div>
+            <div class="contract-body-text"><b>البند الثالث:-</b> يقدم الطرف الثاني جميع المستندات الضرورية لإقامة الدعوى أو التي تتطلب منه لاحقاً على أنها مستندات حقيقية وغير مزورة ولا يرقى إليها الشك وأنه مسؤول عنها جزائياً ومدنياً بالإضافة إلى وكالة المحاماة يخول فيها المحامي حق الخصومة وكافة الصلاحيات الأخرى اللازمة للترافع ومسؤولية التأخير في تقديم ما يطلبه منه المحامي من مستندات إضافية من قبل القضاء أو الجهات المعنية تقع على عاتق الطرف الثاني.</div>
+            <div class="contract-body-text"><b>البند الرابع:-</b> إذا قام الطرف الثاني بعزل الطرف الأول أو فسخ العقد أو امتنع عن تسليم الأتعاب عند انتهاء النزاع صلحاً مع الخصم أو من قبل المحكمة فإن الطرف الأول يستحق باقي الأتعاب والأجور المضافة المسمى في هذا العقد.</div>
+            
+            <div class="contract-body-text" id="p_notesRow" style="display:none; background: #f8fafc; padding: 8px; border: 1px dashed #cbd5e1;"><b>ملاحظات إضافية:</b> <span id="p_notes"></span></div>
+
+            <div class="contract-body-text" style="margin-top: 15px;">حرر في تاريخ: <b id="p_date">.... / .... / 202...</b></div>
+            
+            <div style="display: flex; justify-content: space-between; margin-top: 40px; font-weight: bold;">
+                <div>الطرف الثاني (الموكل):<br><br>....................................</div>
+                <div>الطرف الأول (المحامي):<br><br>....................................</div>
+            </div>
+            
+            <div class="actions-section" style="margin-top: 30px;">
+                <button type="button" class="btn-print" onclick="window.print()">🖨️ طباعة العقد الرسمي</button>
+            </div>
+        </div>
+
     </div>
 
-    <!-- نافذة صفحة الأرشيف المالي المنفصلة (Modal) -->
+    <!-- نافذة الأرشيف المالي -->
     <div id="financialModal" class="modal-overlay">
         <div class="modal-content">
             <div class="modal-header">
@@ -558,6 +690,61 @@
         </div>
     </div>
 
+    <!-- نافذة إدخال بيانات عقد محامي الجديدة -->
+    <div id="contractModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 style="margin: 0; color: var(--primary-color);">📜 إنشاء عقد أتعاب محاماة</h3>
+                <button type="button" class="modal-close-btn" onclick="closeContractModal()">✕ إغلاق</button>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div class="form-group" style="margin: 0;">
+                    <label>1. اسم المحامي (الطرف الأول):</label>
+                    <input type="text" id="contractLawyer" placeholder="أدخل اسم المحامي الثلاثي واللقب">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label>2. اسم الموكل (الطرف الثاني):</label>
+                    <input type="text" id="contractClient" placeholder="أدخل اسم الموكل الثلاثي">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label>3. عنوان الدعوى (موضوعها):</label>
+                    <input type="text" id="contractCaseTitle" placeholder="مثال: مطالبة بمبلغ / طلاق شقاق...">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label>4. المحكمة المختصة:</label>
+                    <input type="text" id="contractCourt" placeholder="مثال: بداءة الكرخ">
+                </div>
+                
+                <div class="form-group" style="margin: 0;">
+                    <label>5. تاريخ التحرير:</label>
+                    <div style="display: flex; gap: 5px;">
+                        <select id="contractYear" style="flex: 1;"></select>
+                        <select id="contractMonth" style="flex: 1;"></select>
+                        <select id="contractDay" style="flex: 1;"></select>
+                    </div>
+                </div>
+
+                <div class="form-group" style="margin: 0;">
+                    <label>6. مبلغ الأتعاب الكامل:</label>
+                    <input type="text" id="contractTotalFees" placeholder="مثال: 1.000.000" oninput="formatNumberInput(this)">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label>7. المبلغ المستلم:</label>
+                    <input type="text" id="contractPaidFees" placeholder="مثال: 500.000" oninput="formatNumberInput(this)">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label>8. المبلغ الباقي (يحسب تلقائياً):</label>
+                    <input type="text" id="contractRemainingFees" readonly style="background-color: #f1f5f9; font-weight: bold; color: #dc2626;">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label>ملاحظات إضافية (اختياري):</label>
+                    <textarea id="contractNotes" placeholder="أي تفاصيل أخرى تخص الدفعات أو الشروط..."></textarea>
+                </div>
+                <button type="button" class="btn-main" style="background-color: #0d9488; margin-top: 10px;" onclick="previewContract()">👁️ معاينة وطباعة العقد</button>
+            </div>
+        </div>
+    </div>
+
 <script>
     function generateQRCode() {
         const urlInput = document.getElementById('locationUrl').value.trim();
@@ -571,10 +758,10 @@
         });
     }
     document.getElementById('locationUrl').addEventListener('input', generateQRCode);
-    document.getElementById('barcodeSubTest')?.addEventListener('input', function() {
+    document.getElementById('barcodeSubText')?.addEventListener('input', function() {
         document.getElementById('barcodeSubTextDisplay').textContent = this.value;
     });
-    document.getElementById('watermarkText').addEventListener('input', function() {
+    document.getElementById('watermarkText')?.addEventListener('input', function() {
         document.getElementById('watermarkDisplay').textContent = this.value;
     });
 </script>
