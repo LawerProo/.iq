@@ -8,8 +8,8 @@
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
-        import { getFirestore, doc, setDoc, getDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword, signInWithEmailAndPassword as reauthenticate } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
         const firebaseConfig = {
           apiKey: "AIzaSyCnAg_4zW8BHVjKp_C-38E-0LNBj8OmyFg",
@@ -27,6 +27,7 @@
         let currentUser = null;
         let selectedFileBase64 = "";
         let selectedFileName = "";
+        let currentLoadedDocId = ""; // لتخزين معرف الدعوى الحالية المعروضة
 
         onAuthStateChanged(auth, async (user) => {
             const loginBox = document.getElementById('loginSection');
@@ -304,6 +305,8 @@
                 };
 
                 await setDoc(doc(db, "cases", docId), caseData);
+                currentLoadedDocId = docId;
+                document.getElementById('deleteCaseBtn').style.display = 'inline-block';
                 alert("تم حفظ الدعوة بنجاح تام! ✅");
             } catch (error) {
                 alert("خطأ أثناء الحفظ: " + error.message);
@@ -324,6 +327,7 @@
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
+                    currentLoadedDocId = docId;
                     document.getElementById('caseNumber').value = data.caseNumber || '';
                     document.getElementById('caseTitle').value = data.caseTitle || '';
                     document.getElementById('complainant').value = data.complainant || '';
@@ -354,12 +358,52 @@
                     } else {
                         document.getElementById('fileInfo').textContent = "";
                     }
+
+                    // إظهار زر الحذف عند جلب الدعوة بنجاح
+                    document.getElementById('deleteCaseBtn').style.display = 'inline-block';
                     alert("تم استرجاع الدعوة بنجاح! 🔍");
                 } else {
+                    currentLoadedDocId = "";
+                    document.getElementById('deleteCaseBtn').style.display = 'none';
                     alert("لم يتم العثور على دعوة بهذا الرقم.");
                 }
             } catch (error) {
                 alert("خطأ: " + error.message);
+            }
+        };
+
+        // دالة حذف الدعوة مع التحقق من الرمز السري
+        window.deleteCurrentCase = async function() {
+            if (!currentLoadedDocId || !currentUser) {
+                alert("لا توجد دعوة محددة للحذف حالياً.");
+                return;
+            }
+
+            const passwordInput = prompt("⚠️ تأكيد الحذف: يرجى إدخال الرمز السري (كلمة المرور) لحسابك للمتابعة:");
+            if (!passwordInput) return;
+
+            try {
+                // إعادة المصادقة للتأكد من صحة كلمة المرور المدخلة
+                await signInWithEmailAndPassword(auth, currentUser.email, passwordInput);
+
+                // تنفيذ الحذف من فايربيس
+                await deleteDoc(doc(db, "cases", currentLoadedDocId));
+
+                alert("تم حذف الدعوة من النظام وقاعدة البيانات بنجاح! 🗑️");
+
+                // تفريغ الحقول وإخفاء زر الحذف والباركود
+                document.getElementById('lawForm').reset();
+                document.getElementById('searchQuery').value = "";
+                document.getElementById('qrcodeContainer').style.display = 'none';
+                document.getElementById('hearingAlertBox').style.display = 'none';
+                document.getElementById('fileInfo').textContent = "";
+                document.getElementById('deleteCaseBtn').style.display = 'none';
+                currentLoadedDocId = "";
+                selectedFileBase64 = "";
+                selectedFileName = "";
+
+            } catch (error) {
+                alert("فشل الحذف: كلمة المرور غير صحيحة أو حدث خطأ تقني. (" + error.message + ")");
             }
         };
 
@@ -494,11 +538,11 @@
         .password-box { background: var(--card-bg); border: 1px solid var(--border-color); padding: 15px; border-radius: 8px; margin-bottom: 15px; display: none; }
         .header-title { text-align: center; color: var(--primary-color); margin-bottom: 15px; font-size: 22px; font-weight: 700; }
         
-        /* شريط علوي يجمع حقل البحث وموعد الجلسة بجانب بعضهما بنفس الحجم */
         .top-search-hearing-bar { display: flex; gap: 15px; margin-bottom: 20px; flex-wrap: wrap; align-items: center; }
         .search-box-item { background: var(--section-bg); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 10px; display: flex; gap: 8px; align-items: center; width: 320px; height: 38px; box-sizing: border-box; }
         .search-box-item input { flex: 1; padding: 4px 6px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 13px; background: var(--input-bg); color: var(--text-main); outline: none; text-align: center; letter-spacing: 1px; height: 26px; }
         .btn-search { background-color: var(--secondary-color); color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; white-space: nowrap; height: 26px; }
+        .btn-delete-case { background-color: var(--danger-color); color: white; border: none; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px; white-space: nowrap; height: 26px; display: none; }
 
         .hearing-box-top { background: var(--section-bg); border: 1px solid var(--border-color); padding: 6px 10px; border-radius: 10px; display: flex; gap: 8px; align-items: center; width: 320px; height: 38px; box-sizing: border-box; }
         .hearing-box-top label { font-size: 12px; font-weight: 600; color: var(--label-color); white-space: nowrap; margin: 0; }
@@ -657,11 +701,12 @@
             
             <div id="hearingAlertBox" class="hearing-alert"></div>
 
-            <!-- حقل البحث وحقل موعد الجلسة بجانب بعضهما وبنفس الحجم -->
+            <!-- حقل البحث، زر الحذف، وحقل موعد الجلسة -->
             <div class="top-search-hearing-bar">
-                <div class="search-box-item">
+                <div class="search-box-item" style="width: 380px;">
                     <input type="text" id="searchQuery" placeholder="بحث (7-9 أرقام)..." maxlength="9">
                     <button type="button" class="btn-search" onclick="fetchDataFromFirebase()">🔍 بحث</button>
+                    <button type="button" id="deleteCaseBtn" class="btn-delete-case" onclick="deleteCurrentCase()">🗑️ حذف الدعوى</button>
                 </div>
                 <div class="hearing-box-top">
                     <label>موعد الجلسة:</label>
