@@ -942,8 +942,8 @@
             border: 1px solid #cbd5e1; 
             border-radius: 8px; 
             display: none; 
-            line-height: 1.6; 
-            font-size: 13px; 
+            line-height: 1.8; /* زيادة مسافة الأسطر لتحسين القراءة */
+            font-size: 15px; /* تكبير حجم الخط العام داخل العقد */
             position: relative; 
             box-sizing: border-box;
         }
@@ -961,9 +961,9 @@
             z-index: 1;
         }
 
-        .contract-content-wrapper { position: relative; z-index: 2; }
-        .contract-title { text-align: center; font-weight: bold; font-size: 17px; color: #1e3a8a; margin-bottom: 15px; text-decoration: underline; }
-        .contract-body-text { margin-bottom: 10px; text-align: justify; }
+        .contract-content-wrapper { position: relative; z-index: 2; display: flex; flex-direction: column; min-height: 260mm; }
+        .contract-title { text-align: center; font-weight: bold; font-size: 20px; color: #1e3a8a; margin-bottom: 20px; text-decoration: underline; }
+        .contract-body-text { margin-bottom: 14px; text-align: justify; }
 
         #watermarkLayer {
             position: absolute;
@@ -979,7 +979,7 @@
         @media print {
             @page { 
                 size: A4 portrait; 
-                margin: 0mm; /* جعل هامش الصفحة صفر لكي يأخذ العقد مقاس الـ A4 بالكامل */
+                margin: 0mm; 
             }
             body { 
                 background: white !important; 
@@ -1077,8 +1077,8 @@
                 box-sizing: border-box !important;
                 color: black !important;
                 background: white !important;
-                font-size: 12.5px !important;
-                line-height: 1.55 !important;
+                font-size: 15px !important; /* الحفاظ على الخط الكبير المحدث في الطباعة */
+                line-height: 1.8 !important;
                 position: absolute !important;
                 top: 0 !important;
                 left: 0 !important;
@@ -1091,11 +1091,11 @@
                 background-size: 100% 100% !important;
             }
             body.print-contract .contract-title {
-                font-size: 16px !important;
-                margin-bottom: 12px !important;
+                font-size: 20px !important;
+                margin-bottom: 20px !important;
             }
             body.print-contract .contract-body-text {
-                margin-bottom: 8px !important;
+                margin-bottom: 14px !important;
             }
             body.print-contract .hide-on-print { display: none !important; }
         }
@@ -1239,21 +1239,24 @@
 
         <div id="contractPrintSection" class="contract-print-container">
             <div class="contract-content-wrapper">
-                <div class="contract-title">عقد أتعاب محاماة</div>
-                <div class="contract-body-text">حرر هذا العقد بين كل من:</div>
-                <div class="contract-body-text">1- الطرف الأول السيد المحامي: <b id="p_lawyerName">....................</b></div>
-                <div class="contract-body-text">2- الطرف الثاني السيد الموكل: <b id="p_clientName">....................</b></div>
-                <div class="contract-body-text">وأقر الطرفان على أهليتهما للتعاقد واتفقا على ما يلي:-</div>
-                <div class="contract-body-text"><b>البند الأول:-</b> يقوم الطرف الأول أو من ينوب عنه بإكمال الدعوى الخاصة بـ (<b id="p_caseTitle">..........................</b>) امام محكمة (<b id="p_court">..........................</b>) ومتابعتها حتى نهاية الدعوى وهو غير مسؤول أو ملزم بالقرار الصادر عن المحكمة.</div>
-                <div class="contract-body-text"><b>البند الثاني:-</b> يلتزم الطرف الثاني في مقابل ما يقوم به المحامي من عناية وبذل جهد بأداء مبلغ وقدره <b id="p_totalFees">..............</b> كدفعة أولى غير قابله للرد بعد توقيع العقد، والدفعة الثانية <b id="p_paidFees">..............</b> بعد انتهاء الدعوى وتسليم القرار إلى الطرف الثاني مباشرة وينتهي عمل المحامي. (الباقي المستحق: <b id="p_remainingFees">..............</b>).</div>
-                <div class="contract-body-text"><b>البند الثالث:-</b> يقدم الطرف الثاني جميع المستندات الضرورية لإقامة الدعوى أو التي تتطلب منه لاحقاً على أنها مستندات حقيقية وغير مزورة ولا يرقى إليها الشك وأنه مسؤول عنها جزائياً ومدنياً بالإضافة إلى وكالة المحاماة يخول فيها المحامي حق الخصومة وكافة الصلاحيات الأخرى اللازمة للترافع ومسؤولية التأخير في تقديم ما يطلبه منه المحامي من مستندات إضافية من قبل القضاء أو الجهات المعنية تقع على عاتق الطرف الثاني.</div>
-                <div class="contract-body-text"><b>البند الرابع:-</b> إذا قام الطرف الثاني بعزل الطرف الأول أو فسخ العقد أو امتنع عن تسليم الأتعاب عند انتهاء النزاع صلحاً مع الخصم أو من قبل المحكمة فإن الطرف الأول يستحق باقي الأتعاب والأجور المضافة المسمى في هذا العقد.</div>
-                
-                <div class="contract-body-text" id="p_notesRow" style="display:none; background: #f8fafc; padding: 6px; border: 1px dashed #cbd5e1;"><b>ملاحظات إضافية:</b> <span id="p_notes"></span></div>
+                <div>
+                    <div class="contract-title">عقد أتعاب محاماة</div>
+                    <div class="contract-body-text">حرر هذا العقد بين كل من:</div>
+                    <div class="contract-body-text">1- الطرف الأول السيد المحامي: <b id="p_lawyerName">....................</b></div>
+                    <div class="contract-body-text">2- الطرف الثاني السيد الموكل: <b id="p_clientName">....................</b></div>
+                    <div class="contract-body-text">وأقر الطرفان على أهليتهما للتعاقد واتفقا على ما يلي:-</div>
+                    <div class="contract-body-text"><b>البند الأول:-</b> يقوم الطرف الأول أو من ينوب عنه بإكمال الدعوى الخاصة بـ (<b id="p_caseTitle">..........................</b>) امام محكمة (<b id="p_court">..........................</b>) ومتابعتها حتى نهاية الدعوى وهو غير مسؤول أو ملزم بالقرار الصادر عن المحكمة.</div>
+                    <div class="contract-body-text"><b>البند الثاني:-</b> يلتزم الطرف الثاني في مقابل ما يقوم به المحامي من عناية وبذل جهد بأداء مبلغ وقدره <b id="p_totalFees">..............</b> كدفعة أولى غير قابله للرد بعد توقيع العقد، والدفعة الثانية <b id="p_paidFees">..............</b> بعد انتهاء الدعوى وتسليم القرار إلى الطرف الثاني مباشرة وينتهي عمل المحامي. (الباقي المستحق: <b id="p_remainingFees">..............</b>).</div>
+                    <div class="contract-body-text"><b>البند الثالث:-</b> يقدم الطرف الثاني جميع المستندات الضرورية لإقامة الدعوى أو التي تتطلب منه لاحقاً على أنها مستندات حقيقية وغير مزورة ولا يرقى إليها الشك وأنه مسؤول عنها جزائياً ومدنياً بالإضافة إلى وكالة المحاماة يخول فيها المحامي حق الخصومة وكافة الصلاحيات الأخرى اللازمة للترافع ومسؤولية التأخير في تقديم ما يطلبه منه المحامي من مستندات إضافية من قبل القضاء أو الجهات المعنية تقع على عاتق الطرف الثاني.</div>
+                    <div class="contract-body-text"><b>البند الرابع:-</b> إذا قام الطرف الثاني بعزل الطرف الأول أو فسخ العقد أو امتنع عن تسليم الأتعاب عند انتهاء النزاع صلحاً مع الخصم أو من قبل المحكمة فإن الطرف الأول يستحق باقي الأتعاب والأجور المضافة المسمى في هذا العقد.</div>
+                    
+                    <div class="contract-body-text" id="p_notesRow" style="display:none; background: #f8fafc; padding: 8px; border: 1px dashed #cbd5e1;"><b>ملاحظات إضافية:</b> <span id="p_notes"></span></div>
 
-                <div class="contract-body-text" style="margin-top: 10px;">حرر في تاريخ: <b id="p_date">.... / .... / 202...</b></div>
+                    <div class="contract-body-text" style="margin-top: 15px;">حرر في تاريخ: <b id="p_date">.... / .... / 202...</b></div>
+                </div>
                 
-                <div style="display: flex; justify-content: space-between; margin-top: 30px; font-weight: bold;">
+                <!-- تم جعل التواقيع تلتصق في أسفل الصفحة عبر خاصية margin-top: auto -->
+                <div style="display: flex; justify-content: space-between; margin-top: auto; padding-top: 30px; font-weight: bold;">
                     <div>الطرف الثاني (الموكل):<br><br>....................................</div>
                     <div>الطرف الأول (المحامي):<br><br>....................................</div>
                 </div>
