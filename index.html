@@ -31,9 +31,8 @@
         let selectedFileBase64 = "";
         let selectedFileName = "";
         let currentLoadedDocId = ""; 
-        let activeInboxMsgId = null; // لتخزين معرف الرسالة الحالية المفتوحة في صندوق الوارد
+        let activeInboxMsgId = null; 
 
-        // مراقبة حالة المصادقة دون الدخول التلقائي المستمر
         auth.onAuthStateChanged(async (user) => {
             const loginBox = document.getElementById('loginSection');
             const appBox = document.getElementById('appSection');
@@ -422,7 +421,6 @@
             }
         };
 
-        // --- وظائف مشاركة الدعوة مع تضمين الباركود وخيارات الإخفاء ---
         window.openShareModal = function() {
             if (!currentLoadedDocId) {
                 alert("يرجى تحميل أو حفظ الدعوة أولاً لتمكين مشاركتها.");
@@ -457,7 +455,7 @@
             const hideFees = document.getElementById('hideFees').checked;
             const hidePhone = document.getElementById('hidePhone').checked;
             const hideNotes = document.getElementById('hideNotes').checked;
-            const hideBarcode = document.getElementById('hideBarcode').checked; // خيار إخفاء الباركود
+            const hideBarcode = document.getElementById('hideBarcode').checked; 
 
             const sharedPackage = {
                 senderEmail: currentUser.email,
@@ -489,7 +487,6 @@
             }
         };
 
-        // فحص صندوق الوارد لتلقي الرسائل
         async function checkUserInbox(userEmail) {
             try {
                 const q = query(collection(db, "inbox"), where("targetEmail", "==", userEmail));
@@ -541,35 +538,7 @@
             document.getElementById('incomingMessageModal').style.display = 'none';
         };
 
-        // زر التعديل أو إضافة شيء على الرسالة الواردة ووضعها في النظام الرئيسي
-        window.editIncomingMessage = function() {
-            if (!window.latestInboxMsg) return;
-            const data = window.latestInboxMsg.caseData;
-
-            document.getElementById('caseNumber').value = data.caseNumber !== "[محجوب]" ? data.caseNumber : "";
-            document.getElementById('court').value = data.court !== "[محجوب]" ? data.court : "";
-            document.getElementById('caseTitle').value = data.caseTitle !== "[محجوب]" ? data.caseTitle : "";
-            document.getElementById('complainant').value = data.complainant !== "[محجوب]" ? data.complainant : "";
-            document.getElementById('complainantPhone').value = data.complainantPhone !== "[محجوب]" ? data.complainantPhone : "";
-            document.getElementById('defendant').value = data.defendant !== "[محجوب]" ? data.defendant : "";
-            document.getElementById('nextHearingDate').value = data.nextHearingDate !== "[محجوب]" ? data.nextHearingDate : "";
-            document.getElementById('totalFees').value = data.totalFees !== "[محجوب]" ? data.totalFees.replace(' د.ع', '') : "";
-            document.getElementById('privateNotes').value = data.privateNotes !== "[محجوب]" ? data.privateNotes : "";
-            document.getElementById('barcodeSubText').value = data.barcodeSubText !== "[محجوب]" ? data.barcodeSubText : "";
-            document.getElementById('locationUrl').value = data.locationUrl !== "[محجوب]" ? data.locationUrl : "";
-
-            if (data.locationUrl && data.locationUrl !== "[محجوب]") {
-                generateQRCode();
-            }
-            if (data.barcodeSubText && data.barcodeSubText !== "[محجوب]") {
-                document.getElementById('barcodeSubTextDisplay').textContent = data.barcodeSubText;
-            }
-
-            closeIncomingMessageModal();
-            alert("تم تحميل محتوى الدعوة الواردة بنجاح في حقول النظام. يمكنك التعديل عليها أو إضافة ما تحتاجه ثم حفظها! 📝");
-        };
-
-        // زر حذف الرسالة بحيث تحذف نهائياً من قاعدة البيانات ومن الطرف الآخر
+        // زر حذف الرسالة للطرف المستلم فقط (يحذفها نهائياً للطرفين)
         window.deleteIncomingMessage = async function() {
             if (!activeInboxMsgId) {
                 alert("لا توجد رسالة محددة للحذف.");
@@ -927,7 +896,7 @@
         
         <div id="watermarkLayer"><div class="watermark-text-style" id="watermarkDisplay"></div></div>
 
-        <!-- قسم النظام الرئيسي -->
+        <!-- قسم النظام الرئيسي (خاص بالمرسل ومن يملك الدعوة) -->
         <div id="mainSystemView">
             <div class="user-bar">
                 <span>👤 المستخدم: <strong id="userEmailDisplay"></strong></span>
@@ -953,11 +922,9 @@
 
             <h2 class="header-title">⚖️ نظام إدارة وتوثيق الدعاوى</h2>
             
-            <!-- تنبيهات صندوق الوارد -->
             <div id="inboxAlertBox" class="inbox-alert"></div>
             <div id="hearingAlertBox" class="hearing-alert"></div>
 
-            <!-- شريط البحث وموعد الجلسة -->
             <div class="top-search-hearing-bar">
                 <div class="search-box-item">
                     <input type="text" id="searchQuery" placeholder="بحث (7-9 أرقام)..." maxlength="9">
@@ -975,7 +942,6 @@
             <form id="lawForm">
                 <div class="form-grid">
                     
-                    <!-- 1. البيانات الأساسية للدعوى -->
                     <div class="section-title">📌 1. البيانات الأساسية للدعوى</div>
                     
                     <div class="form-group">
@@ -1004,7 +970,6 @@
                         <input type="text" id="defendant" placeholder="الاسم الثلاثي">
                     </div>
 
-                    <!-- 2. المرفقات والإعدادات الخاصة -->
                     <div class="section-title">⚙️ 2. المرفقات والإعدادات الخاصة</div>
 
                     <div class="form-group">
@@ -1039,13 +1004,12 @@
                 </div>
 
                 <div class="actions-section">
-                    <button type="button" class="btn-save btn-3d" onclick="saveDataToFirebase()">💾 حفظ بالكامل</button>
+                    <button type="button" class="btn-save btn-3d" onclick="saveDataToFirebase()">💾 حفظ بالكامل (تعديل / إضافة)</button>
                     <button type="button" class="btn-print btn-3d" onclick="window.print()">🖨️ طباعة التقرير</button>
                 </div>
             </form>
         </div>
 
-        <!-- قسم عقد المحامي -->
         <div id="contractPrintSection" class="contract-print-container">
             <div class="contract-content-wrapper">
                 <div class="contract-title">عقد أتعاب محاماة</div>
@@ -1076,7 +1040,7 @@
 
     </div>
 
-    <!-- نافذة مشاركة الدعوى مع خيار إخفاء الباركود -->
+    <!-- نافذة مشاركة الدعوى -->
     <div id="shareModal" class="modal-overlay">
         <div class="modal-content" style="max-width: 550px;">
             <div class="modal-header">
@@ -1116,7 +1080,7 @@
         </div>
     </div>
 
-    <!-- نافذة عرض الدعوى الواردة مع أزرار التعديل والحذف للطرف الآخر -->
+    <!-- نافذة عرض الدعوى الواردة (خاصة بالمستلم - تحتوي على زر الحذف فقط) -->
     <div id="incomingMessageModal" class="modal-overlay">
         <div class="modal-content" style="max-width: 550px;">
             <div class="modal-header">
@@ -1139,9 +1103,9 @@
                 <div><b>رابط موقع الدعوى:</b> <span id="inc_locationUrl">---</span></div>
             </div>
 
-            <div style="display: flex; gap: 10px; justify-content: space-between; margin-top: 15px;">
-                <button type="button" class="btn-search btn-3d" style="flex: 1; background: linear-gradient(135deg, #059669 0%, #047857 100%);" onclick="editIncomingMessage()">✏️ تعديل أو إضافة شيء</button>
-                <button type="button" class="btn-danger btn-3d" style="flex: 1;" onclick="deleteIncomingMessage()">🗑️ حذف الرسالة نهائياً</button>
+            <!-- زر حذف الرسالة فقط للمستلم -->
+            <div style="display: flex; justify-content: center; margin-top: 15px;">
+                <button type="button" class="btn-danger btn-3d" style="width: 100%;" onclick="deleteIncomingMessage()">🗑️ حذف الرسالة نهائياً من الطرفين</button>
             </div>
         </div>
     </div>
