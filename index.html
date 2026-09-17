@@ -42,6 +42,7 @@
                 loginBox.style.display = 'none';
                 appBox.style.display = 'block';
                 userEmailSpan.textContent = user.email;
+                loadUserProfile();
                 checkAllCasesForHearings();
                 checkUserInbox(user.email);
             } else {
@@ -119,6 +120,99 @@
             const btn = document.getElementById('darkModeBtn');
             btn.textContent = isDark ? '☀️ نهاري' : '🌙 ليلي';
         };
+
+        // ملف المستخدم والمساعدة
+        async function loadUserProfile() {
+            if (!currentUser) return;
+            try {
+                const snap = await getDoc(doc(db, "users", currentUser.uid));
+                if (snap.exists() && snap.data().profileImage) {
+                    document.getElementById('userProfileImage').src = snap.data().profileImage;
+                }
+            } catch (e) {
+                console.error("خطأ في تحميل صورة المستخدم:", e);
+            }
+        }
+
+        window.changeUserProfileImage = function() {
+            if (currentUser) document.getElementById('profileImageInput').click();
+        };
+
+        window.handleProfileImageChange = function(event) {
+            if (!currentUser) return;
+            const file = event.target.files && event.target.files[0];
+            if (!file) return;
+
+            if (!file.type.startsWith('image/')) {
+                alert("يرجى اختيار صورة فقط.");
+                event.target.value = "";
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = async function() {
+                    const canvas = document.createElement('canvas');
+                    const maxSize = 500;
+                    let w = img.width, h = img.height;
+
+                    if (w > h && w > maxSize) {
+                        h = Math.round(h * maxSize / w);
+                        w = maxSize;
+                    } else if (h >= w && h > maxSize) {
+                        w = Math.round(w * maxSize / h);
+                        h = maxSize;
+                    }
+
+                    canvas.width = w;
+                    canvas.height = h;
+                    canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+
+                    const base64 = canvas.toDataURL('image/jpeg', 0.78);
+                    document.getElementById('userProfileImage').src = base64;
+
+                    try {
+                        await setDoc(
+                            doc(db, "users", currentUser.uid),
+                            {
+                                profileImage: base64,
+                                profileUpdatedAt: new Date().toISOString()
+                            },
+                            { merge: true }
+                        );
+                    } catch (error) {
+                        alert("تعذر حفظ الصورة: " + error.message);
+                    }
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+            event.target.value = "";
+        };
+
+        window.openHelpModal = function() {
+            document.getElementById('helpModal').style.display = 'flex';
+        };
+
+        window.closeHelpModal = function() {
+            document.getElementById('helpModal').style.display = 'none';
+        };
+
+        window.contactViaWhatsApp = function() {
+            window.open(
+                'https://wa.me/9647752404350?text=' +
+                encodeURIComponent('السلام عليكم، أود التواصل مع وهبي رياض بخصوص النظام.'),
+                '_blank',
+                'noopener,noreferrer'
+            );
+        };
+
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('helpModal');
+            if (event.target === modal) closeHelpModal();
+        });
+
 
         window.addEventListener('DOMContentLoaded', () => {
             const savedTheme = localStorage.getItem('themeMode');
@@ -1812,6 +1906,23 @@ svg {
 
 
 
+        /* ملف المستخدم والمساعدة */
+        .user-profile-area{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-width:0}
+        .user-name-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+        .btn-help-user{background:linear-gradient(135deg,#8b5cf6 0%,#6d28d9 100%);color:#fff;box-shadow:0 4px 0 #4c1d95,0 7px 14px rgba(109,40,217,.25);padding:5px 10px;font-size:12px;border-radius:7px}
+        .profile-photo-box{position:relative;width:86px;height:86px;border-radius:14px;border:2px solid var(--userbar-border);background:var(--section-bg);overflow:hidden;cursor:pointer;box-shadow:0 5px 14px rgba(0,0,0,.12)}
+        .profile-photo-box img{width:100%;height:100%;display:block;object-fit:cover;background:var(--section-bg);position:relative;z-index:1}
+        .profile-photo-box::before{content:"👤";position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:35px;background:var(--section-bg);z-index:0}
+        .profile-photo-overlay{position:absolute;z-index:2;left:0;right:0;bottom:0;padding:5px 2px;text-align:center;font-size:10px;font-weight:700;color:#fff;background:rgba(0,0,0,.58);opacity:0;transition:opacity .2s}
+        .profile-photo-box:hover .profile-photo-overlay,.profile-photo-box:active .profile-photo-overlay{opacity:1}
+        .help-modal-content{max-width:430px;text-align:center}
+        .designer-card{padding:18px;background:var(--section-bg);border:1px solid var(--border-color);border-radius:14px;margin-bottom:14px}
+        .designer-icon{font-size:35px;margin-bottom:6px}
+        .designer-card h3{margin:0 0 8px;color:var(--label-color);font-size:14px}
+        .designer-name{color:var(--primary-color);font-size:22px;font-weight:800;margin-bottom:6px}
+        .designer-phone{color:var(--text-main);font-size:15px;font-weight:700;direction:ltr}
+        .whatsapp-help-btn{width:100%;min-height:46px;background:linear-gradient(135deg,#22c55e 0%,#15803d 100%);color:#fff;box-shadow:0 5px 0 #166534,0 8px 15px rgba(34,197,94,.25);font-size:14px}
+
 /* =========================================================
    MOBILE PRO UI
    تصميم مخصص للهاتف مع الحفاظ على نسخة الكمبيوتر والتابلت
@@ -2230,6 +2341,10 @@ svg {
 
 /* وضع أفقي للهاتف */
 @media screen and (max-width: 680px) and (orientation: landscape) {
+    .user-profile-area{width:100%;align-items:center}
+    .user-name-row{justify-content:center;width:100%}
+    .profile-photo-box{width:78px;height:78px}
+
     .user-bar {
         position: relative;
     }
@@ -2274,6 +2389,160 @@ svg {
             }
         });
     </script>
+
+<style id="professional-user-bar-style">
+/* شريط علوي احترافي — تنسيق فقط دون المساس بوظائف النظام */
+.professional-user-bar{
+    min-height:86px;
+    padding:10px 14px;
+    border-radius:18px;
+    background:linear-gradient(135deg,rgba(255,255,255,.99),rgba(247,248,252,.97));
+    border:1px solid rgba(15,23,42,.09);
+    box-shadow:0 10px 28px rgba(15,23,42,.11);
+    gap:14px;
+}
+.professional-identity-zone{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    padding:5px 14px 5px 4px;
+    border-radius:14px;
+}
+.professional-user-card{
+    display:flex;
+    align-items:center;
+    gap:13px;
+    min-width:0;
+}
+.professional-avatar{
+    position:relative;
+    width:68px;
+    height:68px;
+    flex:0 0 68px;
+    border-radius:18px;
+    overflow:hidden;
+    cursor:pointer;
+    border:2px solid rgba(59,130,246,.24);
+    background:var(--section-bg);
+    box-shadow:0 6px 18px rgba(15,23,42,.17);
+}
+.professional-avatar img{
+    width:100%;height:100%;object-fit:cover;display:block;
+    background:var(--section-bg);position:relative;z-index:1;
+}
+.professional-avatar::before{
+    content:"👤";
+    position:absolute;inset:0;
+    display:flex;align-items:center;justify-content:center;
+    font-size:31px;background:var(--section-bg);z-index:0;
+}
+.professional-avatar-edit{
+    position:absolute;z-index:2;right:4px;bottom:4px;
+    width:22px;height:22px;border-radius:7px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:12px;background:rgba(15,23,42,.82);color:#fff;
+    border:1px solid rgba(255,255,255,.75);
+}
+.professional-user-info{
+    min-width:0;
+    display:flex;flex-direction:column;align-items:flex-start;
+    gap:2px;
+}
+.professional-user-label{
+    font-size:11px;font-weight:700;color:#64748b;
+}
+.professional-user-name{
+    display:block;max-width:250px;overflow:hidden;
+    text-overflow:ellipsis;white-space:nowrap;
+    font-size:15px;color:var(--text-main);font-weight:850;
+}
+.professional-user-hint{
+    font-size:9px;color:#94a3b8;margin-top:1px;
+}
+.professional-help-zone{
+    flex:0 0 auto;
+    display:flex;
+    align-items:center;
+    padding:0 14px;
+    border-right:1px solid rgba(15,23,42,.08);
+    border-left:1px solid rgba(15,23,42,.08);
+}
+.professional-help-btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    min-width:104px;
+    min-height:42px;
+    padding:8px 14px;
+    border:1px solid rgba(99,102,241,.24);
+    border-radius:12px;
+    background:rgba(99,102,241,.08);
+    color:#4338ca;
+    font-size:12px;
+    font-weight:850;
+    box-shadow:0 3px 10px rgba(67,56,202,.08);
+    cursor:pointer;
+}
+.professional-help-btn:hover{
+    background:rgba(99,102,241,.14);
+    box-shadow:0 5px 14px rgba(67,56,202,.13);
+}
+.professional-help-btn:active{transform:translateY(1px)}
+.professional-help-btn .help-icon{
+    width:22px;height:22px;border-radius:50%;
+    display:inline-flex;align-items:center;justify-content:center;
+    background:#4338ca;color:#fff;font-size:13px;font-weight:900;
+}
+.professional-actions{
+    flex:1 1 auto;
+    justify-content:flex-end;
+    padding-right:2px;
+    padding-left:2px;
+    gap:7px;
+}
+@media (max-width:700px){
+    .professional-user-bar{
+        min-height:82px;
+        padding:8px;
+        border-radius:15px;
+        gap:7px;
+        flex-wrap:wrap;
+    }
+    .professional-identity-zone{
+        padding:2px 5px;
+        flex:1 1 auto;
+        min-width:0;
+    }
+    .professional-avatar{
+        width:58px;height:58px;flex-basis:58px;border-radius:16px;
+    }
+    .professional-avatar-edit{width:20px;height:20px;font-size:11px}
+    .professional-user-name{max-width:155px;font-size:13px}
+    .professional-user-label{font-size:10px}
+    .professional-user-hint{font-size:8px}
+    .professional-help-zone{
+        padding:0 5px;
+        border-right:0;
+        border-left:0;
+    }
+    .professional-help-btn{
+        min-width:78px;
+        min-height:38px;
+        padding:7px 9px;
+        font-size:10px;
+    }
+    .professional-help-btn .help-icon{width:20px;height:20px;font-size:12px}
+    .professional-actions{
+        width:100%;
+        flex-basis:100%;
+        justify-content:center;
+        padding:7px 2px 2px;
+        border-top:1px solid rgba(15,23,42,.08);
+    }
+}
+</style>
+
 </head>
 <body>
 
@@ -2298,9 +2567,31 @@ svg {
         <div id="watermarkLayer"><div class="watermark-text-style" id="watermarkDisplay"></div></div>
 
         <div id="mainSystemView">
-            <div class="user-bar">
-                <span>👤 المستخدم: <strong id="userEmailDisplay"></strong></span>
-                <div class="user-actions">
+            <div class="user-bar professional-user-bar">
+    <div class="professional-identity-zone">
+        <div class="professional-user-card">
+            <div class="professional-avatar professional-avatar-large" onclick="changeUserProfileImage()" title="اضغط لتغيير صورتك">
+                <img id="userProfileImage" alt="صورة المستخدم">
+                <div class="professional-avatar-edit">📷</div>
+            </div>
+            <div class="professional-user-info">
+                <span class="professional-user-label">مرحباً بك</span>
+                <strong id="userEmailDisplay" class="professional-user-name"></strong>
+                <span class="professional-user-hint">اضغط على الصورة لتغييرها</span>
+            </div>
+        </div>
+        <input type="file" id="profileImageInput" accept="image/*" style="display:none" onchange="handleProfileImageChange(event)">
+    </div>
+
+    <div class="professional-help-zone">
+        <button type="button" class="professional-help-btn" onclick="openHelpModal()" title="المساعدة">
+            <span class="help-icon">?</span>
+            <span>المساعدة</span>
+        </button>
+    </div>
+
+    <div class="user-actions professional-actions">
+
                     <button type="button" id="darkModeBtn" class="btn-theme-toggle btn-3d" onclick="toggleDarkMode()">🌙 ليلي</button>
                     <button type="button" class="btn-open-laws-top btn-3d" onclick="openLawsPage()">📖 قوانين</button>
                     <button type="button" class="btn-open-wallet-top btn-3d" onclick="openMyWalletPage()">📁 محفظتي</button>
@@ -2728,6 +3019,25 @@ svg {
 </script>
 
 
+
+    <!-- نافذة المساعدة وبيانات المصمم -->
+    <div id="helpModal" class="modal-overlay">
+        <div class="modal-content help-modal-content">
+            <div class="modal-header">
+                <h3 style="margin:0;color:var(--primary-color);">❓ المساعدة</h3>
+                <button type="button" class="modal-close-btn btn-3d" onclick="closeHelpModal()">✕ إغلاق</button>
+            </div>
+            <div class="designer-card">
+                <div class="designer-icon">💻</div>
+                <h3>هذا الموقع صمم بواسطة</h3>
+                <div class="designer-name">وهبي رياض</div>
+                <div class="designer-phone">📞 07752404350</div>
+            </div>
+            <button type="button" class="whatsapp-help-btn btn-3d" onclick="contactViaWhatsApp()">
+                🟢 التواصل عبر واتساب
+            </button>
+        </div>
+    </div>
 
     <!-- صفحة ChatGPT داخل النظام -->
     <div id="chatgptPanel">
