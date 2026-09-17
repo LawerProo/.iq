@@ -299,17 +299,19 @@
             }
         };
 
+        /*
+         * الطباعة على الهاتف:
+         * لا نستخدم requestAnimationFrame أو setTimeout قبل window.print()
+         * لأن بعض إصدارات Safari/Chrome على الهاتف تعتبر ذلك خروجاً من
+         * "إجراء المستخدم" وبالتالي قد تمنع نافذة الطباعة.
+         */
         function runPrintMode(className) {
+            // إزالة أي وضع طباعة سابق
+            document.body.classList.remove('print-report', 'print-contract');
+
+            // تجهيز الصفحة للطباعة ثم استدعاء الطباعة مباشرة داخل ضغطة الزر.
             document.body.classList.add(className);
 
-            // إعطاء المتصفح لحظة لتطبيق CSS قبل فتح نافذة الطباعة.
-            requestAnimationFrame(() => {
-                requestAnimationFrame(() => {
-                    window.print();
-                });
-            });
-
-            // afterprint مدعوم في المتصفحات الحديثة، مع fallback للمتصفحات الأقدم.
             let cleaned = false;
             const cleanup = () => {
                 if (cleaned) return;
@@ -318,16 +320,30 @@
                 window.removeEventListener('afterprint', cleanup);
             };
 
-            window.addEventListener('afterprint', cleanup, { once: true });
-            setTimeout(cleanup, 30000);
+            window.addEventListener('afterprint', cleanup);
+
+            // مهم جداً للموبايل: يجب أن يكون هذا الاستدعاء متزامناً مع ضغطة المستخدم.
+            try {
+                window.print();
+            } catch (e) {
+                console.error('Print error:', e);
+                cleanup();
+            }
+
+            // احتياط للمتصفحات التي لا تطلق afterprint.
+            setTimeout(cleanup, 60000);
         }
 
-        window.printCaseReportOnly = function() {
+        window.printCaseReportOnly = function(event) {
+            if (event) event.preventDefault();
             runPrintMode('print-report');
+            return false;
         };
 
-        window.printLawyerContractOnly = function() {
+        window.printLawyerContractOnly = function(event) {
+            if (event) event.preventDefault();
             runPrintMode('print-contract');
+            return false;
         };
 
         window.previewContract = function() {
@@ -2185,6 +2201,18 @@ svg {
 }
 
 </style>
+<script>
+        // فحص مبكر لدعم الطباعة في المتصفح.
+        window.addEventListener('DOMContentLoaded', function () {
+            if (typeof window.print !== 'function') {
+                document.querySelectorAll('.btn-print').forEach(function(btn) {
+                    btn.addEventListener('click', function () {
+                        alert('هذا المتصفح لا يدعم الطباعة مباشرة. افتح الصفحة في Safari أو Chrome ثم اختر مشاركة > طباعة.');
+                    });
+                });
+            }
+        });
+    </script>
 </head>
 <body>
 
@@ -2317,7 +2345,7 @@ svg {
 
                 <div class="actions-section">
                     <button type="button" class="btn-save btn-3d" onclick="saveDataToFirebase()">💾 حفظ بالكامل (تعديل / إضافة)</button>
-                    <button type="button" class="btn-print btn-3d" onclick="printCaseReportOnly()">🖨️ طباعة التقرير</button>
+                    <button type="button" class="btn-print btn-3d" onclick="return printCaseReportOnly(event)">🖨️ طباعة التقرير</button>
                 </div>
             </form>
         </div>
@@ -2347,7 +2375,7 @@ svg {
                 </div>
                 
                 <div class="actions-section hide-on-print" style="margin-top: 20px;">
-                    <button type="button" class="btn-print btn-3d" onclick="printLawyerContractOnly()">🖨️ طباعة العقد الرسمي</button>
+                    <button type="button" class="btn-print btn-3d" onclick="return printLawyerContractOnly(event)">🖨️ طباعة العقد الرسمي</button>
                     <button type="button" class="btn-back btn-3d" onclick="backToMainSystem()">⬅️ عودة للنظام</button>
                 </div>
             </div>
