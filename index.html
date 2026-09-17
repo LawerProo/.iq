@@ -279,7 +279,11 @@
                             <div class="preview-box" style="margin-bottom: 8px; padding: 8px;">
                                 <div><b>إلى:</b> ${data.targetEmail} | <b>الدعوى:</b> ${data.caseData.caseNumber || '---'}</div>
                                 <div style="font-size: 11px; color: var(--label-color);">التاريخ: ${new Date(data.timestamp).toLocaleString('ar-IQ')}</div>
-                                <button type="button" class="btn-danger btn-3d" style="padding: 2px 6px; font-size: 11px; margin-top: 5px;" onclick="deleteSentMessage('${docSnap.id}')">🗑️ حذف المرسلة</button>
+                                <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:5px;">
+                                    <button type="button" class="btn-search btn-3d" style="padding: 3px 8px; font-size: 11px;" onclick="openArchiveMessage('${docSnap.id}')">👁️ معاينة</button>
+                                    <button type="button" class="btn-print btn-3d" style="padding: 3px 8px; font-size: 11px;" onclick="printArchiveMessage('${docSnap.id}')">🖨️ طباعة</button>
+                                    <button type="button" class="btn-danger btn-3d" style="padding: 2px 6px; font-size: 11px;" onclick="deleteSentMessage('${docSnap.id}')">🗑️ حذف المرسلة</button>
+                                </div>
                             </div>
                         `;
                     });
@@ -299,7 +303,11 @@
                             <div class="preview-box" style="margin-bottom: 8px; padding: 8px;">
                                 <div><b>من:</b> ${data.senderEmail} | <b>الدعوى:</b> ${data.caseData.caseNumber || '---'}</div>
                                 <div style="font-size: 11px; color: var(--label-color);">التاريخ: ${new Date(data.timestamp).toLocaleString('ar-IQ')}</div>
-                                <button type="button" class="btn-danger btn-3d" style="padding: 2px 6px; font-size: 11px; margin-top: 5px;" onclick="deleteReceivedMessage('${docSnap.id}')">🗑️ حذف الرسالة (للمستلم)</button>
+                                <div style="display:flex; gap:6px; flex-wrap:wrap; margin-top:5px;">
+                                    <button type="button" class="btn-search btn-3d" style="padding: 3px 8px; font-size: 11px;" onclick="openArchiveMessage('${docSnap.id}')">👁️ معاينة</button>
+                                    <button type="button" class="btn-print btn-3d" style="padding: 3px 8px; font-size: 11px;" onclick="printArchiveMessage('${docSnap.id}')">🖨️ طباعة</button>
+                                    <button type="button" class="btn-danger btn-3d" style="padding: 2px 6px; font-size: 11px;" onclick="deleteReceivedMessage('${docSnap.id}')">🗑️ حذف الرسالة (للمستلم)</button>
+                                </div>
                             </div>
                         `;
                     });
@@ -311,6 +319,107 @@
                 receivedContainer.innerHTML = "خطأ في التحميل.";
             }
         }
+
+        // معاينة وطباعة رسالة الأرشيف مع كامل محتواها والباركود
+        let activeArchiveMessageId = null;
+
+        window.openArchiveMessage = async function(msgId) {
+            if (!currentUser || !msgId) return;
+            activeArchiveMessageId = msgId;
+            try {
+                const snap = await getDoc(doc(db, "inbox", msgId));
+                if (!snap.exists()) {
+                    alert("تعذر العثور على الرسالة.");
+                    return;
+                }
+
+                const msg = snap.data();
+                const data = msg.caseData || {};
+
+                document.getElementById('archivePreviewSender').textContent = msg.senderEmail || '---';
+                document.getElementById('archivePreviewTarget').textContent = msg.targetEmail || '---';
+                document.getElementById('archivePreviewDate').textContent =
+                    msg.timestamp ? new Date(msg.timestamp).toLocaleString('ar-IQ') : '---';
+
+                const customBox = document.getElementById('archivePreviewCustomMessageBox');
+                if (msg.customMessage) {
+                    customBox.style.display = 'block';
+                    document.getElementById('archivePreviewCustomMessage').textContent = msg.customMessage;
+                } else {
+                    customBox.style.display = 'none';
+                    document.getElementById('archivePreviewCustomMessage').textContent = '';
+                }
+
+                document.getElementById('archivePreviewCaseNumber').textContent = data.caseNumber || '---';
+                document.getElementById('archivePreviewCourt').textContent = data.court || '---';
+                document.getElementById('archivePreviewCaseTitle').textContent = data.caseTitle || '---';
+                document.getElementById('archivePreviewComplainant').textContent = data.complainant || '---';
+                document.getElementById('archivePreviewPhone').textContent = data.complainantPhone || '---';
+                document.getElementById('archivePreviewDefendant').textContent = data.defendant || '---';
+                document.getElementById('archivePreviewHearing').textContent = data.nextHearingDate || '---';
+                document.getElementById('archivePreviewFees').textContent = data.totalFees || '---';
+                document.getElementById('archivePreviewNotes').textContent = data.privateNotes || '---';
+                document.getElementById('archivePreviewBarcodeText').textContent = data.barcodeSubText || '---';
+
+                const qr = document.getElementById('archivePreviewQrcode');
+                qr.innerHTML = '';
+                const qrContainer = document.getElementById('archivePreviewQrcodeContainer');
+
+                if (data.locationUrl && data.locationUrl !== '[محجوب]') {
+                    new QRCode(qr, {
+                        text: data.locationUrl,
+                        width: 160,
+                        height: 160,
+                        colorDark: "#1e3a8a",
+                        colorLight: "#ffffff",
+                        correctLevel: QRCode.CorrectLevel.H
+                    });
+                    qrContainer.style.display = 'block';
+                } else {
+                    qrContainer.style.display = 'none';
+                }
+
+                document.getElementById('archiveMessagePreviewModal').style.display = 'flex';
+            } catch (error) {
+                alert("خطأ أثناء فتح الرسالة: " + error.message);
+            }
+        };
+
+        window.closeArchiveMessagePreview = function() {
+            document.getElementById('archiveMessagePreviewModal').style.display = 'none';
+        };
+
+        window.printArchiveMessageFromPreview = function() {
+            if (!activeArchiveMessageId) return;
+            printArchiveMessage(activeArchiveMessageId);
+        };
+
+        window.printArchiveMessage = async function(msgId) {
+            await openArchiveMessage(msgId);
+            const modal = document.getElementById('archiveMessagePreviewModal');
+            if (!modal) return;
+
+            document.body.classList.remove('print-archive-message');
+            document.body.classList.add('print-archive-message');
+
+            let cleaned = false;
+            const cleanup = () => {
+                if (cleaned) return;
+                cleaned = true;
+                document.body.classList.remove('print-archive-message');
+                window.removeEventListener('afterprint', cleanup);
+                modal.style.display = 'none';
+            };
+
+            window.addEventListener('afterprint', cleanup);
+            try {
+                window.print();
+            } catch (e) {
+                console.error('Archive print error:', e);
+                cleanup();
+            }
+            setTimeout(cleanup, 60000);
+        };
 
         window.deleteSentMessage = async function(msgId) {
             if (!confirm("هل أنت متأكد من حذف هذه الرسالة المرسلة؟")) return;
@@ -1166,11 +1275,93 @@
             transform: rotate(-35deg); white-space: nowrap; text-align: center; user-select: none;
         }
 
+                /* معاينة وطباعة الأرشيف البريدي */
+        .archive-message-header {
+            display:grid;
+            grid-template-columns:1fr 1fr;
+            gap:8px 15px;
+            padding-bottom:10px;
+            margin-bottom:10px;
+            border-bottom:1px solid var(--border-color);
+        }
+        .archive-message-print-area {
+            font-size:13px;
+            line-height:1.8;
+        }
+        .archive-message-print-area .preview-box {
+            margin-bottom:10px;
+        }
+        .archive-preview-actions {
+            border-top:1px solid var(--border-color);
+            padding-top:12px;
+        }
+
         @media print {
+
             @page { 
                 size: A4 portrait; 
                 margin: 0mm; 
             }
+            /* طباعة رسالة الأرشيف فقط */
+            body.print-archive-message > * {
+                display: none !important;
+            }
+            body.print-archive-message #archiveMessagePreviewModal {
+                display: flex !important;
+                position: static !important;
+                width: 100% !important;
+                height: auto !important;
+                background: #fff !important;
+                align-items: flex-start !important;
+                justify-content: flex-start !important;
+            }
+            body.print-archive-message #archiveMessagePreviewModal .archive-message-preview-content {
+                display: block !important;
+                width: 210mm !important;
+                max-width: 210mm !important;
+                min-height: 297mm !important;
+                margin: 0 auto !important;
+                padding: 15mm 18mm !important;
+                box-sizing: border-box !important;
+                border: 0 !important;
+                border-radius: 0 !important;
+                box-shadow: none !important;
+                background: #fff !important;
+                color: #000 !important;
+                overflow: visible !important;
+            }
+            body.print-archive-message #archiveMessagePreviewModal .modal-header,
+            body.print-archive-message #archiveMessagePreviewModal .archive-preview-actions {
+                display: none !important;
+            }
+            body.print-archive-message #archiveMessagePreviewModal .archive-message-print-area {
+                display: block !important;
+                background: #fff !important;
+                color: #000 !important;
+                border: 0 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            body.print-archive-message #archiveMessagePreviewModal .preview-box {
+                background: #fff !important;
+                color: #000 !important;
+                border: 1px solid #cbd5e1 !important;
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+            }
+            body.print-archive-message #archivePreviewQrcodeContainer {
+                display: block !important;
+                text-align: center !important;
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+            }
+            body.print-archive-message #archivePreviewQrcode img,
+            body.print-archive-message #archivePreviewQrcode canvas {
+                width: 160px !important;
+                height: 160px !important;
+                max-width: 160px !important;
+            }
+
             body { 
                 background: white !important; 
                 color: black !important; 
@@ -2800,6 +2991,52 @@ svg {
                 </div>
 
                 <button type="button" class="btn-main btn-3d" onclick="sendSharedCaseToUser()">📤 تأكيد وإرسال الدعوى الآن</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة معاينة الرسالة من الأرشيف البريدي -->
+    <div id="archiveMessagePreviewModal" class="modal-overlay">
+        <div class="modal-content archive-message-preview-content" style="max-width: 650px;">
+            <div class="modal-header">
+                <h3 style="margin: 0; color: var(--primary-color);">📨 معاينة كاملة للرسالة</h3>
+                <button type="button" class="modal-close-btn btn-3d" onclick="closeArchiveMessagePreview()">✕ إغلاق</button>
+            </div>
+
+            <div class="preview-box archive-message-print-area">
+                <div class="archive-message-header">
+                    <div><b>من:</b> <span id="archivePreviewSender">---</span></div>
+                    <div><b>إلى:</b> <span id="archivePreviewTarget">---</span></div>
+                    <div><b>تاريخ الإرسال:</b> <span id="archivePreviewDate">---</span></div>
+                </div>
+
+                <div id="archivePreviewCustomMessageBox" class="preview-box" style="background:#fef3c7;color:#92400e;border-color:#fde68a;">
+                    <b>💬 الرسالة المرفقة:</b>
+                    <div id="archivePreviewCustomMessage" style="white-space:pre-wrap;margin-top:5px;">---</div>
+                </div>
+
+                <div class="preview-box" style="background:var(--input-bg);">
+                    <div><b>رقم الدعوى:</b> <span id="archivePreviewCaseNumber">---</span></div>
+                    <div><b>المحكمة:</b> <span id="archivePreviewCourt">---</span></div>
+                    <div><b>موضوع الدعوى:</b> <span id="archivePreviewCaseTitle">---</span></div>
+                    <div><b>المشتكي:</b> <span id="archivePreviewComplainant">---</span></div>
+                    <div><b>هاتف الموكل:</b> <span id="archivePreviewPhone">---</span></div>
+                    <div><b>الخصم:</b> <span id="archivePreviewDefendant">---</span></div>
+                    <div><b>موعد الجلسة:</b> <span id="archivePreviewHearing">---</span></div>
+                    <div><b>الأتعاب:</b> <span id="archivePreviewFees">---</span></div>
+                    <div><b>الملاحظات:</b> <span id="archivePreviewNotes">---</span></div>
+                    <div><b>نص الباركود:</b> <span id="archivePreviewBarcodeText">---</span></div>
+
+                    <div id="archivePreviewQrcodeContainer" style="margin-top:15px;text-align:center;">
+                        <span style="font-size:11px;color:var(--label-color);display:block;">باركود الدعوى:</span>
+                        <div id="archivePreviewQrcode"></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="archive-preview-actions" style="display:flex;justify-content:center;gap:10px;margin-top:15px;flex-wrap:wrap;">
+                <button type="button" class="btn-print btn-3d" onclick="printArchiveMessageFromPreview()">🖨️ طباعة الرسالة كاملة</button>
+                <button type="button" class="modal-close-btn btn-3d" onclick="closeArchiveMessagePreview()">إغلاق</button>
             </div>
         </div>
     </div>
