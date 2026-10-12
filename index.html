@@ -8,7 +8,7 @@
     
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-app.js";
-        import { getAuth, signInWithEmailAndPassword, signOut, setPersistence, browserSessionPersistence, updatePassword } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
+        import { getAuth, signInWithEmailAndPassword, signOut, setPersistence, browserSessionPersistence, updatePassword, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-auth.js";
         import { getFirestore, doc, setDoc, getDoc, deleteDoc, collection, getDocs, addDoc, query, where } from "https://www.gstatic.com/firebasejs/9.22.0/firebase-firestore.js";
 
         const firebaseConfig = {
@@ -33,7 +33,7 @@
         let currentLoadedRegisteredDate = ""; 
         let activeInboxMsgId = null; 
 
-        auth.onAuthStateChanged(async (user) => {
+        onAuthStateChanged(auth, async (user) => {
             const loginBox = document.getElementById('loginSection');
             const appBox = document.getElementById('appSection');
             const userEmailSpan = document.getElementById('userEmailDisplay');
@@ -4368,15 +4368,20 @@ svg {
         })();
     </script>
 
-
-/* أزرار الوضع الليلي والصوت: صغيرة وبجوار المساعدة */
-.professional-help-zone{display:flex!important;align-items:center!important;gap:9px!important;flex-wrap:wrap!important}
-.quick-mode-buttons{display:inline-flex;align-items:center;gap:6px}
-.quick-mode-btn{width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important;padding:0!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;border-radius:11px!important;border:1px solid rgba(215,181,109,.75)!important;background:linear-gradient(145deg,#f8fafc,#dce5f0)!important;color:#132846!important;font-size:19px!important;line-height:1!important;box-shadow:0 3px 9px rgba(4,15,32,.16),inset 0 1px 0 rgba(255,255,255,.8)!important;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease}
-.quick-mode-btn:hover{transform:translateY(-2px);box-shadow:0 6px 12px rgba(4,15,32,.2)!important}
-.quick-mode-btn:active{transform:scale(.94)}
-body.dark-mode .quick-mode-btn{background:linear-gradient(145deg,#23344c,#101b2d)!important;color:#f0d58c!important;border-color:#cda95c!important}
-@media(max-width:700px){.professional-help-zone{gap:6px!important;padding:0 3px!important}.quick-mode-buttons{gap:5px}.quick-mode-btn{width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;font-size:18px!important}.professional-help-btn{min-width:70px!important}}
+<style id="quick-mode-polish">
+/* أزرار الإعدادات السريعة — CSS داخل وسم style لتجنب ظهوره كنص في الصفحة */
+.professional-help-zone{display:flex!important;align-items:center!important;gap:10px!important;flex-wrap:nowrap!important}
+.quick-mode-buttons{display:inline-flex;align-items:center;gap:7px;padding:4px;border-radius:15px;background:rgba(148,163,184,.10);border:1px solid rgba(148,163,184,.18)}
+.quick-mode-btn{position:relative;width:36px!important;height:36px!important;min-width:36px!important;min-height:36px!important;padding:0!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;border-radius:12px!important;border:1px solid rgba(183,148,75,.58)!important;background:linear-gradient(145deg,#fffdf7 0%,#e8edf5 100%)!important;color:#173052!important;font-family:system-ui,sans-serif;font-size:19px!important;line-height:1!important;box-shadow:0 3px 0 rgba(23,48,82,.12),0 6px 14px rgba(15,23,42,.10),inset 0 1px 0 rgba(255,255,255,.95)!important;cursor:pointer;transition:transform .2s ease,box-shadow .2s ease,background .2s ease,border-color .2s ease;outline:none}
+.quick-mode-btn:hover{transform:translateY(-2px);border-color:#c6a15b!important;box-shadow:0 5px 0 rgba(23,48,82,.08),0 9px 18px rgba(15,23,42,.16),inset 0 1px 0 #fff!important}
+.quick-mode-btn:active{transform:translateY(0) scale(.96);box-shadow:0 1px 3px rgba(15,23,42,.15)!important}
+.quick-mode-btn:focus-visible,.professional-help-btn:focus-visible{outline:3px solid rgba(197,157,76,.45);outline-offset:3px}
+body.dark-mode .quick-mode-buttons{background:rgba(2,8,23,.24);border-color:rgba(226,190,111,.22)}
+body.dark-mode .quick-mode-btn{background:linear-gradient(145deg,#263b57 0%,#111c30 100%)!important;color:#f3d88e!important;border-color:#b99651!important;box-shadow:0 3px 0 rgba(0,0,0,.24),0 6px 14px rgba(0,0,0,.2),inset 0 1px 0 rgba(255,255,255,.08)!important}
+body.dark-mode .professional-help-btn{background:linear-gradient(145deg,rgba(99,102,241,.22),rgba(30,41,59,.7));color:#e0e7ff;border-color:rgba(165,180,252,.28)}
+@media(max-width:700px){.professional-help-zone{gap:6px!important;padding:0 3px!important}.quick-mode-buttons{gap:5px;padding:3px;border-radius:13px}.quick-mode-btn{width:33px!important;height:33px!important;min-width:33px!important;min-height:33px!important;font-size:18px!important}.professional-help-btn{min-width:66px!important;min-height:36px!important;padding:6px 8px!important}}
+@media(max-width:390px){.professional-help-zone{gap:4px!important}.quick-mode-btn{width:31px!important;height:31px!important;min-width:31px!important;min-height:31px!important}.professional-help-btn{min-width:58px!important;font-size:9px!important;gap:4px!important}}
+</style>
 
 </body>
 </html>
