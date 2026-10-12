@@ -3214,7 +3214,7 @@ svg {
         @media(min-width:681px) and (max-width:900px){.chat-person-avatar{width:36px;height:36px;flex-basis:36px}.chat-online-label{display:none}.chat-bubble{max-width:90%}}
         @page { size: A4 portrait; margin: 12mm; }
         #financialReceiptPrintArea{display:none}
-        .financial-receipt-paper{box-sizing:border-box;width:100%;max-width:186mm;margin:0 auto;padding:14mm;border:1.5px solid #222;background:#fff;color:#111;font-family:Tahoma,Arial,sans-serif;direction:rtl}
+        .financial-receipt-paper{box-sizing:border-box;width:186mm;max-width:186mm;min-height:273mm;margin:0 auto;padding:14mm;border:1.5px solid #222;background:#fff;color:#111;font-family:Tahoma,Arial,sans-serif;direction:rtl}
         .financial-receipt-head{text-align:center;border-bottom:1px solid #999;padding-bottom:7mm;margin-bottom:8mm}
         .financial-receipt-head h1{font-size:22pt;margin:0 0 3mm}.financial-receipt-head p{margin:0;font-size:11pt}
         .financial-receipt-responsible,.financial-receipt-date{font-size:12pt;margin:4mm 0}
@@ -3230,7 +3230,7 @@ svg {
           body.print-financial-receipt > :not(#financialReceiptPrintArea){display:none!important;visibility:hidden!important}
           body.print-financial-receipt > #financialReceiptPrintArea{display:block!important;visibility:visible!important;position:static!important;inset:auto!important;width:100%!important;max-width:none!important;height:auto!important;margin:0!important;padding:0!important;overflow:visible!important;opacity:1!important}
           body.print-financial-receipt > #financialReceiptPrintArea *{visibility:visible!important}
-          body.print-financial-receipt .financial-receipt-paper{display:block!important;visibility:visible!important;width:100%!important;max-width:none!important;min-height:0!important;margin:0!important;padding:10mm!important;border:1.5px solid #222!important;box-shadow:none!important;box-sizing:border-box!important;break-inside:avoid;page-break-inside:avoid;background:#fff!important;color:#111!important}
+          body.print-financial-receipt .financial-receipt-paper{display:block!important;visibility:visible!important;width:186mm!important;max-width:186mm!important;height:273mm!important;min-height:273mm!important;max-height:273mm!important;margin:0 auto!important;padding:10mm!important;border:1.5px solid #222!important;box-shadow:none!important;box-sizing:border-box!important;overflow:hidden!important;break-inside:avoid;page-break-inside:avoid;break-after:avoid-page;page-break-after:avoid;background:#fff!important;color:#111!important}
           body.print-financial-receipt .financial-receipt-paper *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
         }
 
