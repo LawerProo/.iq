@@ -30,6 +30,7 @@
         let selectedFileBase64 = "";
         let selectedFileName = "";
         let currentLoadedDocId = ""; 
+        let currentLoadedRegisteredDate = ""; 
         let activeInboxMsgId = null; 
 
         auth.onAuthStateChanged(async (user) => {
@@ -633,6 +634,69 @@
             reader.readAsDataURL(file);
         };
 
+        window.openRegisteredDatesModal = function() {
+            if (!currentUser) {
+                alert("يرجى تسجيل الدخول أولاً.");
+                return;
+            }
+            const picker = document.getElementById('registeredDatePicker');
+            if (!picker.value) picker.value = new Date().toISOString().slice(0, 10);
+            document.getElementById('registeredDateResults').innerHTML = "";
+            document.getElementById('registeredDatesModal').style.display = 'flex';
+        };
+
+        window.closeRegisteredDatesModal = function() {
+            document.getElementById('registeredDatesModal').style.display = 'none';
+        };
+
+        window.searchCasesByRegisteredDate = async function() {
+            if (!currentUser) return;
+            const selectedDate = document.getElementById('registeredDatePicker').value;
+            const results = document.getElementById('registeredDateResults');
+            if (!selectedDate) {
+                alert("اختر التاريخ أولاً.");
+                return;
+            }
+            results.innerHTML = "<p>جارٍ البحث في الدعاوى المحفوظة في السحاب...</p>";
+            try {
+                const snapshot = await getDocs(collection(db, `users/${currentUser.uid}/cases`));
+                const matches = [];
+                snapshot.forEach((caseDoc) => {
+                    const data = caseDoc.data();
+                    if (data.registeredDate === selectedDate) {
+                        matches.push({
+                            id: caseDoc.id,
+                            caseNumber: data.caseNumber || caseDoc.id,
+                            caseTitle: data.caseTitle || "",
+                            complainant: data.complainant || "",
+                            court: data.court || ""
+                        });
+                    }
+                });
+                matches.sort((a, b) => String(a.caseNumber).localeCompare(String(b.caseNumber), 'ar', {numeric:true}));
+                if (!matches.length) {
+                    results.innerHTML = '<div class="preview-box">لا توجد دعاوى محفوظة بتاريخ التسجيل المحدد. الدعاوى القديمة التي لم يكن لها تاريخ تسجيل محفوظ لن تظهر حتى تُفتح وتُحفظ مرة أخرى.</div>';
+                    return;
+                }
+                results.innerHTML = '<p><b>عدد الدعاوى في ' + selectedDate + ': ' + matches.length + '</b></p>' +
+                    matches.map(item => `<div class="preview-box" style="margin:8px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <div><b>الدعوى رقم: ${String(item.caseNumber).replace(/</g,'&lt;')}</b><div>${String(item.caseTitle).replace(/</g,'&lt;')} ${item.court ? '— ' + String(item.court).replace(/</g,'&lt;') : ''}</div><small>الموكل: ${String(item.complainant).replace(/</g,'&lt;')}</small></div>
+                        <button type="button" class="btn-search btn-3d" data-case-id="${item.id.replace(/"/g,'&quot;')}">فتح الدعوى</button>
+                    </div>`).join('');
+                results.querySelectorAll('button[data-case-id]').forEach(button => {
+                    button.addEventListener('click', async () => {
+                        const chosen = matches.find(item => item.id === button.dataset.caseId);
+                        if (!chosen) return;
+                        document.getElementById('searchQuery').value = chosen.caseNumber;
+                        closeRegisteredDatesModal();
+                        await window.fetchDataFromFirebase();
+                    });
+                });
+            } catch (error) {
+                results.innerHTML = '<div class="preview-box">تعذر جلب الدعاوى من السحاب: ' + String(error.message || error).replace(/</g,'&lt;') + '</div>';
+            }
+        };
+
         window.saveDataToFirebase = async function() {
             if (!currentUser) return;
             const caseNumber = document.getElementById('caseNumber').value.trim();
@@ -649,6 +713,7 @@
                 const caseData = {
                     userId: userId,
                     caseNumber: caseNumber,
+                    registeredDate: currentLoadedRegisteredDate || new Date().toISOString().slice(0, 10),
                     caseTitle: document.getElementById('caseTitle').value,
                     complainant: complainant,
                     complainantPhone: document.getElementById('complainantPhone').value,
@@ -692,6 +757,7 @@
                 if (docSnap.exists()) {
                     const data = docSnap.data();
                     currentLoadedDocId = docId;
+                    currentLoadedRegisteredDate = data.registeredDate || "";
                     document.getElementById('caseNumber').value = data.caseNumber || '';
                     document.getElementById('caseTitle').value = data.caseTitle || '';
                     document.getElementById('complainant').value = data.complainant || '';
@@ -747,6 +813,7 @@
             document.getElementById('deleteCaseBtn').style.display = 'none';
             document.getElementById('shareCaseBtn').style.display = 'none';
             currentLoadedDocId = "";
+            currentLoadedRegisteredDate = "";
             selectedFileBase64 = "";
             selectedFileName = "";
             document.getElementById('barcodeSubTextDisplay').textContent = "";
@@ -835,13 +902,17 @@
                     court: document.getElementById('court').value,
                     caseTitle: document.getElementById('caseTitle').value,
                     complainant: document.getElementById('complainant').value,
-                    complainantPhone: hidePhone ? "[محجوب]" : document.getElementById('complainantPhone').value,
+                    complainantPhone: hidePhone ? "" : document.getElementById('complainantPhone').value,
                     defendant: document.getElementById('defendant').value,
                     nextHearingDate: document.getElementById('nextHearingDate').value,
-                    totalFees: hideFees ? "[محجوب]" : (document.getElementById('totalFees').value + ' د.ع'),
-                    privateNotes: hideNotes ? "[محجوب]" : document.getElementById('privateNotes').value,
-                    barcodeSubText: hideBarcode ? "[محجوب]" : document.getElementById('barcodeSubText').value,
-                    locationUrl: hideBarcode ? "[محجوب]" : document.getElementById('locationUrl').value
+                    totalFees: hideFees ? "" : (document.getElementById('totalFees').value + ' د.ع'),
+                    privateNotes: hideNotes ? "" : document.getElementById('privateNotes').value,
+                    barcodeSubText: hideBarcode ? "" : document.getElementById('barcodeSubText').value,
+                    locationUrl: hideBarcode ? "" : document.getElementById('locationUrl').value,
+                    hidePhone: hidePhone,
+                    hideFees: hideFees,
+                    hideNotes: hideNotes,
+                    hideBarcode: hideBarcode
                 }
             };
 
@@ -901,16 +972,20 @@
             document.getElementById('inc_court').textContent = data.court || '---';
             document.getElementById('inc_caseTitle').textContent = data.caseTitle || '---';
             document.getElementById('inc_complainant').textContent = data.complainant || '---';
-            document.getElementById('inc_complainantPhone').textContent = data.complainantPhone || '---';
+            document.getElementById('inc_complainantPhone').textContent = data.complainantPhone || '';
+            document.getElementById('inc_complainantPhone').parentElement.style.display = (data.hidePhone || data.complainantPhone === "[محجوب]") ? "none" : "";
             document.getElementById('inc_defendant').textContent = data.defendant || '---';
             document.getElementById('inc_nextHearingDate').textContent = data.nextHearingDate || '---';
-            document.getElementById('inc_totalFees').textContent = data.totalFees || '---';
-            document.getElementById('inc_privateNotes').textContent = data.privateNotes || '---';
-            document.getElementById('inc_barcodeSubText').textContent = data.barcodeSubText || '---';
+            document.getElementById('inc_totalFees').textContent = data.totalFees || '';
+            document.getElementById('inc_totalFees').parentElement.style.display = (data.hideFees || data.totalFees === "[محجوب]") ? "none" : "";
+            document.getElementById('inc_privateNotes').textContent = data.privateNotes || '';
+            document.getElementById('inc_privateNotes').parentElement.style.display = (data.hideNotes || data.privateNotes === "[محجوب]") ? "none" : "";
+            document.getElementById('inc_barcodeSubText').textContent = data.barcodeSubText || '';
+            document.getElementById('inc_barcodeSubText').parentElement.style.display = (data.hideBarcode || data.barcodeSubText === "[محجوب]") ? "none" : "";
 
             const incQrDiv = document.getElementById('inc_qrcode');
             incQrDiv.innerHTML = "";
-            if (data.locationUrl && data.locationUrl !== "[محجوب]") {
+            if (!data.hideBarcode && data.locationUrl && data.locationUrl !== "[محجوب]") {
                 new QRCode(incQrDiv, {
                     text: data.locationUrl, width: 80, height: 80, colorDark : "#1e3a8a", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H
                 });
@@ -2803,6 +2878,7 @@ svg {
                     <button type="button" class="btn-open-laws-top btn-3d" onclick="openLawsPage()">📖 قوانين</button>
                     <button type="button" class="btn-open-wallet-top btn-3d" onclick="openMyWalletPage()">📁 محفظتي</button>
                     <button type="button" class="btn-open-contract-top btn-3d" onclick="openContractModal()">📜 عقد محامي</button>
+                    <button type="button" class="btn-archive-top btn-3d" onclick="openRegisteredDatesModal()">🗓️ تواريخ الدعاوى المسجلة</button>
                     <button type="button" class="btn-open-financial-top btn-3d" onclick="openFinancialModal()">💰 الأرشيف المالي</button>
                     <button type="button" class="btn-archive-top btn-3d" onclick="openMailArchiveModal()">📬 الأرشيف البريدي</button>
                     <button type="button" class="btn-archive-top btn-3d" onclick="openChatGPTPage()">🤖 ChatGPT</button>
@@ -2926,6 +3002,9 @@ svg {
                     <div class="contract-body-text" id="p_notesRow" style="display:none; background: #f8fafc; padding: 8px; border: 1px dashed #cbd5e1;"><b>ملاحظات إضافية:</b> <span id="p_notes"></span></div>
 
                     <div class="contract-body-text" style="margin-top: 15px;">حرر في تاريخ: <b id="p_date">.... / .... / 202...</b></div>
+                    <div class="contract-body-text" style="color:#dc2626;font-weight:800;margin-top:8px;line-height:1.8;">
+                        لا يجوز الحكّ أو الشطب في العقد، ولا يجوز الكتابة بالحبر على العقد غير التوقيع والاسم والتاريخ، ولا يجوز الكتابة أسفل هذا السطر، وغير ذلك يعتبر العقد باطلاً.
+                    </div>
                 </div>
                 
                 <!-- تم جعل التواقيع تلتصق في أسفل الصفحة عبر خاصية margin-top: auto -->
@@ -3116,6 +3195,22 @@ svg {
                 </div>
                 <button type="button" class="btn-main btn-3d" style="margin-top: 10px;" onclick="closeFinancialModal()">حفظ وإغلاق النافذة</button>
             </div>
+        </div>
+    </div>
+
+    <!-- نافذة البحث عن الدعاوى حسب تاريخ التسجيل -->
+    <div id="registeredDatesModal" class="modal-overlay">
+        <div class="modal-content" style="max-width:650px;">
+            <div class="modal-header">
+                <h3 style="margin:0;color:var(--primary-color);">🗓️ تواريخ الدعاوى المسجلة</h3>
+                <button type="button" class="modal-close-btn btn-3d" onclick="closeRegisteredDatesModal()">✕ إغلاق</button>
+            </div>
+            <div class="form-group">
+                <label for="registeredDatePicker">اختر تاريخ تسجيل الدعوى:</label>
+                <input type="date" id="registeredDatePicker">
+            </div>
+            <button type="button" class="btn-main btn-3d" onclick="searchCasesByRegisteredDate()">🔎 عرض الدعاوى في هذا التاريخ</button>
+            <div id="registeredDateResults" style="margin-top:14px;max-height:55vh;overflow:auto;"></div>
         </div>
     </div>
 
