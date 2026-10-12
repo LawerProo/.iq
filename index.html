@@ -166,8 +166,51 @@
             const isDark = body.classList.contains('dark-mode');
             localStorage.setItem('themeMode', isDark ? 'dark' : 'light');
             const btn = document.getElementById('darkModeBtn');
-            btn.textContent = isDark ? '☀️ نهاري' : '🌙 ليلي';
+            if (btn) {
+                btn.textContent = '☾';
+                btn.title = isDark ? 'تبديل إلى الوضع النهاري' : 'تبديل إلى الوضع الليلي';
+                btn.setAttribute('aria-label', btn.title);
+            }
         };
+
+        // أصوات ضغط الأزرار مع إمكانية كتمها وحفظ الاختيار
+        window.isSystemMuted = localStorage.getItem('systemButtonSoundsMuted') === 'true';
+        window.updateMuteButton = function() {
+            const btn = document.getElementById('muteModeBtn');
+            if (!btn) return;
+            btn.textContent = window.isSystemMuted ? '🔇' : '🔈';
+            btn.title = window.isSystemMuted ? 'تشغيل أصوات الأزرار' : 'كتم أصوات الأزرار';
+            btn.setAttribute('aria-label', btn.title);
+        };
+        window.toggleSystemMute = function() {
+            window.isSystemMuted = !window.isSystemMuted;
+            localStorage.setItem('systemButtonSoundsMuted', String(window.isSystemMuted));
+            window.updateMuteButton();
+        };
+        window.playSystemButtonSound = function() {
+            if (window.isSystemMuted) return;
+            try {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (!AudioCtx) return;
+                const ctx = new AudioCtx();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(660, ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(880, ctx.currentTime + 0.045);
+                gain.gain.setValueAtTime(0.0001, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.045, ctx.currentTime + 0.012);
+                gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.095);
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.start(); osc.stop(ctx.currentTime + 0.1);
+                osc.onended = () => ctx.close();
+            } catch (e) {}
+        };
+        document.addEventListener('click', function(event) {
+            const button = event.target.closest('button');
+            if (!button || button.id === 'muteModeBtn' || button.disabled) return;
+            window.playSystemButtonSound();
+        }, true);
 
         // ملف المستخدم والمساعدة
         async function loadUserProfile() {
@@ -263,11 +306,12 @@
 
 
         window.addEventListener('DOMContentLoaded', () => {
+            window.updateMuteButton();
             const savedTheme = localStorage.getItem('themeMode');
             if (savedTheme === 'dark') {
                 document.body.classList.add('dark-mode');
                 const btn = document.getElementById('darkModeBtn');
-                if (btn) btn.textContent = '☀️ نهاري';
+                if (btn) { btn.textContent = '☾'; btn.title = 'تبديل إلى الوضع النهاري'; btn.setAttribute('aria-label', btn.title); }
             }
         });
 
@@ -3612,11 +3656,13 @@ svg {
             <span class="help-icon">?</span>
             <span>المساعدة</span>
         </button>
+        <div class="quick-mode-buttons" aria-label="إعدادات سريعة">
+            <button type="button" id="darkModeBtn" class="quick-mode-btn" onclick="toggleDarkMode()" title="تبديل إلى الوضع الليلي" aria-label="تبديل إلى الوضع الليلي">☾</button>
+            <button type="button" id="muteModeBtn" class="quick-mode-btn" onclick="toggleSystemMute()" title="كتم أصوات الأزرار" aria-label="كتم أصوات الأزرار">🔈</button>
+        </div>
     </div>
 
     <div class="user-actions professional-actions">
-
-                    <button type="button" id="darkModeBtn" class="btn-theme-toggle btn-3d" onclick="toggleDarkMode()">🌙 ليلي</button>
                     <button type="button" class="btn-open-laws-top btn-3d" onclick="openLawsPage()">📖 قوانين</button>
                     <button type="button" class="btn-open-wallet-top btn-3d" onclick="openMyWalletPage()">📁 محفظتي</button>
                     <button type="button" class="btn-open-contract-top btn-3d" onclick="openContractModal()">📜 عقد محامي</button>
@@ -4321,6 +4367,16 @@ svg {
             window.addEventListener('load', resetIdleTimer);
         })();
     </script>
+
+
+/* أزرار الوضع الليلي والصوت: صغيرة وبجوار المساعدة */
+.professional-help-zone{display:flex!important;align-items:center!important;gap:9px!important;flex-wrap:wrap!important}
+.quick-mode-buttons{display:inline-flex;align-items:center;gap:6px}
+.quick-mode-btn{width:34px!important;height:34px!important;min-width:34px!important;min-height:34px!important;padding:0!important;display:inline-flex!important;align-items:center!important;justify-content:center!important;border-radius:11px!important;border:1px solid rgba(215,181,109,.75)!important;background:linear-gradient(145deg,#f8fafc,#dce5f0)!important;color:#132846!important;font-size:19px!important;line-height:1!important;box-shadow:0 3px 9px rgba(4,15,32,.16),inset 0 1px 0 rgba(255,255,255,.8)!important;cursor:pointer;transition:transform .18s ease,box-shadow .18s ease}
+.quick-mode-btn:hover{transform:translateY(-2px);box-shadow:0 6px 12px rgba(4,15,32,.2)!important}
+.quick-mode-btn:active{transform:scale(.94)}
+body.dark-mode .quick-mode-btn{background:linear-gradient(145deg,#23344c,#101b2d)!important;color:#f0d58c!important;border-color:#cda95c!important}
+@media(max-width:700px){.professional-help-zone{gap:6px!important;padding:0 3px!important}.quick-mode-buttons{gap:5px}.quick-mode-btn{width:32px!important;height:32px!important;min-width:32px!important;min-height:32px!important;font-size:18px!important}.professional-help-btn{min-width:70px!important}}
 
 </body>
 </html>
