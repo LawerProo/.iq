@@ -56,11 +56,13 @@
 
         window.loginUser = async function() {
             const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value.trim();
+            // لا نحذف المسافات من كلمة المرور؛ فقد تكون جزءاً منها.
+            const password = document.getElementById('password').value;
             const errorMsg = document.getElementById('loginError');
 
-            if (!email || !password) {
-                errorMsg.textContent = "يرجى إدخال البريد وكلمة المرور.";
+            if (!email || password.length === 0) {
+                errorMsg.style.color = "#ef4444";
+                errorMsg.textContent = "يرجى إدخال البريد الإلكتروني وكلمة المرور.";
                 return;
             }
 
@@ -71,7 +73,21 @@
                 errorMsg.textContent = "";
             } catch (error) {
                 errorMsg.style.color = "#ef4444";
-                errorMsg.textContent = "فشل: " + error.message;
+
+                const code = error && error.code ? error.code : "";
+                const messages = {
+                    "auth/invalid-login-credentials": "تعذر تسجيل الدخول. تحقق من البريد الإلكتروني وكلمة المرور، وتأكد من أن الحساب موجود في مشروع Firebase الصحيح.",
+                    "auth/invalid-credential": "بيانات الدخول غير صحيحة أو غير مقبولة. تحقق من البريد وكلمة المرور والحساب المستخدم.",
+                    "auth/user-not-found": "لا يوجد حساب بهذا البريد الإلكتروني في مشروع Firebase الحالي.",
+                    "auth/wrong-password": "كلمة المرور غير صحيحة.",
+                    "auth/invalid-email": "صيغة البريد الإلكتروني غير صحيحة.",
+                    "auth/user-disabled": "هذا الحساب معطّل. راجع مسؤول Firebase.",
+                    "auth/too-many-requests": "تمت محاولات دخول كثيرة. انتظر قليلاً ثم حاول مجدداً.",
+                    "auth/network-request-failed": "تعذر الاتصال بخدمة Firebase. تحقق من الإنترنت ثم أعد المحاولة.",
+                    "auth/operation-not-allowed": "تسجيل الدخول بالبريد وكلمة المرور غير مفعّل في إعدادات Firebase Authentication."
+                };
+
+                errorMsg.textContent = messages[code] || ("تعذر تسجيل الدخول (" + (code || "خطأ غير معروف") + "). " + (error && error.message ? error.message : "تحقق من إعدادات Firebase والاتصال."));
             }
         };
 
