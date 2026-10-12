@@ -975,7 +975,7 @@
 
         window.openShareModal = function() {
             if (!currentLoadedDocId) {
-                alert("يرجى تحميل أو حفظ الدعوة أولاً لتمكين مشاركتها.");
+                alert("يرجى تحميل أو حفظ الدعوى أولاً لتمكين مشاركتها.");
                 return;
             }
             document.getElementById('previewCaseNum').textContent = document.getElementById('caseNumber').value;
@@ -988,20 +988,43 @@
             document.getElementById('previewFees').textContent = document.getElementById('totalFees').value + ' د.ع';
             document.getElementById('previewNotes').textContent = document.getElementById('privateNotes').value;
             document.getElementById('previewBarcodeSub').textContent = document.getElementById('barcodeSubText').value || '---';
-            
+
+            // الخيارات غير محددة افتراضياً: لا تتم مشاركة الحقول الحساسة إلا بعد اختيارها صراحةً.
+            ['shareShowFees','shareShowPhone','shareShowNotes','shareShowBarcode'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.checked = false;
+            });
             const previewQrDiv = document.getElementById('previewQrcode');
-            previewQrDiv.innerHTML = "";
+            previewQrDiv.innerHTML = '';
             const locUrl = document.getElementById('locationUrl').value;
             if (locUrl) {
                 new QRCode(previewQrDiv, {
-                    text: locUrl, width: 70, height: 70, colorDark : "#1e3a8a", colorLight : "#ffffff", correctLevel : QRCode.CorrectLevel.H
+                    text: locUrl, width: 70, height: 70, colorDark: '#1e3a8a', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.H
                 });
-                document.getElementById('previewQrcodeContainer').style.display = 'block';
-            } else {
-                document.getElementById('previewQrcodeContainer').style.display = 'none';
             }
-
+            updateSharePreviewVisibility();
             document.getElementById('shareModal').style.display = 'flex';
+        };
+
+        window.updateSharePreviewVisibility = function() {
+            const choices = [
+                ['shareShowFees', 'previewFees'],
+                ['shareShowPhone', 'previewPhone'],
+                ['shareShowNotes', 'previewNotes'],
+                ['shareShowBarcode', 'previewBarcodeSub']
+            ];
+            choices.forEach(([checkId, valueId]) => {
+                const input = document.getElementById(checkId);
+                const value = document.getElementById(valueId);
+                if (input && value) {
+                    const line = value.closest('.share-preview-line');
+                    if (line) line.style.display = input.checked ? '' : 'none';
+                }
+            });
+            const phoneGroup = document.getElementById('previewPhoneGroup');
+            if (phoneGroup) phoneGroup.style.display = document.getElementById('shareShowPhone').checked ? '' : 'none';
+            const qr = document.getElementById('previewQrcodeContainer');
+            if (qr) qr.style.display = document.getElementById('shareShowBarcode').checked && document.getElementById('locationUrl').value ? 'block' : 'none';
         };
 
         window.closeShareModal = function() {
@@ -1015,10 +1038,14 @@
                 return;
             }
 
-            const hideFees = document.getElementById('hideFees').checked;
-            const hidePhone = document.getElementById('hidePhone').checked;
-            const hideNotes = document.getElementById('hideNotes').checked;
-            const hideBarcode = document.getElementById('hideBarcode').checked; 
+            const showFees = document.getElementById('shareShowFees').checked;
+            const showPhone = document.getElementById('shareShowPhone').checked;
+            const showNotes = document.getElementById('shareShowNotes').checked;
+            const showBarcode = document.getElementById('shareShowBarcode').checked;
+            const hideFees = !showFees;
+            const hidePhone = !showPhone;
+            const hideNotes = !showNotes;
+            const hideBarcode = !showBarcode; 
             const customMessage = document.getElementById('customShareMessage').value.trim();
 
             const sharedPackage = {
@@ -2999,6 +3026,24 @@ svg {
   body.print-report #appSection,
   body.print-report #mainSystemView { display:block !important; width:190mm !important; max-width:190mm !important; margin:0 auto !important; padding:0 !important; border:0 !important; box-shadow:none !important; }
 }
+
+    /* خيارات مشاركة احترافية وواضحة */
+    .share-visibility-panel{background:linear-gradient(145deg,#f8fafc,#eef3f9);border:1px solid #d8e1ec;border-radius:16px;padding:14px;margin-top:4px;box-shadow:0 6px 18px rgba(15,35,65,.06)}
+    .share-visibility-heading{display:flex;align-items:flex-start;gap:10px;margin-bottom:13px;color:#17365d}
+    .share-visibility-icon{display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:12px;background:#17365d;color:#f4c76b;font-size:19px;flex-shrink:0}
+    .share-visibility-heading strong{display:block;font-size:15px;margin-bottom:4px}
+    .share-visibility-heading small{display:block;color:#607086;font-size:12px;line-height:1.7}
+    .share-visibility-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+    .share-visibility-option{position:relative;display:flex;align-items:center;gap:9px;min-width:0;padding:11px;border:1px solid #d8e1ec;border-radius:12px;background:#fff;cursor:pointer;transition:border-color .18s,box-shadow .18s,transform .18s}
+    .share-visibility-option:hover{border-color:#c59b42;box-shadow:0 4px 12px rgba(23,54,93,.08);transform:translateY(-1px)}
+    .share-option-symbol{width:34px;height:34px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#edf2f8;color:#17365d;font-size:13px;font-weight:800;flex-shrink:0}
+    .share-option-text{flex:1;min-width:0}.share-option-text strong{display:block;color:#1e293b;font-size:13px}.share-option-text small{display:block;color:#748196;font-size:11px;margin-top:3px;line-height:1.4}
+    .share-visibility-option input{position:absolute;opacity:0;pointer-events:none}
+    .share-checkmark{width:21px;height:21px;border:2px solid #b8c4d3;border-radius:6px;background:#fff;flex-shrink:0;position:relative}
+    .share-visibility-option input:checked + .share-checkmark{background:#17365d;border-color:#17365d}
+    .share-visibility-option input:checked + .share-checkmark:after{content:'✓';position:absolute;inset:0;color:#f4c76b;font-size:15px;font-weight:800;display:flex;align-items:center;justify-content:center}
+    .share-visibility-option:has(input:checked){border-color:#c59b42;background:#fffdf7}
+    @media(max-width:480px){.share-visibility-grid{grid-template-columns:1fr}.share-visibility-option{padding:10px}.share-visibility-panel{padding:11px}}
 </style>
 
 </head>
@@ -3244,25 +3289,30 @@ svg {
                     <textarea id="customShareMessage" placeholder="اكتب رسالة مرفقة مع الدعوة..."></textarea>
                 </div>
 
-                <label style="margin-top: 5px;">حدد الأمور التي تريد إخفاءها عن المرسل إليه:</label>
-                <div style="display: flex; gap: 15px; font-size: 13px; font-weight: 600; flex-wrap: wrap;">
-                    <label style="cursor: pointer;"><input type="checkbox" id="hideFees"> إخفاء الأتعاب</label>
-                    <label style="cursor: pointer;"><input type="checkbox" id="hidePhone"> إخفاء الهاتف</label>
-                    <label style="cursor: pointer;"><input type="checkbox" id="hideNotes"> إخفاء الملاحظات</label>
-                    <label style="cursor: pointer;"><input type="checkbox" id="hideBarcode"> إخفاء الباركود</label>
-                </div>
+                <section class="share-visibility-panel" aria-label="خيارات الحقول التي ستظهر للمستلم">
+                    <div class="share-visibility-heading">
+                        <span class="share-visibility-icon">⚙️</span>
+                        <div><strong>الحقول الظاهرة للمستلم</strong><small>ضع علامة صح على الحقول التي تريد مشاركتها. الحقول غير المحددة لن تظهر للمستلم.</small></div>
+                    </div>
+                    <div class="share-visibility-grid">
+                        <label class="share-visibility-option" for="shareShowFees"><span class="share-option-symbol">د.ع</span><span class="share-option-text"><strong>الأتعاب</strong><small>مبلغ الأتعاب الكلي</small></span><input type="checkbox" id="shareShowFees" onchange="updateSharePreviewVisibility()"><span class="share-checkmark"></span></label>
+                        <label class="share-visibility-option" for="shareShowPhone"><span class="share-option-symbol">☎</span><span class="share-option-text"><strong>رقم الهاتف</strong><small>هاتف المشتكي</small></span><input type="checkbox" id="shareShowPhone" onchange="updateSharePreviewVisibility()"><span class="share-checkmark"></span></label>
+                        <label class="share-visibility-option" for="shareShowNotes"><span class="share-option-symbol">☰</span><span class="share-option-text"><strong>الملاحظات</strong><small>الملاحظات الإضافية</small></span><input type="checkbox" id="shareShowNotes" onchange="updateSharePreviewVisibility()"><span class="share-checkmark"></span></label>
+                        <label class="share-visibility-option" for="shareShowBarcode"><span class="share-option-symbol">▦</span><span class="share-option-text"><strong>الباركود</strong><small>الرمز والنص المرتبط به</small></span><input type="checkbox" id="shareShowBarcode" onchange="updateSharePreviewVisibility()"><span class="share-checkmark"></span></label>
+                    </div>
+                </section>
 
                 <label style="margin-top: 5px;">معاينة الدعوى قبل الإرسال:</label>
-                <div class="preview-box">
+                <div class="preview-box" id="sharePreviewBox">
                     <div><b>رقم الدعوى:</b> <span id="previewCaseNum">---</span></div>
                     <div><b>المحكمة:</b> <span id="previewCourt">---</span></div>
                     <div><b>موضوعها:</b> <span id="previewTitle">---</span></div>
-                    <div><b>المشتكي:</b> <span id="previewComplainant">---</span> | <b>الهاتف:</b> <span id="previewPhone">---</span></div>
+                    <div><b>المشتكي:</b> <span id="previewComplainant">---</span><span id="previewPhoneGroup"> | <b>الهاتف:</b> <span id="previewPhone">---</span></span></div>
                     <div><b>الخصم:</b> <span id="previewDefendant">---</span></div>
                     <div><b>الجلسة القادمة:</b> <span id="previewHearing">---</span></div>
-                    <div><b>الأتعاب الكلية:</b> <span id="previewFees">---</span></div>
-                    <div><b>ملاحظات:</b> <span id="previewNotes">---</span></div>
-                    <div><b>نص الباركود:</b> <span id="previewBarcodeSub">---</span></div>
+                    <div class="share-preview-line"><b>الأتعاب الكلية:</b> <span id="previewFees">---</span></div>
+                    <div class="share-preview-line"><b>ملاحظات:</b> <span id="previewNotes">---</span></div>
+                    <div class="share-preview-line"><b>نص الباركود:</b> <span id="previewBarcodeSub">---</span></div>
                     <div id="previewQrcodeContainer" style="margin-top: 10px; text-align: center;">
                         <span style="font-size: 11px; color: var(--label-color); display: block;">الباركود المرتبط:</span>
                         <div id="previewQrcode"></div>
