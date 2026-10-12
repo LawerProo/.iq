@@ -251,18 +251,68 @@
         };
 
         window.printFinancialReceipt = function(){
-            const total = Number(document.getElementById('totalFees').value || 0);
-            const paid = Number(document.getElementById('paidFees').value || 0);
-            const remaining = total - paid;
-            const responsible = (document.getElementById('watermarkText')?.value || '').trim();
-            const chosenDate = document.getElementById('financialReceiptDate')?.value || '';
-            const dateText = chosenDate ? new Date(chosenDate+'T12:00:00').toLocaleDateString('ar-IQ') : '';
-            const fmt = n => new Intl.NumberFormat('ar-IQ').format(n) + ' د.ع';
-            const win = window.open('', '_blank', 'width=800,height=700');
-            if(!win){alert('يرجى السماح بفتح نافذة الطباعة من المتصفح.');return;}
-            const esc = v => String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-            win.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>وصل استلام أتعاب المحاماة</title><style>body{font-family:Tahoma,Arial,sans-serif;padding:32px;color:#111;direction:rtl}.receipt{max-width:720px;margin:auto;border:2px solid #222;padding:28px;border-radius:12px}.head{text-align:center;border-bottom:1px solid #999;padding-bottom:18px;margin-bottom:22px}h1{font-size:25px;margin:0 0 8px}table{width:100%;border-collapse:collapse;margin-top:20px}td,th{border:1px solid #777;padding:14px;text-align:right}th{background:#f1f1f1}.amount{font-weight:bold;font-size:18px}.foot{margin-top:36px;display:flex;justify-content:space-between;gap:20px}.signature{min-width:42%;border-top:1px solid #555;padding-top:10px;margin-top:30px}@media print{body{padding:0}.receipt{border-radius:0}}</style></head><body><div class="receipt"><div class="head"><h1>وصل استلام أتعاب المحاماة</h1><div>إيصال بالمبالغ الخاصة بأتعاب المحاماة</div></div><div>اسم المسؤول: <b>${esc(responsible || '—')}</b></div>${dateText?`<div style="margin-top:8px">تاريخ الطباعة: <b>${esc(dateText)}</b></div>`:''}<table><tr><th>التفاصيل</th><th>المبلغ</th></tr><tr><td>أتعاب المحاماة الكلية</td><td class="amount">${esc(fmt(total))}</td></tr><tr><td>المبالغ المستلمة مقدماً</td><td class="amount">${esc(fmt(paid))}</td></tr><tr><td><b>المتبقي (الأتعاب الكلية − المستلم مقدماً)</b></td><td class="amount">${esc(fmt(remaining))}</td></tr></table><div class="foot"><div class="signature">توقيع المستلم</div><div class="signature">توقيع المحامي</div></div></div><script>window.onload=()=>{window.print();};<\/script></body></html>`);
-            win.document.close();
+            try {
+                const totalEl = document.getElementById('totalFees');
+                const paidEl = document.getElementById('paidFees');
+                const lawyerEl = document.getElementById('watermarkText');
+                const complainantEl = document.getElementById('complainant');
+                const dateEl = document.getElementById('financialReceiptDate');
+                if (!totalEl || !paidEl || !lawyerEl || !complainantEl || !dateEl) {
+                    alert('تعذر تجهيز الوصل: بعض حقول الأرشيف المالي غير موجودة. حدّث الصفحة وحاول مجدداً.');
+                    return false;
+                }
+                const total = Number(totalEl.value || 0);
+                const paid = Number(paidEl.value || 0);
+                const remaining = total - paid;
+                const lawyer = lawyerEl.value.trim();
+                const client = complainantEl.value.trim();
+                const chosenDate = dateEl.value || '';
+                const dateText = chosenDate ? new Date(chosenDate + 'T12:00:00').toLocaleDateString('ar-IQ') : '';
+                const fmt = n => new Intl.NumberFormat('ar-IQ').format(n) + ' د.ع';
+                const esc = v => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+                let area = document.getElementById('financialReceiptPrintArea');
+                if (!area) {
+                    area = document.createElement('section');
+                    area.id = 'financialReceiptPrintArea';
+                    document.body.appendChild(area);
+                }
+                area.innerHTML = `<article class="financial-receipt-paper" dir="rtl" lang="ar">
+                    <header class="financial-receipt-head"><h1>وصل استلام أتعاب المحاماة</h1><p>إيصال بالمبالغ الخاصة بأتعاب المحاماة</p></header>
+                    <p class="financial-receipt-responsible">اسم المحامي: <strong>${esc(lawyer || '—')}</strong></p>
+                    <p class="financial-receipt-responsible">اسم الموكل: <strong>${esc(client || '—')}</strong></p>
+                    ${dateText ? `<p class="financial-receipt-date">تاريخ الطباعة: <strong>${esc(dateText)}</strong></p>` : ''}
+                    <table><thead><tr><th>التفاصيل</th><th>المبلغ</th></tr></thead><tbody>
+                    <tr><td>أتعاب المحاماة الكلية</td><td>${esc(fmt(total))}</td></tr>
+                    <tr><td>المبالغ المستلمة مقدماً</td><td>${esc(fmt(paid))}</td></tr>
+                    <tr><td><strong>المبلغ المتبقي</strong><small class="financial-receipt-formula">الأتعاب الكلية − المبالغ المستلمة</small></td><td><strong>${esc(fmt(remaining))}</strong></td></tr>
+                    </tbody></table>
+                    <footer class="financial-receipt-signatures"><div>توقيع الموكل<br><strong>${esc(client || '—')}</strong></div><div>توقيع المحامي<br><strong>${esc(lawyer || '—')}</strong></div></footer>
+                </article>`;
+                document.body.classList.remove('print-report','print-contract');
+                document.body.classList.add('print-financial-receipt');
+                // Force a direct body child and print in the same click event for mobile Safari.
+                if (area.parentElement !== document.body) document.body.appendChild(area);
+                const cleanup = () => {
+                    document.body.classList.remove('print-financial-receipt');
+                    window.removeEventListener('afterprint', cleanup);
+                };
+                window.addEventListener('afterprint', cleanup, {once:true});
+                if (typeof window.print !== 'function') {
+                    cleanup();
+                    alert('الطباعة غير مدعومة داخل هذا المتصفح. افتح النظام في Safari أو Chrome ثم اختر مشاركة > طباعة.');
+                    return false;
+                }
+                window.focus();
+                window.print();
+                // Some mobile browsers do not emit afterprint; restore screen view after a generous fallback.
+                setTimeout(cleanup, 120000);
+                return false;
+            } catch (err) {
+                document.body.classList.remove('print-financial-receipt');
+                console.error('Financial receipt print error:', err);
+                alert('حدث خطأ أثناء تجهيز وصل الطباعة. أعد تحميل الصفحة ثم حاول مرة أخرى.');
+                return false;
+            }
         };
 
         window.openContractModal = function() {
@@ -678,6 +728,12 @@
         window.openChatModal = async function(){
             if(!currentUser){alert('يرجى تسجيل الدخول أولاً.');return;}
             document.getElementById('chatModal').style.display='flex';
+            document.querySelector('.chat-modal-content')?.classList.remove('chat-has-selection');
+            chatSelectedContact=null;
+            document.getElementById('chatMessageInput').value='';
+            document.getElementById('chatMessageInput').disabled=true;
+            document.getElementById('sendChatMessageBtn').disabled=true;
+            document.getElementById('chatConversationHeader').innerHTML='اختر شخصاً من القائمة لبدء المحادثة';
             document.getElementById('chatContactSearch').value='';
             await cleanupExpiredChatMessages();
             await loadSavedContacts();
@@ -687,6 +743,15 @@
             chatRefreshTimer=setInterval(()=>{ if(document.getElementById('chatModal').style.display==='flex' && chatSelectedContact) loadChatThread(); },5000);
         };
         window.closeChatModal = function(){document.getElementById('chatModal').style.display='none';if(chatRefreshTimer){clearInterval(chatRefreshTimer);chatRefreshTimer=null;}};
+        window.backToChatContacts = function(){
+            document.querySelector('.chat-modal-content')?.classList.remove('chat-has-selection');
+            chatSelectedContact=null;
+            const h=document.getElementById('chatConversationHeader'); if(h) h.innerHTML='اختر شخصاً من القائمة لبدء المحادثة';
+            const input=document.getElementById('chatMessageInput'), btn=document.getElementById('sendChatMessageBtn');
+            if(input){input.value='';input.disabled=true;} if(btn)btn.disabled=true;
+            const host=document.getElementById('chatMessages'); if(host)host.innerHTML='<div class="chat-empty">💬 اختر شخصاً لعرض المحادثة</div>';
+            renderChatContacts();
+        };
         window.renderChatContacts = function(){
             const host=document.getElementById('chatContactsList'); if(!host)return;
             const term=(document.getElementById('chatContactSearch').value||'').trim().toLowerCase();
@@ -696,13 +761,13 @@
             host.querySelectorAll('[data-chat-email]').forEach(btn=>btn.addEventListener('click',()=>{const c=chatContacts.find(x=>x.email===btn.dataset.chatEmail);if(c)selectChatContact(c);}));
         };
         async function selectChatContact(contact){
-            chatSelectedContact=contact;renderChatContacts();
+            chatSelectedContact=contact;document.querySelector('.chat-modal-content')?.classList.add('chat-has-selection');renderChatContacts();
             const warningKey = 'chatRetentionNotice:' + makeConversationId(currentUser?.email, contact?.email);
             if(!localStorage.getItem(warningKey)){
                 alert('تنبيه مهم: سيتم حذف رسائل هذه المحادثة تلقائياً بعد مرور أسبوع واحد من تاريخ إرسال كل رسالة للمحافظة على مساحة التخزين السحابية.');
                 localStorage.setItem(warningKey,'shown');
             }
-            document.getElementById('chatConversationHeader').innerHTML=`<b>${safeChatText(contact.name||contact.email)}</b><small style="display:block;direction:ltr;text-align:right;color:var(--label-color)">${safeChatText(contact.email)}</small>`;
+            document.getElementById('chatConversationHeader').innerHTML=`<button type="button" class="chat-back-button" onclick="backToChatContacts()" aria-label="العودة إلى جهات الاتصال">‹ الأشخاص</button><span class="chat-person-avatar">${safeChatText((contact.name||contact.email||'?').trim().charAt(0).toUpperCase())}</span><span class="chat-person-details"><b>${safeChatText(contact.name||contact.email)}</b><small>${safeChatText(contact.email)}</small></span><span class="chat-online-label"><i></i> محادثة مباشرة</span>`;
             document.getElementById('chatMessageInput').disabled=false;document.getElementById('sendChatMessageBtn').disabled=false;
             await loadChatThread();
         }
@@ -3106,6 +3171,69 @@ svg {
           .chat-empty{padding:18px 12px;font-size:13px}
         }
         @media(max-width:380px){.chat-modal-content>.modal-header h3{font-size:15px}.chat-modal-content>.modal-header small{max-width:165px}.chat-compose button{min-width:64px}.chat-contact-item{flex-basis:72vw}}
+        /* واجهة محادثة قريبة من تطبيقات الدردشة الحديثة */
+        .chat-contacts-pane{display:flex;flex-direction:column;overflow:hidden;background:var(--section-bg)}
+        .chat-conversation-pane{display:flex;flex-direction:column;background:#f7f8fa}
+        .chat-conversation-header{flex:0 0 auto;display:flex;flex-direction:row;align-items:center;gap:11px;min-height:72px;background:var(--card-bg)}
+        .chat-person-avatar{width:44px;height:44px;flex:0 0 44px;display:grid;place-items:center;border-radius:50%;background:linear-gradient(135deg,#163d52,#c5a04a);color:#fff;font-size:19px;font-weight:900;box-shadow:0 3px 10px #0002}
+        .chat-person-details{display:flex;flex:1;min-width:0;flex-direction:column;gap:3px}
+        .chat-person-details b{font-size:15px;overflow-wrap:anywhere}
+        .chat-person-details small{direction:ltr;text-align:right;color:var(--label-color);font-size:11px;overflow-wrap:anywhere}
+        .chat-online-label{display:flex;align-items:center;gap:5px;color:var(--label-color);font-size:11px;white-space:nowrap}
+        .chat-online-label i{display:inline-block;width:7px;height:7px;border-radius:50%;background:#20b86a}
+        .chat-back-button{display:none;border:0;border-radius:10px;padding:8px 10px;background:var(--section-bg);color:var(--primary-color);font-weight:800;white-space:nowrap}
+        .chat-messages{background-color:#efeae2;background-image:radial-gradient(circle at 15% 20%,rgba(255,255,255,.52) 0 1px,transparent 1.5px),radial-gradient(circle at 80% 60%,rgba(255,255,255,.38) 0 1px,transparent 1.5px);background-size:26px 26px,34px 34px}
+        .chat-bubble{position:relative;max-width:min(78%,620px);padding:10px 13px 7px;border-radius:14px;font-size:14px;box-shadow:0 1px 1px rgba(0,0,0,.09)}
+        .chat-bubble.mine{border-bottom-left-radius:4px;background:#d9fdd3}
+        .chat-bubble.theirs{border-bottom-right-radius:4px;background:#fff;border-color:#e8e8e8}
+        .chat-compose{flex:0 0 auto;gap:9px;padding:10px;background:var(--card-bg);padding-bottom:max(10px,env(safe-area-inset-bottom))}
+        .chat-compose textarea{min-height:48px;max-height:150px;border-radius:22px;padding:12px 16px;background:var(--section-bg)}
+        .chat-compose button{border-radius:22px;min-width:92px}
+        .chat-contact-item{display:grid;grid-template-columns:minmax(0,1fr);gap:2px;background:var(--card-bg);border-bottom:1px solid var(--border-color);border-radius:10px}
+        .chat-contact-item.active{background:rgba(197,160,74,.13)}
+        .chat-empty{background:rgba(255,255,255,.75);border-radius:18px}
+        @media(max-width:680px){
+          .chat-modal-content.chat-has-selection .chat-contacts-pane{display:none}
+          .chat-modal-content.chat-has-selection .chat-layout{grid-template-rows:minmax(0,1fr)}
+          .chat-modal-content:not(.chat-has-selection) .chat-conversation-pane{display:none}
+          .chat-modal-content:not(.chat-has-selection) .chat-layout{grid-template-rows:minmax(0,1fr)}
+          .chat-contacts-pane{padding:12px;gap:9px}
+          .chat-contacts-list{display:flex;flex-direction:column;overflow:auto;gap:0;min-height:0}
+          .chat-contact-item{flex:0 0 auto;width:100%;min-height:62px;padding:10px 12px;border-radius:12px;margin:3px 0;text-align:right}
+          .chat-contact-item b{font-size:14px}
+          .chat-contact-item small{font-size:11px}
+          .chat-conversation-header{gap:8px;padding:8px 9px;min-height:64px}
+          .chat-back-button{display:block;font-size:12px;padding:8px 9px}
+          .chat-person-avatar{width:38px;height:38px;flex-basis:38px;font-size:16px}
+          .chat-person-details b{font-size:13px}
+          .chat-online-label{display:none}
+          .chat-messages{background-size:24px 24px,32px 32px}
+          .chat-bubble{max-width:88%;font-size:14px}
+          .chat-compose button{min-width:70px}
+        }
+        @media(min-width:681px) and (max-width:900px){.chat-person-avatar{width:36px;height:36px;flex-basis:36px}.chat-online-label{display:none}.chat-bubble{max-width:90%}}
+        @page { size: A4 portrait; margin: 12mm; }
+        #financialReceiptPrintArea{display:none}
+        .financial-receipt-paper{box-sizing:border-box;width:100%;max-width:186mm;margin:0 auto;padding:14mm;border:1.5px solid #222;background:#fff;color:#111;font-family:Tahoma,Arial,sans-serif;direction:rtl}
+        .financial-receipt-head{text-align:center;border-bottom:1px solid #999;padding-bottom:7mm;margin-bottom:8mm}
+        .financial-receipt-head h1{font-size:22pt;margin:0 0 3mm}.financial-receipt-head p{margin:0;font-size:11pt}
+        .financial-receipt-responsible,.financial-receipt-date{font-size:12pt;margin:4mm 0}
+        .financial-receipt-paper table{width:100%;border-collapse:collapse;margin-top:9mm;font-size:12pt}
+        .financial-receipt-paper th,.financial-receipt-paper td{border:1px solid #555;padding:5mm;text-align:right;vertical-align:top}
+        .financial-receipt-paper th{background:#f0f0f0}.financial-receipt-paper td:last-child{white-space:nowrap;font-weight:700}
+        .financial-receipt-formula{display:block;font-size:9pt;margin-top:2mm;color:#444}
+        .financial-receipt-signatures{display:flex;gap:15mm;justify-content:space-between;margin-top:25mm}
+        .financial-receipt-signatures div{width:45%;padding-top:4mm;border-top:1px solid #555;text-align:center;font-size:11pt;line-height:2}
+        @media print{
+          @page { size: A4 portrait; margin: 12mm; }
+          html,body{width:auto!important;min-width:0!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important}
+          body.print-financial-receipt > :not(#financialReceiptPrintArea){display:none!important;visibility:hidden!important}
+          body.print-financial-receipt > #financialReceiptPrintArea{display:block!important;visibility:visible!important;position:static!important;inset:auto!important;width:100%!important;max-width:none!important;height:auto!important;margin:0!important;padding:0!important;overflow:visible!important;opacity:1!important}
+          body.print-financial-receipt > #financialReceiptPrintArea *{visibility:visible!important}
+          body.print-financial-receipt .financial-receipt-paper{display:block!important;visibility:visible!important;width:100%!important;max-width:none!important;min-height:0!important;margin:0!important;padding:10mm!important;border:1.5px solid #222!important;box-shadow:none!important;box-sizing:border-box!important;break-inside:avoid;page-break-inside:avoid;background:#fff!important;color:#111!important}
+          body.print-financial-receipt .financial-receipt-paper *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+        }
+
 
 </style>
 <script>
@@ -3471,7 +3599,7 @@ svg {
                         <input type="text" id="barcodeSubText" placeholder="مثال: صالح للنشر">
                     </div>
                     <div class="form-group">
-                        <label>اسم المسؤول (الورقة المائية):</label>
+                        <label>اسم المحامي (العلامة المائية):</label>
                         <input type="text" id="watermarkText" placeholder="مثال: المحامي فلان">
                     </div>
                     <div class="form-group full-width">
