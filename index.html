@@ -1304,7 +1304,7 @@
             document.getElementById('previewComplainant').textContent = document.getElementById('complainant').value;
             document.getElementById('previewPhone').textContent = document.getElementById('complainantPhone').value;
             document.getElementById('previewDefendant').textContent = document.getElementById('defendant').value;
-            document.getElementById('previewHearing').textContent = document.getElementById('nextHearingDate').value;
+            document.getElementById('previewHearing').textContent = document.getElementById('followUpDate').value || '---';
             document.getElementById('previewFees').textContent = document.getElementById('totalFees').value + ' د.ع';
             document.getElementById('previewNotes').textContent = document.getElementById('privateNotes').value;
             document.getElementById('previewBarcodeSub').textContent = document.getElementById('barcodeSubText').value || '---';
@@ -1385,8 +1385,8 @@
                     complainant: document.getElementById('complainant').value,
                     complainantPhone: hidePhone ? "" : document.getElementById('complainantPhone').value,
                     defendant: document.getElementById('defendant').value,
-                    nextHearingDate: showHearing ? document.getElementById('nextHearingDate').value : '',
-                    followUpDate: showHearing ? document.getElementById('followUpDate').value : '',
+                    nextHearingDate: showHearing ? document.getElementById('followUpDate').value : '',
+                    followUpDate: '',
                     hideHearing: !showHearing,
                     totalFees: hideFees ? "" : (document.getElementById('totalFees').value + ' د.ع'),
                     privateNotes: hideNotes ? "" : document.getElementById('privateNotes').value,
