@@ -628,63 +628,15 @@
             reader.readAsDataURL(file);
         };
 
-        let registeredCalendarMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-        let registeredCalendarCases = [];
-        const calendarDateKey = (date) => `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`;
-        window.renderRegisteredCalendar = function() {
-            const grid = document.getElementById('registeredCalendarGrid');
-            const title = document.getElementById('registeredCalendarMonth');
-            if (!grid || !title) return;
-            title.textContent = registeredCalendarMonth.toLocaleDateString('ar-IQ', {month:'long',year:'numeric'});
-            const weekDays = ['الأحد','الإثنين','الثلاثاء','الأربعاء','الخميس','الجمعة','السبت'];
-            const year = registeredCalendarMonth.getFullYear(), month = registeredCalendarMonth.getMonth();
-            const firstDay = new Date(year, month, 1).getDay();
-            const daysInMonth = new Date(year, month+1, 0).getDate();
-            const selected = document.getElementById('registeredDatePicker')?.value || calendarDateKey(new Date());
-            const today = calendarDateKey(new Date());
-            let html = weekDays.map(day=>`<div class="registered-calendar-weekday">${day}</div>`).join('');
-            for(let i=0;i<firstDay;i++) html += '<div class="registered-calendar-day empty"></div>';
-            for(let day=1;day<=daysInMonth;day++) {
-                const date = calendarDateKey(new Date(year,month,day));
-                const hasEvent = registeredCalendarCases.some(item => [item.registeredDate, String(item.nextHearingDate||'').slice(0,10), String(item.followUpDate||'').slice(0,10)].includes(date));
-                const classes = ['registered-calendar-day', date===selected?'selected':'', date===today?'today':''].filter(Boolean).join(' ');
-                html += `<button type="button" class="${classes}" data-calendar-date="${date}" aria-label="${date}"><span>${day}</span><span class="registered-calendar-dots">${hasEvent?'●':''}</span></button>`;
-            }
-            grid.innerHTML = html;
-            grid.querySelectorAll('button[data-calendar-date]').forEach(button=>button.addEventListener('click',()=>{
-                document.getElementById('registeredDatePicker').value = button.dataset.calendarDate;
-                renderRegisteredCalendar();
-                searchCasesByRegisteredDate();
-            }));
-        };
-        window.shiftRegisteredCalendarMonth = function(delta) {
-            registeredCalendarMonth = new Date(registeredCalendarMonth.getFullYear(), registeredCalendarMonth.getMonth()+delta, 1);
-            renderRegisteredCalendar();
-        };
-        async function refreshRegisteredCalendarData() {
-            if (!currentUser) return;
-            try {
-                const snapshot = await getDocs(collection(db, `users/${currentUser.uid}/cases`));
-                registeredCalendarCases = snapshot.docs.map(docSnap => ({id:docSnap.id, ...docSnap.data()}));
-            } catch(error) {
-                registeredCalendarCases = [];
-                console.error('تعذر تحميل بيانات التقويم السحابي:', error);
-            }
-            renderRegisteredCalendar();
-        }
-
         window.openRegisteredDatesModal = function() {
             if (!currentUser) {
                 alert("يرجى تسجيل الدخول أولاً.");
                 return;
             }
             const picker = document.getElementById('registeredDatePicker');
-            if (!picker.value) picker.value = calendarDateKey(new Date());
-            const picked = new Date(picker.value + 'T12:00:00');
-            registeredCalendarMonth = new Date(picked.getFullYear(), picked.getMonth(), 1);
+            if (!picker.value) picker.value = new Date().toISOString().slice(0, 10);
             document.getElementById('registeredDateResults').innerHTML = "";
             document.getElementById('registeredDatesModal').style.display = 'flex';
-            refreshRegisteredCalendarData();
         };
 
         window.closeRegisteredDatesModal = function() {
@@ -692,36 +644,38 @@
         };
 
         window.searchCasesByRegisteredDate = async function() {
-            if (!currentUser) { alert("يرجى تسجيل الدخول أولاً."); return; }
+            if (!currentUser) return;
             const selectedDate = document.getElementById('registeredDatePicker').value;
-            const eventType = document.getElementById('calendarEventType').value;
             const results = document.getElementById('registeredDateResults');
-            if (!selectedDate) { alert("اختر التاريخ أولاً."); return; }
-            results.innerHTML = "<p>جارٍ البحث في الدعاوى والمواعيد المحفوظة في السحاب...</p>";
-            const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+            if (!selectedDate) {
+                alert("اختر التاريخ أولاً.");
+                return;
+            }
+            results.innerHTML = "<p>جارٍ البحث في الدعاوى المحفوظة في السحاب...</p>";
             try {
                 const snapshot = await getDocs(collection(db, `users/${currentUser.uid}/cases`));
                 const matches = [];
                 snapshot.forEach((caseDoc) => {
                     const data = caseDoc.data();
-                    const events = [];
-                    if ((eventType === 'registeredDate' || eventType === 'all') && data.registeredDate === selectedDate)
-                        events.push({label:'تاريخ تسجيل الدعوى', value:data.registeredDate});
-                    if ((eventType === 'nextHearingDate' || eventType === 'all') && data.nextHearingDate && String(data.nextHearingDate).slice(0,10) === selectedDate)
-                        events.push({label:'جلسة المحكمة', value:data.nextHearingDate.replace('T',' ')});
-                    if ((eventType === 'followUpDate' || eventType === 'all') && data.followUpDate && String(data.followUpDate).slice(0,10) === selectedDate)
-                        events.push({label:'مراجعة / آخر موعد للمستندات', value:data.followUpDate.replace('T',' ')});
-                    if (events.length) matches.push({id:caseDoc.id, caseNumber:data.caseNumber || caseDoc.id, caseTitle:data.caseTitle || '', complainant:data.complainant || '', court:data.court || '', events});
+                    if (data.registeredDate === selectedDate) {
+                        matches.push({
+                            id: caseDoc.id,
+                            caseNumber: data.caseNumber || caseDoc.id,
+                            caseTitle: data.caseTitle || "",
+                            complainant: data.complainant || "",
+                            court: data.court || ""
+                        });
+                    }
                 });
-                matches.sort((a,b) => String(a.caseNumber).localeCompare(String(b.caseNumber),'ar',{numeric:true}));
+                matches.sort((a, b) => String(a.caseNumber).localeCompare(String(b.caseNumber), 'ar', {numeric:true}));
                 if (!matches.length) {
-                    results.innerHTML = '<div class="preview-box">لا توجد دعاوى أو مواعيد محفوظة في السحاب تطابق هذا اليوم والنوع المحدد. قد لا تظهر تواريخ التسجيل للدعاوى القديمة التي لم يُحفظ لها هذا الحقل سابقاً.</div>';
+                    results.innerHTML = '<div class="preview-box">لا توجد دعاوى محفوظة بتاريخ التسجيل المحدد. الدعاوى القديمة التي لم يكن لها تاريخ تسجيل محفوظ لن تظهر حتى تُفتح وتُحفظ مرة أخرى.</div>';
                     return;
                 }
-                results.innerHTML = '<p><b>عدد الدعاوى المطابقة: ' + matches.length + '</b></p>' + matches.map(item =>
-                    `<div class="preview-box" style="margin:8px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
-                        <div><b>الدعوى رقم: ${escapeHtml(item.caseNumber)}</b><div>${escapeHtml(item.caseTitle)} ${item.court ? '— ' + escapeHtml(item.court) : ''}</div><small>الموكل: ${escapeHtml(item.complainant)}</small><div style="margin-top:6px;">${item.events.map(ev=>`<div>📌 <b>${escapeHtml(ev.label)}:</b> ${escapeHtml(ev.value)}</div>`).join('')}</div></div>
-                        <button type="button" class="btn-search btn-3d" data-case-id="${escapeHtml(item.id)}">فتح الدعوى</button>
+                results.innerHTML = '<p><b>عدد الدعاوى في ' + selectedDate + ': ' + matches.length + '</b></p>' +
+                    matches.map(item => `<div class="preview-box" style="margin:8px 0;display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;">
+                        <div><b>الدعوى رقم: ${String(item.caseNumber).replace(/</g,'&lt;')}</b><div>${String(item.caseTitle).replace(/</g,'&lt;')} ${item.court ? '— ' + String(item.court).replace(/</g,'&lt;') : ''}</div><small>الموكل: ${String(item.complainant).replace(/</g,'&lt;')}</small></div>
+                        <button type="button" class="btn-search btn-3d" data-case-id="${item.id.replace(/"/g,'&quot;')}">فتح الدعوى</button>
                     </div>`).join('');
                 results.querySelectorAll('button[data-case-id]').forEach(button => {
                     button.addEventListener('click', async () => {
@@ -733,7 +687,7 @@
                     });
                 });
             } catch (error) {
-                results.innerHTML = '<div class="preview-box">تعذر جلب الدعاوى من السحاب: ' + escapeHtml(error.message || error) + '</div>';
+                results.innerHTML = '<div class="preview-box">تعذر جلب الدعاوى من السحاب: ' + String(error.message || error).replace(/</g,'&lt;') + '</div>';
             }
         };
 
@@ -770,7 +724,6 @@
                     defendant: document.getElementById('defendant').value,
                     court: document.getElementById('court').value,
                     nextHearingDate: document.getElementById('nextHearingDate').value,
-                    followUpDate: document.getElementById('followUpDate').value,
                     totalFees: document.getElementById('totalFees').value,
                     paidFees: document.getElementById('paidFees').value,
                     courtExpenses: document.getElementById('courtExpenses').value,
@@ -819,7 +772,6 @@
                     document.getElementById('defendant').value = data.defendant || '';
                     document.getElementById('court').value = data.court || '';
                     document.getElementById('nextHearingDate').value = data.nextHearingDate || '';
-                    document.getElementById('followUpDate').value = data.followUpDate || '';
                     checkHearingAlert(data.nextHearingDate);
 
                     document.getElementById('totalFees').value = data.totalFees || '';
@@ -862,7 +814,6 @@
             document.getElementById('lawForm').reset();
             document.getElementById('searchQuery').value = "";
             document.getElementById('nextHearingDate').value = "";
-            document.getElementById('followUpDate').value = "";
             document.getElementById('qrcodeContainer').style.display = 'none';
             document.getElementById('hearingAlertBox').style.display = 'none';
             document.getElementById('fileInfo').textContent = "";
@@ -961,7 +912,6 @@
                     complainantPhone: hidePhone ? "" : document.getElementById('complainantPhone').value,
                     defendant: document.getElementById('defendant').value,
                     nextHearingDate: document.getElementById('nextHearingDate').value,
-                    followUpDate: document.getElementById('followUpDate').value,
                     totalFees: hideFees ? "" : (document.getElementById('totalFees').value + ' د.ع'),
                     privateNotes: hideNotes ? "" : document.getElementById('privateNotes').value,
                     barcodeSubText: hideBarcode ? "" : document.getElementById('barcodeSubText').value,
@@ -1089,19 +1039,18 @@
 
                 querySnapshot.forEach((docSnap) => {
                     const data = docSnap.data();
-                    [['nextHearingDate','جلسة المحكمة'],['followUpDate','موعد مراجعة / آخر موعد']].forEach(([field,label]) => {
-                        if (!data[field]) return;
-                        const eventDate = new Date(data[field]);
-                        if (Number.isNaN(eventDate.getTime())) return;
-                        const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
-                        const diffTime = eventDay - todayDay;
+                    if (data.nextHearingDate) {
+                        const hearingDate = new Date(data.nextHearingDate);
+                        const hearingDay = new Date(hearingDate.getFullYear(), hearingDate.getMonth(), hearingDate.getDate());
+                        const diffTime = hearingDay - todayDay;
                         const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-                        const timeFormatted = eventDate.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
-                        if (diffDays >= 0 && diffDays <= 1) {
+                        const timeFormatted = hearingDate.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
+
+                        if (diffDays === 0 || diffDays === 1) {
                             const statusText = diffDays === 0 ? `اليوم (${timeFormatted})` : `غداً (${timeFormatted})`;
-                            alertsList.push(`• ${label} للدعوى رقم (${data.caseNumber || docSnap.id}) - ${statusText}`);
+                            alertsList.push(`• الدعوة رقم (${data.caseNumber}) - موعدها ${statusText}`);
                         }
-                    });
+                    }
                 });
 
                 const alertBox = document.getElementById('hearingAlertBox');
@@ -1110,7 +1059,7 @@
                     alertBox.style.background = '#fef3c7';
                     alertBox.style.color = '#92400e';
                     alertBox.style.borderColor = '#fde68a';
-                    alertBox.innerHTML = `⚠️ <b>تنبيهات الجلسات والمراجعات والمواعيد القادمة:</b><br>` + alertsList.join('<br>');
+                    alertBox.innerHTML = `⚠️ <b>تنبيهات الجلسات القادمة:</b><br>` + alertsList.join('<br>');
                 } else {
                     alertBox.style.display = 'none';
                 }
@@ -1121,30 +1070,35 @@
 
         window.checkHearingAlert = function(dateTimeStr) {
             const alertBox = document.getElementById('hearingAlertBox');
-            const events = [
-                {label:'جلسة المحكمة', value:dateTimeStr || document.getElementById('nextHearingDate')?.value},
-                {label:'موعد المراجعة / آخر موعد للمستندات', value:document.getElementById('followUpDate')?.value}
-            ];
+            if (!dateTimeStr) {
+                alertBox.style.display = 'none';
+                return;
+            }
+
+            const hearingDate = new Date(dateTimeStr);
             const today = new Date();
+            const hearingDay = new Date(hearingDate.getFullYear(), hearingDate.getMonth(), hearingDate.getDate());
             const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-            const alerts = [];
-            events.forEach(event => {
-                if (!event.value) return;
-                const eventDate = new Date(event.value);
-                if (Number.isNaN(eventDate.getTime())) return;
-                const eventDay = new Date(eventDate.getFullYear(), eventDate.getMonth(), eventDate.getDate());
-                const diffDays = Math.round((eventDay - todayDay) / (1000 * 60 * 60 * 24));
-                const timeFormatted = eventDate.toLocaleTimeString('ar-IQ', {hour:'2-digit',minute:'2-digit'});
-                if (diffDays === 0) alerts.push(`⚠️ ${event.label}: اليوم الساعة (${timeFormatted}).`);
-                else if (diffDays === 1) alerts.push(`⚠️ ${event.label}: غداً الساعة (${timeFormatted})، يرجى الاستعداد.`);
-            });
-            if (alerts.length) {
+
+            const diffTime = hearingDay - todayDay;
+            const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+            const timeFormatted = hearingDate.toLocaleTimeString('ar-IQ', { hour: '2-digit', minute: '2-digit' });
+
+            if (diffDays === 0) {
+                alertBox.style.display = 'block';
+                alertBox.style.background = '#fee2e2';
+                alertBox.style.color = '#991b1b';
+                alertBox.style.borderColor = '#fca5a5';
+                alertBox.textContent = `⚠️ تنبيه هام: موعد جلسة هذه الدعوة هو اليوم في تمام الساعة (${timeFormatted})!`;
+            } else if (diffDays === 1) {
                 alertBox.style.display = 'block';
                 alertBox.style.background = '#fef3c7';
                 alertBox.style.color = '#92400e';
                 alertBox.style.borderColor = '#fde68a';
-                alertBox.textContent = alerts.join(' ');
-            } else alertBox.style.display = 'none';
+                alertBox.textContent = `⚠️ تنبيه: موعد جلسة هذه الدعوة غداً في تمام الساعة (${timeFormatted}) يرجى الاستعداد!`;
+            } else {
+                alertBox.style.display = 'none';
+            }
         };
     </script>
 
@@ -2711,20 +2665,6 @@ svg {
     }
 }
 
-
-        .registered-calendar { margin: 12px 0 16px; padding: 12px; border: 1px solid var(--border-color); border-radius: 14px; background: var(--section-bg); }
-        .registered-calendar-head { display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:10px; }
-        .registered-calendar-month { font-weight:800; color:var(--primary-color); text-align:center; }
-        .registered-calendar-grid { display:grid; grid-template-columns:repeat(7,minmax(0,1fr)); gap:5px; }
-        .registered-calendar-weekday { text-align:center; font-size:12px; font-weight:800; color:var(--label-color); padding:5px 0; }
-        .registered-calendar-day { min-height:43px; border:1px solid var(--border-color); border-radius:8px; background:var(--input-bg); color:var(--text-main); display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px; cursor:pointer; font:inherit; padding:3px 0; }
-        .registered-calendar-day.selected { background:var(--primary-color); color:#fff; border-color:#c9a227; box-shadow:0 0 0 2px rgba(201,162,39,.25); }
-        .registered-calendar-day.today:not(.selected) { border:2px solid #c9a227; font-weight:800; }
-        .registered-calendar-day.empty { visibility:hidden; }
-        .registered-calendar-dots { color:#c9a227; font-size:10px; line-height:8px; letter-spacing:1px; }
-        .registered-calendar-day.selected .registered-calendar-dots { color:#fff; }
-        @media(max-width:480px) { .registered-calendar { padding:7px; } .registered-calendar-grid { gap:3px; } .registered-calendar-day { min-height:37px; font-size:12px; } }
-
 </style>
 <script>
         // فحص مبكر لدعم الطباعة في المتصفح.
@@ -3034,10 +2974,6 @@ svg {
                         <label>عنوان الدعوة (موضوعها):</label>
                         <input type="text" id="caseTitle" placeholder="أدخل موضوع الدعوة">
                     </div>
-                    <div class="form-group">
-                        <label for="followUpDate">موعد مراجعة / آخر موعد لتقديم مستند:</label>
-                        <input type="datetime-local" id="followUpDate" onchange="checkHearingAlert(document.getElementById('nextHearingDate').value)">
-                    </div>
 
                     <div class="form-group">
                         <label>اسم المشتكي / المدعي:</label>
@@ -3311,29 +3247,11 @@ svg {
                 <h3 style="margin:0;color:var(--primary-color);">🗓️ تواريخ الدعاوى المسجلة</h3>
                 <button type="button" class="modal-close-btn btn-3d" onclick="closeRegisteredDatesModal()">✕ إغلاق</button>
             </div>
-            <div class="registered-calendar">
-                <div class="registered-calendar-head">
-                    <button type="button" class="btn-search btn-3d" onclick="shiftRegisteredCalendarMonth(-1)" aria-label="الشهر السابق">‹ السابق</button>
-                    <div id="registeredCalendarMonth" class="registered-calendar-month">التقويم</div>
-                    <button type="button" class="btn-search btn-3d" onclick="shiftRegisteredCalendarMonth(1)" aria-label="الشهر التالي">التالي ›</button>
-                </div>
-                <div id="registeredCalendarGrid" class="registered-calendar-grid"></div>
-                <small style="display:block;margin-top:8px;color:var(--label-color)">النقاط الذهبية تعني وجود دعوى أو جلسة أو موعد محفوظ في ذلك اليوم.</small>
-            </div>
             <div class="form-group">
-                <label for="calendarEventType">نوع التاريخ الذي تريد البحث عنه:</label>
-                <select id="calendarEventType" style="width:100%;">
-                    <option value="registeredDate">تاريخ تسجيل الدعوى</option>
-                    <option value="nextHearingDate">موعد جلسة المحكمة</option>
-                    <option value="followUpDate">موعد مراجعة / آخر موعد لتقديم مستند</option>
-                    <option value="all">جميع المواعيد في هذا اليوم</option>
-                </select>
+                <label for="registeredDatePicker">اختر تاريخ تسجيل الدعوى:</label>
+                <input type="date" id="registeredDatePicker">
             </div>
-            <div class="form-group">
-                <label for="registeredDatePicker">اختر اليوم:</label>
-                <input type="date" id="registeredDatePicker" onchange="renderRegisteredCalendar()">
-            </div>
-            <button type="button" class="btn-main btn-3d" onclick="searchCasesByRegisteredDate()">🔎 عرض الدعاوى والمواعيد</button>
+            <button type="button" class="btn-main btn-3d" onclick="searchCasesByRegisteredDate()">🔎 عرض الدعاوى في هذا التاريخ</button>
             <div id="registeredDateResults" style="margin-top:14px;max-height:55vh;overflow:auto;"></div>
         </div>
     </div>
