@@ -526,32 +526,26 @@
          * "إجراء المستخدم" وبالتالي قد تمنع نافذة الطباعة.
          */
         function runPrintMode(className) {
-            // إزالة أي وضع طباعة سابق
+            // يجهّز وضع الطباعة ويستدعي نافذة الطباعة مباشرة ضمن ضغطة المستخدم،
+            // وهذا مهم خصوصاً في Safari على iPhone/iPad.
             document.body.classList.remove('print-report', 'print-contract');
-
-            // تجهيز الصفحة للطباعة ثم استدعاء الطباعة مباشرة داخل ضغطة الزر.
             document.body.classList.add(className);
 
             let cleaned = false;
             const cleanup = () => {
                 if (cleaned) return;
                 cleaned = true;
-                document.body.classList.remove(className);
+                document.body.classList.remove('print-report', 'print-contract');
                 window.removeEventListener('afterprint', cleanup);
             };
-
             window.addEventListener('afterprint', cleanup);
-
-            // مهم جداً للموبايل: يجب أن يكون هذا الاستدعاء متزامناً مع ضغطة المستخدم.
             try {
                 window.print();
             } catch (e) {
                 console.error('Print error:', e);
                 cleanup();
+                alert('تعذرت فتح نافذة الطباعة. افتح الملف في Safari أو Chrome ثم حاول مجدداً.');
             }
-
-            // احتياط للمتصفحات التي لا تطلق afterprint.
-            setTimeout(cleanup, 60000);
         }
 
         window.printCaseReportOnly = function(event) {
@@ -697,13 +691,23 @@
             }
         };
 
+        let caseSaveInProgress = false;
         window.saveDataToFirebase = async function() {
-            if (!currentUser) return;
+            if (!currentUser) {
+                alert("يجب تسجيل الدخول أولاً. لم يتم حفظ أي بيانات محلياً.");
+                return;
+            }
+            if (caseSaveInProgress) return;
+            const saveButton = document.querySelector('.actions-section button.btn-save');
+            caseSaveInProgress = true;
+            if (saveButton) { saveButton.disabled = true; saveButton.textContent = '⏳ جارٍ الحفظ في السحاب...'; }
             const caseNumber = document.getElementById('caseNumber').value.trim();
             const complainant = document.getElementById('complainant').value.trim();
             
             if (!caseNumber || !complainant) {
-                alert("يرجى إدخال رقم الدعوة واسم المشتكي/الموكل!");
+                caseSaveInProgress = false;
+                if (saveButton) { saveButton.disabled = false; saveButton.textContent = '💾 حفظ بالكامل (تعديل / إضافة)'; }
+                alert("يرجى إدخال رقم الدعوى واسم المشتكي/الموكل!");
                 return;
             }
 
@@ -735,9 +739,12 @@
                 currentLoadedDocId = docId;
                 document.getElementById('deleteCaseBtn').style.display = 'inline-block';
                 document.getElementById('shareCaseBtn').style.display = 'inline-block';
-                alert("تم حفظ الدعوة بنجاح تام! ✅");
+                alert("تم حفظ الدعوى في السحاب بنجاح ✅");
             } catch (error) {
-                alert("خطأ أثناء الحفظ: " + error.message);
+                alert("فشل الحفظ في السحاب؛ لم يتم حفظ الدعوى محلياً. تحقق من الاتصال والصلاحيات ثم أعد المحاولة.\n" + (error.message || error));
+            } finally {
+                caseSaveInProgress = false;
+                if (saveButton) { saveButton.disabled = false; saveButton.textContent = '💾 حفظ بالكامل (تعديل / إضافة)'; }
             }
         };
 
@@ -2822,6 +2829,41 @@ svg {
         padding:7px 2px 2px;
         border-top:1px solid rgba(15,23,42,.08);
     }
+}
+
+
+/* إصلاح نهائي للطباعة على الهاتف والتابلت والكمبيوتر */
+@media print {
+  html, body { background:#fff !important; color:#000 !important; overflow:visible !important; }
+  body.print-contract #loginSection,
+  body.print-contract #mainSystemView,
+  body.print-contract .user-bar,
+  body.print-contract .top-search-hearing-bar,
+  body.print-contract .modal-overlay,
+  body.print-contract button,
+  body.print-contract input[type="button"],
+  body.print-contract input[type="submit"],
+  body.print-contract .actions-section,
+  body.print-contract .hide-on-print { display:none !important; }
+  body.print-contract #appSection { display:block !important; width:210mm !important; max-width:none !important; margin:0 !important; padding:0 !important; border:0 !important; box-shadow:none !important; overflow:visible !important; }
+  body.print-contract #contractPrintSection { display:block !important; visibility:visible !important; position:relative !important; width:210mm !important; height:297mm !important; min-height:297mm !important; max-height:297mm !important; margin:0 !important; padding:16mm 19mm !important; overflow:hidden !important; box-sizing:border-box !important; background:#fff !important; color:#000 !important; box-shadow:none !important; border:0 !important; }
+  body.print-contract #contractPrintSection * { visibility:visible !important; }
+  body.print-contract #contractPrintSection button,
+  body.print-contract #contractPrintSection .actions-section { display:none !important; }
+  body.print-contract .contract-content-wrapper { display:flex !important; flex-direction:column !important; height:263mm !important; min-height:263mm !important; }
+
+  body.print-report #loginSection,
+  body.print-report #contractPrintSection,
+  body.print-report .actions-section,
+  body.print-report button,
+  body.print-report input[type="button"],
+  body.print-report input[type="submit"],
+  body.print-report .hide-on-print,
+  body.print-report .user-bar,
+  body.print-report .top-search-hearing-bar,
+  body.print-report .modal-overlay { display:none !important; }
+  body.print-report #appSection,
+  body.print-report #mainSystemView { display:block !important; width:190mm !important; max-width:190mm !important; margin:0 auto !important; padding:0 !important; border:0 !important; box-shadow:none !important; }
 }
 </style>
 
