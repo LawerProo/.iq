@@ -98,6 +98,35 @@
             await signOut(auth);
         };
 
+        // التحقق من كلمة مرور Firebase الحقيقية قبل فتح النظام بعد شاشة التوقف
+        window.unlockFromScreensaver = async function() {
+            const input = document.getElementById('screensaverPassword');
+            const error = document.getElementById('screensaverError');
+            const pass = input ? input.value : '';
+            if (!currentUser || !currentUser.email) {
+                if (error) error.textContent = 'انتهت جلسة الدخول. يرجى تسجيل الدخول من جديد.';
+                return;
+            }
+            if (!pass) {
+                if (error) error.textContent = 'أدخل كلمة المرور للمتابعة.';
+                if (input) input.focus();
+                return;
+            }
+            const btn = document.getElementById('screensaverUnlockBtn');
+            if (btn) { btn.disabled = true; btn.textContent = 'جارٍ التحقق...'; }
+            try {
+                await signInWithEmailAndPassword(auth, currentUser.email, pass);
+                if (input) input.value = '';
+                if (error) error.textContent = '';
+                if (window.hideLegalScreensaver) window.hideLegalScreensaver();
+            } catch (e) {
+                if (error) error.textContent = (e && (e.code === 'auth/wrong-password' || e.code === 'auth/invalid-credential' || e.code === 'auth/invalid-login-credentials')) ? 'كلمة المرور غير صحيحة. حاول مرة أخرى.' : 'تعذر التحقق من كلمة المرور. تحقق من الاتصال وحاول مجدداً.';
+                if (input) { input.value = ''; input.focus(); }
+            } finally {
+                if (btn) { btn.disabled = false; btn.textContent = 'فتح النظام'; }
+            }
+        };
+
         window.changeUserPassword = async function() {
             if (!currentUser) return;
             const newPass = document.getElementById('newPassword').value.trim();
@@ -3235,6 +3264,73 @@ svg {
         }
 
 
+
+
+        /* تحسين بصري للواجهة الرئيسية والأزرار دون تغيير وظائفها أو معرفاتها */
+        .professional-user-bar {
+            background: linear-gradient(135deg, #0b1730 0%, #142b4f 55%, #1c3e68 100%) !important;
+            border: 1px solid rgba(212,175,95,.55) !important;
+            border-radius: 22px !important;
+            padding: 18px !important;
+            box-shadow: 0 14px 35px rgba(10,25,50,.20), inset 0 1px 0 rgba(255,255,255,.12) !important;
+            gap: 16px !important;
+        }
+        .professional-user-bar .professional-user-label,
+        .professional-user-bar .professional-user-name,
+        .professional-user-bar .professional-user-hint { color: #f8fafc !important; }
+        .professional-user-bar .professional-user-hint { opacity:.72; }
+        .professional-avatar-large { border: 2px solid #d7b56d !important; box-shadow: 0 0 0 5px rgba(215,181,109,.12),0 8px 20px rgba(0,0,0,.25) !important; }
+        .professional-actions { gap: 10px !important; align-items: stretch !important; }
+        .professional-actions .btn-3d {
+            min-height: 42px; padding: 10px 15px !important; border-radius: 13px !important;
+            border: 1px solid rgba(255,255,255,.18) !important;
+            box-shadow: 0 5px 12px rgba(4,15,32,.19), inset 0 1px 0 rgba(255,255,255,.16) !important;
+            font-size: 13px !important; letter-spacing: .05px;
+            transition: transform .2s ease, box-shadow .2s ease, filter .2s ease !important;
+            text-shadow: none !important; white-space: normal;
+        }
+        .professional-actions .btn-3d:hover { transform: translateY(-3px) !important; filter: brightness(1.08); box-shadow: 0 10px 20px rgba(4,15,32,.24), inset 0 1px 0 rgba(255,255,255,.2) !important; }
+        .professional-actions .btn-3d:active { transform: translateY(0) scale(.98) !important; }
+        .professional-actions .btn-open-laws-top,
+        .professional-actions .btn-open-wallet-top,
+        .professional-actions .btn-open-contract-top,
+        .professional-actions .btn-theme-toggle,
+        .professional-actions .btn-archive-top,
+        .professional-actions .btn-open-financial-top,
+        .professional-actions .btn-settings { background: linear-gradient(135deg,#f8fafc 0%,#dce5f0 100%) !important; color:#132846 !important; border-color:#d6b76d !important; }
+        .professional-actions .btn-logout { background:linear-gradient(135deg,#d84a55,#941f2c) !important; color:#fff !important; }
+        .professional-actions .chat-main-button { background:linear-gradient(135deg,#cda95c,#8f6b2d) !important; color:#111f35 !important; border-color:#f0d58c !important; }
+        .professional-actions button:focus-visible, button.btn-3d:focus-visible { outline:3px solid rgba(207,171,94,.8); outline-offset:3px; }
+        .header-title { letter-spacing:.2px; }
+        @media (max-width:700px) {
+            body { padding:7px !important; }
+            .container { padding:13px !important; border-radius:16px !important; }
+            .professional-user-bar { padding:13px !important; border-radius:17px !important; }
+            .professional-actions { display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)) !important; gap:9px !important; width:100%; }
+            .professional-actions .btn-3d { min-width:0; width:100%; min-height:46px; font-size:12px !important; padding:9px 7px !important; line-height:1.35; }
+        }
+        @media (max-width:360px) { .professional-actions { grid-template-columns:1fr !important; } }
+
+        /* شاشة التوقف القانونية */
+        #legalScreensaver { position:fixed; inset:0; z-index:1000000; display:none; overflow:auto; color:#fff; background:radial-gradient(ellipse at 20% 15%,rgba(46,91,145,.65),transparent 38%),radial-gradient(ellipse at 80% 85%,rgba(139,95,35,.28),transparent 42%),linear-gradient(135deg,#071225 0%,#10284a 52%,#080f20 100%); align-items:center; justify-content:center; padding:22px; box-sizing:border-box; }
+        #legalScreensaver::before { content:""; position:absolute; inset:14px; border:1px solid rgba(224,190,112,.45); border-radius:24px; pointer-events:none; box-shadow:inset 0 0 45px rgba(226,188,105,.05); }
+        .screensaver-content { position:relative; z-index:1; width:min(900px,100%); text-align:center; padding:clamp(22px,5vw,60px); box-sizing:border-box; }
+        .screensaver-emblem { width:76px; height:76px; display:grid; place-items:center; margin:0 auto 22px; border-radius:24px; border:1px solid rgba(230,196,117,.8); color:#f0d58c; font-size:35px; background:linear-gradient(145deg,rgba(255,255,255,.12),rgba(255,255,255,.025)); box-shadow:0 0 35px rgba(226,188,105,.14); }
+        .screensaver-kicker { color:#d8bb78; font-size:clamp(11px,2vw,14px); letter-spacing:4px; margin-bottom:20px; }
+        #screensaverQuote { min-height:170px; display:flex; align-items:center; justify-content:center; font-size:clamp(27px,5.1vw,52px); font-weight:850; line-height:1.8; text-wrap:balance; text-shadow:0 5px 25px rgba(0,0,0,.35); transition:opacity .55s ease,transform .55s ease; }
+        #screensaverQuote.quote-out { opacity:0; transform:translateY(18px) scale(.98); }
+        .screensaver-rule { width:110px; height:3px; border-radius:5px; margin:22px auto 28px; background:linear-gradient(90deg,transparent,#e5c474,transparent); }
+        .screensaver-subtitle { color:rgba(235,241,250,.68); font-size:13px; letter-spacing:1px; }
+        #screensaverUnlockPanel { display:none; width:min(390px,100%); margin:28px auto 0; padding:20px; box-sizing:border-box; border:1px solid rgba(224,190,112,.45); border-radius:18px; background:rgba(4,12,26,.68); backdrop-filter:blur(14px); text-align:right; box-shadow:0 18px 50px rgba(0,0,0,.24); }
+        #screensaverUnlockPanel label { display:block; color:#f3e3bb; margin-bottom:9px; font-weight:700; }
+        #screensaverPassword { width:100%; height:48px; box-sizing:border-box; border-radius:12px; border:1px solid rgba(224,190,112,.5); background:rgba(255,255,255,.08); color:#fff; padding:12px 14px; font-size:16px; outline:none; }
+        #screensaverPassword:focus { border-color:#f1d38a; box-shadow:0 0 0 3px rgba(224,190,112,.15); }
+        #screensaverUnlockBtn { width:100%; min-height:46px; margin-top:13px; border:0; border-radius:12px; cursor:pointer; font-weight:800; color:#13213a; background:linear-gradient(135deg,#f4dc9c,#bb9145); box-shadow:0 6px 18px rgba(190,145,69,.22); }
+        #screensaverUnlockBtn:disabled { opacity:.65; cursor:wait; }
+        #screensaverError { min-height:22px; color:#ffb4b4; font-size:13px; margin-top:8px; }
+        @media(max-width:480px) { #legalScreensaver { padding:12px; } #legalScreensaver::before { inset:7px; border-radius:18px; } .screensaver-content { padding:25px 12px; } #screensaverQuote { min-height:190px; font-size:clamp(25px,7vw,36px); } .screensaver-emblem { width:62px;height:62px;font-size:29px;border-radius:20px; } }
+        @media(prefers-reduced-motion:reduce) { #screensaverQuote,.professional-actions .btn-3d { transition:none !important; } }
+
 </style>
 <script>
         // فحص مبكر لدعم الطباعة في المتصفح.
@@ -3457,6 +3553,22 @@ svg {
 
 </head>
 <body>
+    <div id="legalScreensaver" role="dialog" aria-modal="true" aria-label="شاشة التوقف القانونية">
+        <div class="screensaver-content">
+            <div class="screensaver-emblem" aria-hidden="true">⚖</div>
+            <div class="screensaver-kicker">مبادئ العدالة والقانون</div>
+            <div id="screensaverQuote" aria-live="polite">العدالة هي أساس الحكم.</div>
+            <div class="screensaver-rule"></div>
+            <div class="screensaver-subtitle">نظام إدارة وتوثيق الدعاوى القضائية</div>
+            <button id="screensaverReturnBtn" type="button" class="btn-3d" style="margin-top:26px;padding:13px 25px;border-radius:12px;border:1px solid #e5c474;background:linear-gradient(135deg,#f4dc9c,#bb9145);color:#13213a;font-weight:800;cursor:pointer;" onclick="showScreensaverUnlock()">العودة إلى النظام</button>
+            <form id="screensaverUnlockPanel" onsubmit="event.preventDefault(); unlockFromScreensaver();">
+                <label for="screensaverPassword">أدخل كلمة المرور للعودة إلى النظام</label>
+                <input id="screensaverPassword" type="password" autocomplete="current-password" placeholder="كلمة المرور" required>
+                <button id="screensaverUnlockBtn" type="submit">فتح النظام</button>
+                <div id="screensaverError" role="status" aria-live="polite"></div>
+            </form>
+        </div>
+    </div>
 
     <!-- تسجيل الدخول الإجباري -->
     <div id="loginSection" class="auth-card">
@@ -4126,6 +4238,88 @@ svg {
                 document.body.style.overflow = '';
             }
         }
+    </script>
+
+
+    <script>
+        (function () {
+            const QUOTES = [
+                'العدالة هي أساس الحكم.',
+                'الحق يرتفع ولا يُعلَى عليه.',
+                'لا يعذر أحد بجهل القانون.',
+                'المحاماة رسالة وليست مهنة، ودفاع عن الحق وحماية للعدالة.',
+                'المحامي الناجح لا يبحث عن ثغرات القانون، بل يبحث عن روح العدالة.'
+            ];
+            const COLORS = ['#f2d184', '#a9d7ff', '#c8f0cf', '#e7c3ff', '#ffcfb8'];
+            const IDLE_LIMIT = 5 * 60 * 1000;
+            let idleTimer = null, quoteTimer = null, quoteIndex = 0, isSaverVisible = false;
+            const saver = () => document.getElementById('legalScreensaver');
+            const quoteNode = () => document.getElementById('screensaverQuote');
+            function appIsOpen() {
+                const app = document.getElementById('appSection');
+                return !!(app && getComputedStyle(app).display !== 'none' && document.getElementById('userEmailDisplay')?.textContent.trim());
+            }
+            function renderQuote(next) {
+                const node = quoteNode(); if (!node) return;
+                node.classList.add('quote-out');
+                setTimeout(() => {
+                    quoteIndex = next % QUOTES.length;
+                    node.textContent = QUOTES[quoteIndex];
+                    node.style.color = COLORS[quoteIndex];
+                    node.classList.remove('quote-out');
+                }, 520);
+            }
+            function startQuoteRotation() {
+                if (quoteTimer) clearInterval(quoteTimer);
+                quoteTimer = setInterval(() => renderQuote(quoteIndex + 1), 6500);
+            }
+            function stopQuoteRotation() { if (quoteTimer) clearInterval(quoteTimer); quoteTimer = null; }
+            function showSaver() {
+                if (!appIsOpen() || isSaverVisible || document.body.classList.contains('print-financial-receipt') || document.body.classList.contains('print-report') || document.body.classList.contains('print-contract')) return;
+                isSaverVisible = true;
+                const el = saver(); if (!el) return;
+                el.style.display = 'flex';
+                document.getElementById('screensaverUnlockPanel').style.display = 'none';
+                document.getElementById('screensaverReturnBtn').style.display = 'inline-flex';
+                document.getElementById('screensaverPassword').value = '';
+                document.getElementById('screensaverError').textContent = '';
+                quoteIndex = -1; renderQuote(0); startQuoteRotation();
+            }
+            function resetIdleTimer() {
+                if (isSaverVisible || !appIsOpen()) return;
+                clearTimeout(idleTimer);
+                idleTimer = setTimeout(showSaver, IDLE_LIMIT);
+            }
+            window.showScreensaverUnlock = function () {
+                if (!isSaverVisible) return;
+                stopQuoteRotation();
+                document.getElementById('screensaverReturnBtn').style.display = 'none';
+                document.getElementById('screensaverUnlockPanel').style.display = 'block';
+                document.getElementById('screensaverError').textContent = '';
+                setTimeout(() => document.getElementById('screensaverPassword')?.focus(), 50);
+            };
+            window.hideLegalScreensaver = function () {
+                isSaverVisible = false;
+                stopQuoteRotation();
+                const el = saver(); if (el) el.style.display = 'none';
+                document.getElementById('screensaverUnlockPanel').style.display = 'none';
+                document.getElementById('screensaverReturnBtn').style.display = 'inline-flex';
+                resetIdleTimer();
+            };
+            ['pointerdown','pointermove','keydown','touchstart','scroll','click'].forEach(evt => {
+                document.addEventListener(evt, () => { if (!isSaverVisible) resetIdleTimer(); }, {passive:true});
+            });
+            document.addEventListener('visibilitychange', () => { if (!document.hidden) resetIdleTimer(); });
+            const observer = new MutationObserver(() => { if (appIsOpen() && !isSaverVisible) resetIdleTimer(); });
+            document.addEventListener('DOMContentLoaded', () => {
+                const app = document.getElementById('appSection');
+                if (app) observer.observe(app, {attributes:true, attributeFilter:['style']});
+                const q = quoteNode(); if (q) q.style.color = COLORS[0];
+                resetIdleTimer();
+            });
+            // يبدأ العدّ من وقت فتح النظام، ويُعاد ضبطه عند كل نشاط للمستخدم.
+            window.addEventListener('load', resetIdleTimer);
+        })();
     </script>
 
 </body>
