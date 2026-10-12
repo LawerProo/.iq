@@ -46,8 +46,10 @@
                 loadUserProfile();
                 checkAllCasesForHearings();
                 checkUserInbox(user.email);
+                startChatNotificationMonitor(user.email);
             } else {
                 currentUser = null;
+                if(chatNotificationTimer){clearInterval(chatNotificationTimer);chatNotificationTimer=null;}
                 loginBox.style.display = 'block';
                 appBox.style.display = 'none';
                 document.getElementById('email').value = "";
@@ -292,6 +294,7 @@
                 } else {
                     sentSnap.forEach(docSnap => {
                         const data = docSnap.data();
+                        if (data.type === 'chatMessage' || data.type === 'chatSeen') return;
                         sentHtml += `
                             <div class="preview-box" style="margin-bottom: 8px; padding: 8px;">
                                 <div><b>إلى:</b> ${data.targetEmail} | <b>الدعوى:</b> ${data.caseData.caseNumber || '---'}</div>
@@ -316,6 +319,7 @@
                 } else {
                     recvSnap.forEach(docSnap => {
                         const data = docSnap.data();
+                        if (data.type === 'chatMessage' || data.type === 'chatSeen') return;
                         recvHtml += `
                             <div class="preview-box" style="margin-bottom: 8px; padding: 8px;">
                                 <div><b>من:</b> ${data.senderEmail} | <b>الدعوى:</b> ${data.caseData.caseNumber || '---'}</div>
@@ -628,6 +632,108 @@
             reader.readAsDataURL(file);
         };
 
+
+        // محادثات مباشرة باستخدام بريد الطرفين داخل مجموعة inbox الحالية.
+        let chatSelectedContact = null;
+        let chatContacts = [];
+        let chatKnownUnreadIds = new Set();
+        let chatInitialNotificationScanDone = false;
+        let chatRefreshTimer = null;
+        const safeChatText = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+        const makeConversationId = (a,b) => [String(a||'').trim().toLowerCase(),String(b||'').trim().toLowerCase()].sort().join('__');
+        window.openChatModal = async function(){
+            if(!currentUser){alert('يرجى تسجيل الدخول أولاً.');return;}
+            document.getElementById('chatModal').style.display='flex';
+            document.getElementById('chatContactSearch').value='';
+            await loadSavedContacts();
+            chatContacts=savedContacts.filter(c=>c.email && c.email.toLowerCase()!==String(currentUser.email||'').toLowerCase());
+            renderChatContacts();
+            if(chatRefreshTimer) clearInterval(chatRefreshTimer);
+            chatRefreshTimer=setInterval(()=>{ if(document.getElementById('chatModal').style.display==='flex' && chatSelectedContact) loadChatThread(); },5000);
+        };
+        window.closeChatModal = function(){document.getElementById('chatModal').style.display='none';if(chatRefreshTimer){clearInterval(chatRefreshTimer);chatRefreshTimer=null;}};
+        window.renderChatContacts = function(){
+            const host=document.getElementById('chatContactsList'); if(!host)return;
+            const term=(document.getElementById('chatContactSearch').value||'').trim().toLowerCase();
+            const items=chatContacts.filter(c=>[c.name,c.email,c.phone].some(v=>String(v||'').toLowerCase().includes(term)));
+            if(!items.length){host.innerHTML='<div class="chat-empty">لا توجد أسماء مطابقة. أضف الشخص أولاً من زر «إضافة شخص».</div>';return;}
+            host.innerHTML=items.map(c=>`<button type="button" class="chat-contact-item ${chatSelectedContact?.email===c.email?'active':''}" data-chat-email="${safeChatText(c.email)}"><b>${safeChatText(c.name||c.email)}</b><small>${safeChatText(c.email)}</small><small>${safeChatText(c.phone||'')}</small></button>`).join('');
+            host.querySelectorAll('[data-chat-email]').forEach(btn=>btn.addEventListener('click',()=>{const c=chatContacts.find(x=>x.email===btn.dataset.chatEmail);if(c)selectChatContact(c);}));
+        };
+        async function selectChatContact(contact){
+            chatSelectedContact=contact;renderChatContacts();
+            document.getElementById('chatConversationHeader').innerHTML=`<b>${safeChatText(contact.name||contact.email)}</b><small style="display:block;direction:ltr;text-align:right;color:var(--label-color)">${safeChatText(contact.email)}</small>`;
+            document.getElementById('chatMessageInput').disabled=false;document.getElementById('sendChatMessageBtn').disabled=false;
+            await loadChatThread();
+        }
+        async function loadChatThread(){
+            if(!currentUser||!chatSelectedContact)return;
+            const conv=makeConversationId(currentUser.email,chatSelectedContact.email);
+            const host=document.getElementById('chatMessages');
+            try{
+                const snap=await getDocs(query(collection(db,'inbox'),where('conversationId','==',conv)));
+                const all=snap.docs.map(d=>({id:d.id,...d.data()}));
+                const receipts=all.filter(x=>x.type==='chatSeen');
+                const messages=all.filter(x=>x.type==='chatMessage').sort((a,b)=>String(a.timestamp||'').localeCompare(String(b.timestamp||'')));
+                const toMark=messages.filter(m=>m.targetEmail===currentUser.email && !receipts.some(r=>r.messageId===m.id && r.readerEmail===currentUser.email));
+                for(const m of toMark){try{await addDoc(collection(db,'inbox'),{type:'chatSeen',conversationId:conv,messageId:m.id,readerEmail:currentUser.email,senderEmail:currentUser.email,targetEmail:m.senderEmail,timestamp:new Date().toISOString()});}catch(e){console.warn('تعذر تسجيل مشاهدة الرسالة',e);}}
+                if(!messages.length){host.innerHTML='<div class="chat-empty">لا توجد رسائل بعد. اكتب أول رسالة لبدء المحادثة.</div>';return;}
+                host.innerHTML=messages.map(m=>{
+                    const mine=m.senderEmail===currentUser.email;
+                    const seen=receipts.some(r=>r.messageId===m.id&&r.readerEmail===m.targetEmail);
+                    const ticks=mine?`<span class="chat-ticks" title="${seen?'تمت المشاهدة':'تم الإرسال'}">${seen?'✓✓':'✓'}</span>`:'';
+                    const when=m.timestamp?new Date(m.timestamp).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'}):'';
+                    return `<div class="chat-bubble ${mine?'mine':'theirs'}">${safeChatText(m.text)}<div class="chat-meta"><span>${safeChatText(when)}</span>${ticks}</div></div>`;
+                }).join('');
+                host.scrollTop=host.scrollHeight;
+            }catch(e){host.innerHTML=`<div class="chat-empty">تعذر تحميل المحادثة: ${safeChatText(e.message||e)}</div>`;}
+        }
+        window.sendChatMessage = async function(){
+            if(!currentUser||!chatSelectedContact)return;
+            const input=document.getElementById('chatMessageInput');const textValue=input.value.trim();if(!textValue)return;
+            const btn=document.getElementById('sendChatMessageBtn');btn.disabled=true;
+            try{
+                const conv=makeConversationId(currentUser.email,chatSelectedContact.email);
+                await addDoc(collection(db,'inbox'),{type:'chatMessage',conversationId:conv,senderEmail:currentUser.email,targetEmail:chatSelectedContact.email,text:textValue,timestamp:new Date().toISOString()});
+                input.value='';await loadChatThread();
+            }catch(e){alert('تعذر إرسال الرسالة: '+(e.message||e));}
+            finally{btn.disabled=false;}
+        };
+        document.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&document.activeElement?.id==='chatMessageInput'){e.preventDefault();window.sendChatMessage();}});
+        function playChatNoticeSound(){try{const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;const ctx=new Ctx();const osc=ctx.createOscillator();const gain=ctx.createGain();osc.type='sine';osc.frequency.value=880;gain.gain.setValueAtTime(.0001,ctx.currentTime);gain.gain.exponentialRampToValueAtTime(.12,ctx.currentTime+.025);gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+.32);osc.connect(gain);gain.connect(ctx.destination);osc.start();osc.stop(ctx.currentTime+.34);osc.onended=()=>ctx.close();}catch(e){}}
+        async function checkChatNotifications(userEmail){
+            if(!userEmail)return;
+            try{
+                const snap=await getDocs(query(collection(db,'inbox'),where('targetEmail','==',userEmail)));
+                const incoming=snap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>m.type==='chatMessage');
+                const conversations=[...new Set(incoming.map(m=>m.conversationId).filter(Boolean))];
+                let unread=[];
+                for(const conv of conversations){
+                    const convSnap=await getDocs(query(collection(db,'inbox'),where('conversationId','==',conv)));
+                    const all=convSnap.docs.map(d=>({id:d.id,...d.data()}));
+                    const receipts=all.filter(x=>x.type==='chatSeen');
+                    unread.push(...all.filter(m=>m.type==='chatMessage'&&m.targetEmail===userEmail&&!receipts.some(r=>r.messageId===m.id&&r.readerEmail===userEmail)));
+                }
+                const box=document.getElementById('chatNotificationBox');
+                if(unread.length){
+                    const newest=unread.sort((a,b)=>String(b.timestamp||'').localeCompare(String(a.timestamp||'')))[0];
+                    box.style.display='block';box.innerHTML=`🔔 لديك ${unread.length} رسالة محادثة غير مقروءة من <b>${safeChatText(newest.senderEmail)}</b> <button type="button" class="btn-search btn-3d" style="margin-inline-start:10px" onclick="openChatFromNotice('${safeChatText(newest.senderEmail)}')">فتح الرسالة</button>`;
+                    const fresh=unread.some(m=>!chatKnownUnreadIds.has(m.id));
+                    if(chatInitialNotificationScanDone&&fresh)playChatNoticeSound();
+                    chatKnownUnreadIds=new Set(unread.map(m=>m.id));
+                }else{box.style.display='none';chatKnownUnreadIds=new Set();}
+                chatInitialNotificationScanDone=true;
+            }catch(e){console.warn('تعذر فحص إشعارات المحادثة',e);}
+        }
+        window.openChatFromNotice=async function(email){
+            await openChatModal();
+            const c=chatContacts.find(x=>String(x.email||'').toLowerCase()===String(email||'').toLowerCase())||{email,name:email};
+            if(!chatContacts.some(x=>x.email===c.email)){chatContacts.unshift(c);renderChatContacts();}
+            await selectChatContact(c);
+        };
+        let chatNotificationTimer=null;
+        function startChatNotificationMonitor(email){if(chatNotificationTimer)clearInterval(chatNotificationTimer);checkChatNotifications(email);chatNotificationTimer=setInterval(()=>{if(currentUser)checkChatNotifications(currentUser.email);},12000);}
+
         // دفتر الأشخاص المسجلين: الحفظ والقراءة من Firestore لكل مستخدم، دون تخزين محلي.
         let savedContacts = [];
         const escapeContactHtml = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
@@ -783,7 +889,7 @@
                     if ((eventType === 'nextHearingDate' || eventType === 'all') && data.nextHearingDate && String(data.nextHearingDate).slice(0,10) === selectedDate)
                         events.push({label:'جلسة المحكمة', value:data.nextHearingDate.replace('T',' ')});
                     if ((eventType === 'followUpDate' || eventType === 'all') && data.followUpDate && String(data.followUpDate).slice(0,10) === selectedDate)
-                        events.push({label:'مراجعة / آخر موعد للمستندات', value:data.followUpDate.replace('T',' ')});
+                        events.push({label:'موعد المحكمة', value:data.followUpDate.replace('T',' ')});
                     if (events.length) matches.push({id:caseDoc.id, caseNumber:data.caseNumber || caseDoc.id, caseTitle:data.caseTitle || '', complainant:data.complainant || '', court:data.court || '', events});
                 });
                 matches.sort((a,b) => String(a.caseNumber).localeCompare(String(b.caseNumber),'ar',{numeric:true}));
@@ -990,7 +1096,7 @@
             document.getElementById('previewBarcodeSub').textContent = document.getElementById('barcodeSubText').value || '---';
 
             // الخيارات غير محددة افتراضياً: لا تتم مشاركة الحقول الحساسة إلا بعد اختيارها صراحةً.
-            ['shareShowFees','shareShowPhone','shareShowNotes','shareShowBarcode'].forEach(id => {
+            ['shareShowFees','shareShowPhone','shareShowNotes','shareShowBarcode','shareShowHearing'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.checked = false;
             });
@@ -1011,7 +1117,8 @@
                 ['shareShowFees', 'previewFees'],
                 ['shareShowPhone', 'previewPhone'],
                 ['shareShowNotes', 'previewNotes'],
-                ['shareShowBarcode', 'previewBarcodeSub']
+                ['shareShowBarcode', 'previewBarcodeSub'],
+                ['shareShowHearing', 'previewHearing']
             ];
             choices.forEach(([checkId, valueId]) => {
                 const input = document.getElementById(checkId);
@@ -1023,6 +1130,8 @@
             });
             const phoneGroup = document.getElementById('previewPhoneGroup');
             if (phoneGroup) phoneGroup.style.display = document.getElementById('shareShowPhone').checked ? '' : 'none';
+            const hearingLine = document.getElementById('previewHearingLine');
+            if (hearingLine) hearingLine.style.display = document.getElementById('shareShowHearing').checked ? '' : 'none';
             const qr = document.getElementById('previewQrcodeContainer');
             if (qr) qr.style.display = document.getElementById('shareShowBarcode').checked && document.getElementById('locationUrl').value ? 'block' : 'none';
         };
@@ -1042,6 +1151,7 @@
             const showPhone = document.getElementById('shareShowPhone').checked;
             const showNotes = document.getElementById('shareShowNotes').checked;
             const showBarcode = document.getElementById('shareShowBarcode').checked;
+            const showHearing = document.getElementById('shareShowHearing').checked;
             const hideFees = !showFees;
             const hidePhone = !showPhone;
             const hideNotes = !showNotes;
@@ -1061,8 +1171,9 @@
                     complainant: document.getElementById('complainant').value,
                     complainantPhone: hidePhone ? "" : document.getElementById('complainantPhone').value,
                     defendant: document.getElementById('defendant').value,
-                    nextHearingDate: document.getElementById('nextHearingDate').value,
-                    followUpDate: document.getElementById('followUpDate').value,
+                    nextHearingDate: showHearing ? document.getElementById('nextHearingDate').value : '',
+                    followUpDate: showHearing ? document.getElementById('followUpDate').value : '',
+                    hideHearing: !showHearing,
                     totalFees: hideFees ? "" : (document.getElementById('totalFees').value + ' د.ع'),
                     privateNotes: hideNotes ? "" : document.getElementById('privateNotes').value,
                     barcodeSubText: hideBarcode ? "" : document.getElementById('barcodeSubText').value,
@@ -1093,7 +1204,7 @@
 
                 querySnapshot.forEach((docSnap) => {
                     const msgData = docSnap.data();
-                    if (!msgData.isRead) {
+                    if (msgData.type !== 'chatMessage' && msgData.type !== 'chatSeen' && !msgData.isRead && msgData.caseData) {
                         unreadMessages.push({ id: docSnap.id, ...msgData });
                     }
                 });
@@ -1134,6 +1245,9 @@
             document.getElementById('inc_complainantPhone').parentElement.style.display = (data.hidePhone || data.complainantPhone === "[محجوب]") ? "none" : "";
             document.getElementById('inc_defendant').textContent = data.defendant || '---';
             document.getElementById('inc_nextHearingDate').textContent = data.nextHearingDate || '---';
+            document.getElementById('inc_nextHearingLine').style.display = data.hideHearing ? 'none' : (data.nextHearingDate ? '' : 'none');
+            document.getElementById('inc_followUpDate').textContent = data.followUpDate || '---';
+            document.getElementById('inc_followUpLine').style.display = data.hideHearing ? 'none' : (data.followUpDate ? '' : 'none');
             document.getElementById('inc_totalFees').textContent = data.totalFees || '';
             document.getElementById('inc_totalFees').parentElement.style.display = (data.hideFees || data.totalFees === "[محجوب]") ? "none" : "";
             document.getElementById('inc_privateNotes').textContent = data.privateNotes || '';
@@ -1190,7 +1304,7 @@
 
                 querySnapshot.forEach((docSnap) => {
                     const data = docSnap.data();
-                    [['nextHearingDate','جلسة المحكمة'],['followUpDate','موعد مراجعة / آخر موعد']].forEach(([field,label]) => {
+                    [['nextHearingDate','موعد المحكمة'],['followUpDate','موعد المحكمة (الموعد الإضافي)']].forEach(([field,label]) => {
                         if (!data[field]) return;
                         const eventDate = new Date(data[field]);
                         if (Number.isNaN(eventDate.getTime())) return;
@@ -1224,7 +1338,7 @@
             const alertBox = document.getElementById('hearingAlertBox');
             const events = [
                 {label:'جلسة المحكمة', value:dateTimeStr || document.getElementById('nextHearingDate')?.value},
-                {label:'موعد المراجعة / آخر موعد للمستندات', value:document.getElementById('followUpDate')?.value}
+                {label:'موعد المحكمة', value:document.getElementById('followUpDate')?.value}
             ];
             const today = new Date();
             const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -1434,6 +1548,30 @@
                 font-size: 11px;
             }
         }
+
+
+        .chat-notification-box{padding:12px 15px;margin:0 0 14px;border-radius:12px;border:1px solid #86b9f5;background:linear-gradient(120deg,#eff6ff,#dbeafe);color:#1e3a8a;font-weight:700;box-shadow:0 8px 22px rgba(30,64,175,.12)}
+        .chat-modal-overlay{z-index:10030}
+        .chat-modal-content{width:min(1000px,96vw);max-width:1000px;padding:18px}
+        .chat-layout{display:grid;grid-template-columns:minmax(220px, .75fr) minmax(0,1.5fr);gap:12px;min-height:55vh}
+        .chat-contacts-pane,.chat-conversation-pane{border:1px solid var(--border-color);border-radius:14px;overflow:hidden;min-width:0;background:var(--card-bg)}
+        .chat-contacts-pane{padding:12px;display:flex;flex-direction:column;gap:8px}
+        .chat-contacts-list{overflow:auto;max-height:52vh}
+        .chat-contact-item{width:100%;text-align:right;border:1px solid var(--border-color);background:var(--section-bg);color:var(--text-main);padding:10px;border-radius:10px;margin:4px 0;cursor:pointer}
+        .chat-contact-item.active{border-color:#c5a04a;background:rgba(197,160,74,.14)}
+        .chat-contact-item small{display:block;color:var(--label-color);direction:ltr;text-align:right;overflow-wrap:anywhere}
+        .chat-conversation-pane{display:flex;flex-direction:column;min-height:55vh}
+        .chat-conversation-header{padding:12px 14px;border-bottom:1px solid var(--border-color);font-weight:700;background:var(--section-bg)}
+        .chat-messages{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:8px;max-height:48vh;min-height:250px;background:linear-gradient(180deg,rgba(20,83,75,.04),transparent)}
+        .chat-bubble{max-width:85%;padding:9px 12px;border-radius:14px;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:0 2px 6px rgba(0,0,0,.06)}
+        .chat-bubble.mine{align-self:flex-start;background:#d9fdd3;color:#173c2c;border-bottom-left-radius:4px}
+        .chat-bubble.theirs{align-self:flex-end;background:var(--section-bg);border:1px solid var(--border-color);border-bottom-right-radius:4px}
+        .chat-meta{display:flex;gap:8px;justify-content:flex-end;font-size:10px;margin-top:5px;opacity:.8}
+        .chat-ticks{color:#2584d8;font-weight:900;letter-spacing:-2px}
+        .chat-compose{display:flex;gap:8px;align-items:flex-end;padding:10px;border-top:1px solid var(--border-color)}
+        .chat-compose textarea{height:auto;min-height:44px;max-height:120px;flex:1}
+        .chat-empty{margin:auto;text-align:center;color:var(--label-color);padding:25px}
+        @media(max-width:680px){.chat-modal-content{padding:12px;width:96vw}.chat-layout{grid-template-columns:1fr;min-height:0}.chat-contacts-list{max-height:20vh}.chat-messages{min-height:230px;max-height:38vh}.chat-conversation-pane{min-height:45vh}.chat-compose{align-items:stretch}.chat-compose button{white-space:nowrap}}
 
         .user-bar { display: flex; justify-content: space-between; align-items: center; background: var(--userbar-bg); padding: 10px 20px; border-radius: 8px; margin-bottom: 15px; font-size: 13px; border: 1px solid var(--userbar-border); flex-wrap: wrap; gap: 10px; }
         .user-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
@@ -3101,6 +3239,7 @@ svg {
                     <button type="button" class="btn-open-contract-top btn-3d" onclick="openContractModal()">📜 عقد محامي</button>
                     <button type="button" class="btn-archive-top btn-3d" onclick="openRegisteredDatesModal()">🗓️ تواريخ الدعاوى المسجلة</button>
                     <button type="button" class="btn-archive-top btn-3d" onclick="openContactsModal()">👥 إضافة شخص</button>
+                    <button type="button" class="btn-archive-top btn-3d chat-main-button" onclick="openChatModal()">💬 محادثة مع شخص</button>
                     <button type="button" class="btn-open-financial-top btn-3d" onclick="openFinancialModal()">💰 الأرشيف المالي</button>
                     <button type="button" class="btn-archive-top btn-3d" onclick="openMailArchiveModal()">📬 الأرشيف البريدي</button>
                     <button type="button" class="btn-archive-top btn-3d" onclick="openChatGPTPage()">🤖 ChatGPT</button>
@@ -3121,6 +3260,7 @@ svg {
             <h2 class="header-title">⚖️ نظام إدارة وتوثيق الدعاوى</h2>
             
             <div id="inboxAlertBox" class="inbox-alert"></div>
+            <div id="chatNotificationBox" class="chat-notification-box" style="display:none;"></div>
             <div id="hearingAlertBox" class="hearing-alert"></div>
 
             <div class="top-search-hearing-bar">
@@ -3155,7 +3295,7 @@ svg {
                         <input type="text" id="caseTitle" placeholder="أدخل موضوع الدعوة">
                     </div>
                     <div class="form-group">
-                        <label for="followUpDate">موعد مراجعة / آخر موعد لتقديم مستند:</label>
+                        <label for="followUpDate">موعد المحكمة:</label>
                         <input type="datetime-local" id="followUpDate" onchange="checkHearingAlert(document.getElementById('nextHearingDate').value)">
                     </div>
 
@@ -3299,6 +3439,7 @@ svg {
                         <label class="share-visibility-option" for="shareShowPhone"><span class="share-option-symbol">☎</span><span class="share-option-text"><strong>رقم الهاتف</strong><small>هاتف المشتكي</small></span><input type="checkbox" id="shareShowPhone" onchange="updateSharePreviewVisibility()"><span class="share-checkmark"></span></label>
                         <label class="share-visibility-option" for="shareShowNotes"><span class="share-option-symbol">☰</span><span class="share-option-text"><strong>الملاحظات</strong><small>الملاحظات الإضافية</small></span><input type="checkbox" id="shareShowNotes" onchange="updateSharePreviewVisibility()"><span class="share-checkmark"></span></label>
                         <label class="share-visibility-option" for="shareShowBarcode"><span class="share-option-symbol">▦</span><span class="share-option-text"><strong>الباركود</strong><small>الرمز والنص المرتبط به</small></span><input type="checkbox" id="shareShowBarcode" onchange="updateSharePreviewVisibility()"><span class="share-checkmark"></span></label>
+                        <label class="share-visibility-option" for="shareShowHearing"><span class="share-option-symbol">📅</span><span class="share-option-text"><strong>موعد المحكمة</strong><small>تاريخ ووقت الموعد</small></span><input type="checkbox" id="shareShowHearing" onchange="updateSharePreviewVisibility()"><span class="share-checkmark"></span></label>
                     </div>
                 </section>
 
@@ -3309,7 +3450,7 @@ svg {
                     <div><b>موضوعها:</b> <span id="previewTitle">---</span></div>
                     <div><b>المشتكي:</b> <span id="previewComplainant">---</span><span id="previewPhoneGroup"> | <b>الهاتف:</b> <span id="previewPhone">---</span></span></div>
                     <div><b>الخصم:</b> <span id="previewDefendant">---</span></div>
-                    <div><b>الجلسة القادمة:</b> <span id="previewHearing">---</span></div>
+                    <div id="previewHearingLine" class="share-preview-line"><b>موعد المحكمة:</b> <span id="previewHearing">---</span></div>
                     <div class="share-preview-line"><b>الأتعاب الكلية:</b> <span id="previewFees">---</span></div>
                     <div class="share-preview-line"><b>ملاحظات:</b> <span id="previewNotes">---</span></div>
                     <div class="share-preview-line"><b>نص الباركود:</b> <span id="previewBarcodeSub">---</span></div>
@@ -3390,7 +3531,8 @@ svg {
                 <div><b>المشتكي:</b> <span id="inc_complainant">---</span></div>
                 <div><b>هاتف الموكل:</b> <span id="inc_complainantPhone">---</span></div>
                 <div><b>الخصم:</b> <span id="inc_defendant">---</span></div>
-                <div><b>موعد الجلسة:</b> <span id="inc_nextHearingDate">---</span></div>
+                <div id="inc_nextHearingLine"><b>موعد المحكمة:</b> <span id="inc_nextHearingDate">---</span></div>
+                <div id="inc_followUpLine"><b>موعد المحكمة (الموعد الإضافي):</b> <span id="inc_followUpDate">---</span></div>
                 <div><b>الأتعاب:</b> <span id="inc_totalFees">---</span></div>
                 <div><b>الملاحظات:</b> <span id="inc_privateNotes">---</span></div>
                 <div><b>نص الباركود:</b> <span id="inc_barcodeSubText">---</span></div>
@@ -3428,6 +3570,17 @@ svg {
                     <input type="number" id="courtExpenses" placeholder="رسوم، خبراء...">
                 </div>
                 <button type="button" class="btn-main btn-3d" style="margin-top: 10px;" onclick="closeFinancialModal()">حفظ وإغلاق النافذة</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة المحادثة المباشرة -->
+    <div id="chatModal" class="modal-overlay chat-modal-overlay">
+        <div class="modal-content chat-modal-content">
+            <div class="modal-header"><div><h3 style="margin:0;color:var(--primary-color);">💬 محادثة مع شخص</h3><small style="color:var(--label-color);">محادثات مباشرة مرتبطة بالبريد الإلكتروني</small></div><button type="button" class="modal-close-btn btn-3d" onclick="closeChatModal()">✕ إغلاق</button></div>
+            <div class="chat-layout">
+                <aside class="chat-contacts-pane"><label for="chatContactSearch">ابحث بالاسم أو البريد أو الهاتف</label><input id="chatContactSearch" type="search" placeholder="اسم أو بريد أو هاتف" oninput="renderChatContacts()"><div id="chatContactsList" class="chat-contacts-list"></div></aside>
+                <section class="chat-conversation-pane"><div id="chatConversationHeader" class="chat-conversation-header">اختر شخصاً من القائمة لبدء المحادثة</div><div id="chatMessages" class="chat-messages"><div class="chat-empty">💬 اختر شخصاً مسجلاً لعرض المحادثة</div></div><div class="chat-compose"><textarea id="chatMessageInput" rows="2" placeholder="اكتب رسالتك هنا..." disabled></textarea><button id="sendChatMessageBtn" type="button" class="btn-main btn-3d" onclick="sendChatMessage()" disabled>إرسال ➤</button></div></section>
             </div>
         </div>
     </div>
@@ -3475,7 +3628,7 @@ svg {
                 <select id="calendarEventType" style="width:100%;">
                     <option value="registeredDate">تاريخ تسجيل الدعوى</option>
                     <option value="nextHearingDate">موعد جلسة المحكمة</option>
-                    <option value="followUpDate">موعد مراجعة / آخر موعد لتقديم مستند</option>
+                    <option value="followUpDate">موعد المحكمة</option>
                     <option value="all">جميع المواعيد في هذا اليوم</option>
                 </select>
             </div>
