@@ -250,6 +250,21 @@
             document.getElementById('financialModal').style.display = 'none';
         };
 
+        window.printFinancialReceipt = function(){
+            const total = Number(document.getElementById('totalFees').value || 0);
+            const paid = Number(document.getElementById('paidFees').value || 0);
+            const remaining = total - paid;
+            const responsible = (document.getElementById('watermarkText')?.value || '').trim();
+            const chosenDate = document.getElementById('financialReceiptDate')?.value || '';
+            const dateText = chosenDate ? new Date(chosenDate+'T12:00:00').toLocaleDateString('ar-IQ') : '';
+            const fmt = n => new Intl.NumberFormat('ar-IQ').format(n) + ' د.ع';
+            const win = window.open('', '_blank', 'width=800,height=700');
+            if(!win){alert('يرجى السماح بفتح نافذة الطباعة من المتصفح.');return;}
+            const esc = v => String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+            win.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>وصل استلام أتعاب المحاماة</title><style>body{font-family:Tahoma,Arial,sans-serif;padding:32px;color:#111;direction:rtl}.receipt{max-width:720px;margin:auto;border:2px solid #222;padding:28px;border-radius:12px}.head{text-align:center;border-bottom:1px solid #999;padding-bottom:18px;margin-bottom:22px}h1{font-size:25px;margin:0 0 8px}table{width:100%;border-collapse:collapse;margin-top:20px}td,th{border:1px solid #777;padding:14px;text-align:right}th{background:#f1f1f1}.amount{font-weight:bold;font-size:18px}.foot{margin-top:36px;display:flex;justify-content:space-between;gap:20px}.signature{min-width:42%;border-top:1px solid #555;padding-top:10px;margin-top:30px}@media print{body{padding:0}.receipt{border-radius:0}}</style></head><body><div class="receipt"><div class="head"><h1>وصل استلام أتعاب المحاماة</h1><div>إيصال بالمبالغ الخاصة بأتعاب المحاماة</div></div><div>اسم المسؤول: <b>${esc(responsible || '—')}</b></div>${dateText?`<div style="margin-top:8px">تاريخ الطباعة: <b>${esc(dateText)}</b></div>`:''}<table><tr><th>التفاصيل</th><th>المبلغ</th></tr><tr><td>أتعاب المحاماة الكلية</td><td class="amount">${esc(fmt(total))}</td></tr><tr><td>المبالغ المستلمة مقدماً</td><td class="amount">${esc(fmt(paid))}</td></tr><tr><td><b>المتبقي (الأتعاب الكلية − المستلم مقدماً)</b></td><td class="amount">${esc(fmt(remaining))}</td></tr></table><div class="foot"><div class="signature">توقيع المستلم</div><div class="signature">توقيع المحامي</div></div></div><script>window.onload=()=>{window.print();};<\/script></body></html>`);
+            win.document.close();
+        };
+
         window.openContractModal = function() {
             document.getElementById('contractModal').style.display = 'flex';
             populateDateDropdowns();
@@ -639,12 +654,32 @@
         let chatKnownUnreadIds = new Set();
         let chatInitialNotificationScanDone = false;
         let chatRefreshTimer = null;
+        let chatCleanupRunning = false;
+        const CHAT_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
+        async function cleanupExpiredChatMessages(){
+            if(!currentUser || chatCleanupRunning) return;
+            chatCleanupRunning = true;
+            try{
+                const snap = await getDocs(collection(db,'inbox'));
+                const now = Date.now();
+                const docs = snap.docs.map(d=>({id:d.id,...d.data()}));
+                const expiredIds = new Set(docs.filter(m => (m.type==='chatMessage' || m.type==='chatSeen') && m.timestamp && (now - new Date(m.timestamp).getTime()) >= CHAT_RETENTION_MS).map(m=>m.id));
+                // Remove old messages and old read receipts; also remove receipts whose original message has expired.
+                const expiredMessageIds = new Set(docs.filter(m=>m.type==='chatMessage' && m.timestamp && (now-new Date(m.timestamp).getTime())>=CHAT_RETENTION_MS).map(m=>m.id));
+                for(const m of docs){
+                    if(m.type==='chatSeen' && expiredMessageIds.has(m.messageId)) expiredIds.add(m.id);
+                }
+                for(const id of expiredIds){ try{ await deleteDoc(doc(db,'inbox',id)); }catch(e){ console.warn('تعذر حذف رسالة محادثة منتهية',id,e); } }
+            }catch(e){ console.warn('تعذر تنظيف الرسائل القديمة',e); }
+            finally{ chatCleanupRunning = false; }
+        }
         const safeChatText = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
         const makeConversationId = (a,b) => [String(a||'').trim().toLowerCase(),String(b||'').trim().toLowerCase()].sort().join('__');
         window.openChatModal = async function(){
             if(!currentUser){alert('يرجى تسجيل الدخول أولاً.');return;}
             document.getElementById('chatModal').style.display='flex';
             document.getElementById('chatContactSearch').value='';
+            await cleanupExpiredChatMessages();
             await loadSavedContacts();
             chatContacts=savedContacts.filter(c=>c.email && c.email.toLowerCase()!==String(currentUser.email||'').toLowerCase());
             renderChatContacts();
@@ -662,6 +697,11 @@
         };
         async function selectChatContact(contact){
             chatSelectedContact=contact;renderChatContacts();
+            const warningKey = 'chatRetentionNotice:' + makeConversationId(currentUser?.email, contact?.email);
+            if(!localStorage.getItem(warningKey)){
+                alert('تنبيه مهم: سيتم حذف رسائل هذه المحادثة تلقائياً بعد مرور أسبوع واحد من تاريخ إرسال كل رسالة للمحافظة على مساحة التخزين السحابية.');
+                localStorage.setItem(warningKey,'shown');
+            }
             document.getElementById('chatConversationHeader').innerHTML=`<b>${safeChatText(contact.name||contact.email)}</b><small style="display:block;direction:ltr;text-align:right;color:var(--label-color)">${safeChatText(contact.email)}</small>`;
             document.getElementById('chatMessageInput').disabled=false;document.getElementById('sendChatMessageBtn').disabled=false;
             await loadChatThread();
@@ -676,7 +716,7 @@
                 const receipts=all.filter(x=>x.type==='chatSeen');
                 const messages=all.filter(x=>x.type==='chatMessage').sort((a,b)=>String(a.timestamp||'').localeCompare(String(b.timestamp||'')));
                 const toMark=messages.filter(m=>m.targetEmail===currentUser.email && !receipts.some(r=>r.messageId===m.id && r.readerEmail===currentUser.email));
-                for(const m of toMark){try{await addDoc(collection(db,'inbox'),{type:'chatSeen',conversationId:conv,messageId:m.id,readerEmail:currentUser.email,senderEmail:currentUser.email,targetEmail:m.senderEmail,timestamp:new Date().toISOString()});}catch(e){console.warn('تعذر تسجيل مشاهدة الرسالة',e);}}
+                for(const m of toMark){try{await addDoc(collection(db,'inbox'),{type:'chatSeen',conversationId:conv,messageId:m.id,readerEmail:currentUser.email,senderEmail:currentUser.email,targetEmail:m.senderEmail,timestamp:new Date().toISOString(),expiresAt:new Date(Date.now()+CHAT_RETENTION_MS)});}catch(e){console.warn('تعذر تسجيل مشاهدة الرسالة',e);}}
                 if(!messages.length){host.innerHTML='<div class="chat-empty">لا توجد رسائل بعد. اكتب أول رسالة لبدء المحادثة.</div>';return;}
                 host.innerHTML=messages.map(m=>{
                     const mine=m.senderEmail===currentUser.email;
@@ -694,7 +734,7 @@
             const btn=document.getElementById('sendChatMessageBtn');btn.disabled=true;
             try{
                 const conv=makeConversationId(currentUser.email,chatSelectedContact.email);
-                await addDoc(collection(db,'inbox'),{type:'chatMessage',conversationId:conv,senderEmail:currentUser.email,targetEmail:chatSelectedContact.email,text:textValue,timestamp:new Date().toISOString()});
+                await addDoc(collection(db,'inbox'),{type:'chatMessage',conversationId:conv,senderEmail:currentUser.email,targetEmail:chatSelectedContact.email,text:textValue,timestamp:new Date().toISOString(),expiresAt:new Date(Date.now()+CHAT_RETENTION_MS)});
                 input.value='';await loadChatThread();
             }catch(e){alert('تعذر إرسال الرسالة: '+(e.message||e));}
             finally{btn.disabled=false;}
@@ -732,7 +772,7 @@
             await selectChatContact(c);
         };
         let chatNotificationTimer=null;
-        function startChatNotificationMonitor(email){if(chatNotificationTimer)clearInterval(chatNotificationTimer);checkChatNotifications(email);chatNotificationTimer=setInterval(()=>{if(currentUser)checkChatNotifications(currentUser.email);},12000);}
+        function startChatNotificationMonitor(email){if(chatNotificationTimer)clearInterval(chatNotificationTimer);checkChatNotifications(email);cleanupExpiredChatMessages();chatNotificationTimer=setInterval(()=>{if(currentUser){checkChatNotifications(currentUser.email);cleanupExpiredChatMessages();}},12*60*60*1000);}
 
         // دفتر الأشخاص المسجلين: الحفظ والقراءة من Firestore لكل مستخدم، دون تخزين محلي.
         let savedContacts = [];
@@ -1055,6 +1095,42 @@
             document.getElementById('barcodeSubTextDisplay').textContent = "";
             document.getElementById('watermarkDisplay').textContent = "";
             alert("تم إفريغ الحقول بنجاح. يمكنك الآن إدخال دعوة جديدة.");
+        };
+
+        window.resetUserSystem = async function(){
+            if(!currentUser){alert('يرجى تسجيل الدخول أولاً.');return;}
+            const warning = 'تحذير نهائي: سيحذف هذا الإجراء جميع الدعاوى المحفوظة في حسابك، وقائمة الأشخاص، ورسائل البريد والمحادثات المرتبطة ببريدك. لن يُحذف حساب الدخول نفسه. هل تريد المتابعة؟';
+            if(!confirm(warning)) return;
+            const pass1 = prompt('أدخل الرمز السري/كلمة مرور حسابك للتأكيد الأول:');
+            if(!pass1) return;
+            const pass2 = prompt('أعد إدخال الرمز السري نفسه للتأكيد الثاني:');
+            if(!pass2) return;
+            if(pass1 !== pass2){alert('الرمزان غير متطابقين. لم يتم حذف أي بيانات.');return;}
+            try{
+                await signInWithEmailAndPassword(auth,currentUser.email,pass1);
+                const uid=currentUser.uid, email=String(currentUser.email||'').toLowerCase();
+                const [casesSnap, contactsSnap, inboxSnap] = await Promise.all([
+                    getDocs(collection(db,`users/${uid}/cases`)),
+                    getDocs(collection(db,`users/${uid}/contacts`)),
+                    getDocs(collection(db,'inbox'))
+                ]);
+                const ownedInbox=inboxSnap.docs.filter(d=>{
+                    const m=d.data();
+                    return String(m.senderEmail||'').toLowerCase()===email || String(m.targetEmail||'').toLowerCase()===email || String(m.readerEmail||'').toLowerCase()===email;
+                });
+                const deletions=[
+                    ...casesSnap.docs.map(d=>deleteDoc(d.ref)),
+                    ...contactsSnap.docs.map(d=>deleteDoc(d.ref)),
+                    ...ownedInbox.map(d=>deleteDoc(d.ref))
+                ];
+                await Promise.all(deletions);
+                localStorage.removeItem('chatRetentionNotice:'+makeConversationId(currentUser.email,chatSelectedContact?.email));
+                currentLoadedDocId=''; currentLoadedRegisteredDate=''; selectedFileBase64=''; selectedFileName='';
+                if(typeof window.startNewEntry==='function') window.startNewEntry();
+                alert(`تمت إعادة ضبط بيانات حسابك بنجاح.
+حُذفت ${casesSnap.size} دعوى، و${contactsSnap.size} شخصاً، و${ownedInbox.length} رسالة مرتبطة بحسابك.
+حساب الدخول نفسه لم يتغير.`);
+            }catch(e){alert('لم تكتمل إعادة الضبط. قد تكون كلمة المرور غير صحيحة أو لا تسمح صلاحيات السحاب بالحذف. لم يتم ضمان حذف كل البيانات.\n'+(e.message||e));}
         };
 
         window.deleteCurrentCase = async function() {
@@ -2964,6 +3040,73 @@ svg {
         .registered-calendar-day.selected .registered-calendar-dots { color:#fff; }
         @media(max-width:480px) { .registered-calendar { padding:7px; } .registered-calendar-grid { gap:3px; } .registered-calendar-day { min-height:37px; font-size:12px; } }
 
+
+
+        /* تحسين واجهة المحادثة: تصميم متجاوب للهاتف والتابلت والكمبيوتر */
+        .chat-modal-overlay{padding:clamp(6px,2vw,24px);align-items:center;justify-content:center;overscroll-behavior:contain}
+        .chat-modal-content{width:min(1180px,98vw);max-width:1180px;height:min(820px,92dvh);max-height:92dvh;display:flex;flex-direction:column;gap:14px;padding:clamp(12px,2vw,22px);border-radius:22px;overflow:hidden;background:var(--card-bg);box-shadow:0 24px 80px rgba(0,0,0,.24);border:1px solid var(--border-color)}
+        .chat-modal-content>.modal-header{flex:0 0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:4px 2px 14px;border-bottom:1px solid var(--border-color);margin:0}
+        .chat-modal-content>.modal-header h3{font-size:clamp(18px,2vw,24px);font-weight:800;letter-spacing:.1px}
+        .chat-modal-content>.modal-header small{display:block;margin-top:5px;line-height:1.6}
+        .chat-layout{display:grid;grid-template-columns:minmax(250px,.78fr) minmax(0,1.8fr);gap:14px;min-height:0;flex:1;overflow:hidden}
+        .chat-contacts-pane,.chat-conversation-pane{border:1px solid var(--border-color);border-radius:18px;min-width:0;min-height:0;background:var(--card-bg);box-shadow:0 4px 16px rgba(0,0,0,.035)}
+        .chat-contacts-pane{padding:14px;gap:12px}
+        .chat-contacts-pane>label{font-weight:800;font-size:13px;color:var(--primary-color)}
+        #chatContactSearch{width:100%;min-height:46px;border-radius:13px;padding:10px 13px;border:1px solid var(--border-color);background:var(--input-bg);color:var(--text-main);outline:none;box-sizing:border-box}
+        #chatContactSearch:focus{border-color:#c5a04a;box-shadow:0 0 0 3px rgba(197,160,74,.16)}
+        .chat-contacts-list{flex:1;max-height:none;min-height:80px;padding:2px 3px 2px 1px;scrollbar-width:thin}
+        .chat-contact-item{position:relative;display:block;width:100%;text-align:right;border:1px solid transparent;background:var(--section-bg);padding:12px 13px;border-radius:14px;margin:5px 0;cursor:pointer;transition:background .18s ease,border-color .18s ease,transform .18s ease;line-height:1.5;min-height:58px}
+        .chat-contact-item:hover{border-color:rgba(197,160,74,.65);transform:translateY(-1px)}
+        .chat-contact-item.active{border-color:#c5a04a;background:linear-gradient(135deg,rgba(197,160,74,.2),rgba(197,160,74,.07));box-shadow:inset -3px 0 #c5a04a}
+        .chat-contact-item b{display:block;font-size:14px;margin-bottom:3px;overflow-wrap:anywhere}
+        .chat-contact-item small{display:block;color:var(--label-color);direction:ltr;text-align:right;overflow-wrap:anywhere;font-size:11px;line-height:1.5}
+        .chat-conversation-pane{overflow:hidden}
+        .chat-conversation-header{display:flex;flex-direction:column;justify-content:center;min-height:70px;padding:12px 18px;border-bottom:1px solid var(--border-color);font-weight:800;background:var(--section-bg);line-height:1.5}
+        .chat-conversation-header b{font-size:16px;overflow-wrap:anywhere}
+        .chat-conversation-header small{font-size:11px;margin-top:3px;overflow-wrap:anywhere}
+        .chat-messages{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:clamp(12px,2vw,22px);display:flex;flex-direction:column;gap:12px;max-height:none;min-height:0;background:radial-gradient(ellipse at top,rgba(197,160,74,.07),transparent 55%),var(--card-bg);scrollbar-width:thin}
+        .chat-bubble{max-width:min(78%,600px);padding:11px 14px;border-radius:17px;line-height:1.65;font-size:14px;white-space:pre-wrap;overflow-wrap:anywhere;box-shadow:0 3px 10px rgba(0,0,0,.055)}
+        .chat-bubble.mine{align-self:flex-start;background:#d9fdd3;color:#173c2c;border-bottom-left-radius:5px}
+        .chat-bubble.theirs{align-self:flex-end;background:var(--section-bg);border:1px solid var(--border-color);border-bottom-right-radius:5px}
+        .chat-meta{display:flex;gap:8px;align-items:center;justify-content:flex-end;font-size:10px;margin-top:5px;opacity:.78;direction:ltr}
+        .chat-ticks{color:#1684d8;font-weight:900;letter-spacing:-2px;font-size:13px}
+        .chat-compose{display:flex;gap:10px;align-items:flex-end;padding:12px;border-top:1px solid var(--border-color);background:var(--card-bg)}
+        .chat-compose textarea{height:auto;min-height:48px;max-height:130px;flex:1;resize:vertical;border-radius:14px;padding:12px 14px;line-height:1.5;box-sizing:border-box;background:var(--input-bg);color:var(--text-main);border:1px solid var(--border-color)}
+        .chat-compose textarea:focus{outline:none;border-color:#c5a04a;box-shadow:0 0 0 3px rgba(197,160,74,.14)}
+        .chat-compose button{min-height:48px;min-width:104px;border-radius:14px;font-weight:800;white-space:nowrap}
+        .chat-compose button:disabled{opacity:.5;cursor:not-allowed}
+        .chat-empty{margin:auto;text-align:center;color:var(--label-color);padding:clamp(18px,4vw,36px);line-height:1.8;max-width:360px}
+        @media(min-width:1100px){.chat-modal-content{height:min(840px,92dvh)}.chat-layout{grid-template-columns:minmax(270px,.72fr) minmax(0,1.9fr)}}
+        @media(min-width:681px) and (max-width:900px){.chat-modal-overlay{padding:10px}.chat-modal-content{width:98vw;height:94dvh;max-height:94dvh;padding:13px}.chat-layout{grid-template-columns:minmax(210px,.85fr) minmax(0,1.4fr);gap:10px}.chat-contacts-pane{padding:10px}.chat-contact-item{padding:10px}.chat-bubble{max-width:88%}.chat-compose button{min-width:86px}}
+        @media(max-width:680px){
+          .chat-modal-overlay{padding:0;align-items:stretch;justify-content:stretch}
+          .chat-modal-content{width:100%;max-width:none;height:100dvh;max-height:100dvh;min-height:0;padding:calc(8px + env(safe-area-inset-top)) 9px calc(8px + env(safe-area-inset-bottom));border-radius:0;border:0;gap:9px}
+          .chat-modal-content>.modal-header{padding:5px 2px 10px;gap:7px;align-items:center}
+          .chat-modal-content>.modal-header h3{font-size:17px}
+          .chat-modal-content>.modal-header small{font-size:10px;max-width:220px}
+          .chat-modal-content>.modal-header .modal-close-btn{padding:8px 10px;font-size:12px;white-space:nowrap}
+          .chat-layout{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(112px,26dvh) minmax(0,1fr);gap:8px;min-height:0}
+          .chat-contacts-pane{padding:8px 9px;gap:6px;border-radius:14px}
+          .chat-contacts-pane>label{font-size:11px}
+          #chatContactSearch{min-height:38px;padding:7px 10px;font-size:14px;border-radius:10px}
+          .chat-contacts-list{display:flex;flex-direction:row;gap:7px;overflow-x:auto;overflow-y:hidden;max-height:none;min-height:42px;padding:1px 0 4px;scroll-snap-type:x proximity}
+          .chat-contact-item{flex:0 0 min(68vw,230px);width:auto;min-height:48px;padding:7px 10px;margin:0;border-radius:11px;scroll-snap-align:start}
+          .chat-contact-item b{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+          .chat-contact-item small{font-size:9px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+          .chat-conversation-pane{min-height:0;border-radius:14px}
+          .chat-conversation-header{min-height:56px;padding:8px 12px}
+          .chat-conversation-header b{font-size:14px}
+          .chat-conversation-header small{font-size:10px}
+          .chat-messages{min-height:0;max-height:none;padding:12px 9px;gap:9px}
+          .chat-bubble{max-width:88%;padding:9px 11px;font-size:13px;border-radius:14px}
+          .chat-meta{font-size:9px}
+          .chat-compose{padding:8px;gap:7px;align-items:flex-end}
+          .chat-compose textarea{min-height:44px;max-height:100px;padding:10px;font-size:14px;border-radius:12px;resize:none}
+          .chat-compose button{min-width:72px;min-height:44px;padding:8px 10px;font-size:12px;border-radius:12px}
+          .chat-empty{padding:18px 12px;font-size:13px}
+        }
+        @media(max-width:380px){.chat-modal-content>.modal-header h3{font-size:15px}.chat-modal-content>.modal-header small{max-width:165px}.chat-compose button{min-width:64px}.chat-contact-item{flex-basis:72vw}}
+
 </style>
 <script>
         // فحص مبكر لدعم الطباعة في المتصفح.
@@ -3240,6 +3383,7 @@ svg {
                     <button type="button" class="btn-archive-top btn-3d" onclick="openRegisteredDatesModal()">🗓️ تواريخ الدعاوى المسجلة</button>
                     <button type="button" class="btn-archive-top btn-3d" onclick="openContactsModal()">👥 إضافة شخص</button>
                     <button type="button" class="btn-archive-top btn-3d chat-main-button" onclick="openChatModal()">💬 محادثة مع شخص</button>
+                    <button type="button" class="btn-archive-top btn-3d" style="border-color:#b91c1c;color:#b91c1c" onclick="resetUserSystem()">♻️ ترسيت النظام</button>
                     <button type="button" class="btn-open-financial-top btn-3d" onclick="openFinancialModal()">💰 الأرشيف المالي</button>
                     <button type="button" class="btn-archive-top btn-3d" onclick="openMailArchiveModal()">📬 الأرشيف البريدي</button>
                     <button type="button" class="btn-archive-top btn-3d" onclick="openChatGPTPage()">🤖 ChatGPT</button>
@@ -3569,7 +3713,12 @@ svg {
                     <label>المصاريف القضائية المدفوعة:</label>
                     <input type="number" id="courtExpenses" placeholder="رسوم، خبراء...">
                 </div>
-                <button type="button" class="btn-main btn-3d" style="margin-top: 10px;" onclick="closeFinancialModal()">حفظ وإغلاق النافذة</button>
+                <div class="form-group" style="margin:0;">
+                    <label for="financialReceiptDate">تاريخ الطباعة (اختياري — اتركه فارغاً لإخفائه):</label>
+                    <input type="date" id="financialReceiptDate">
+                </div>
+                <button type="button" class="btn-print btn-3d" style="margin-top:10px;" onclick="printFinancialReceipt()">🖨️ طباعة وصل استلام الأتعاب</button>
+                <button type="button" class="btn-main btn-3d" style="margin-top: 4px;" onclick="closeFinancialModal()">حفظ وإغلاق النافذة</button>
             </div>
         </div>
     </div>
