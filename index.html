@@ -69,9 +69,13 @@
                 return;
             }
 
+            const loginButton = document.getElementById('loginSubmitButton');
             try {
+                if (loginButton) { loginButton.disabled = true; loginButton.dataset.originalText = loginButton.textContent; loginButton.textContent = "جارٍ الدخول..."; }
                 errorMsg.style.color = "#3b82f6";
-                errorMsg.textContent = "جاري تسجيل الدخول...";
+                errorMsg.textContent = "جارٍ التحقق من بيانات الدخول...";
+                // انتظر تثبيت إعداد الجلسة حتى لا يبدأ تسجيل الدخول قبل اكتمال تهيئة Firebase.
+                await setPersistence(auth, browserSessionPersistence);
                 await signInWithEmailAndPassword(auth, email, password);
                 errorMsg.textContent = "";
             } catch (error) {
@@ -91,8 +95,28 @@
                 };
 
                 errorMsg.textContent = messages[code] || ("تعذر تسجيل الدخول (" + (code || "خطأ غير معروف") + "). " + (error && error.message ? error.message : "تحقق من إعدادات Firebase والاتصال."));
+            } finally {
+                if (loginButton) { loginButton.disabled = false; loginButton.textContent = loginButton.dataset.originalText || "دخول للنظام"; }
             }
         };
+
+        // دعم الضغط على Enter من حقلي البريد وكلمة المرور، وإظهار خطأ واضح إن لم تكتمل تهيئة Firebase.
+        document.addEventListener('DOMContentLoaded', () => {
+            const emailField = document.getElementById('email');
+            const passwordField = document.getElementById('password');
+            [emailField, passwordField].forEach(field => {
+                if (field) field.addEventListener('keydown', event => {
+                    if (event.key === 'Enter') {
+                        event.preventDefault();
+                        if (typeof window.loginUser === 'function') window.loginUser();
+                        else {
+                            const msg = document.getElementById('loginError');
+                            if (msg) { msg.style.color = '#ef4444'; msg.textContent = 'تعذر تحميل خدمة تسجيل الدخول. حدّث الصفحة وتأكد من اتصال الإنترنت.'; }
+                        }
+                    }
+                });
+            });
+        });
 
         window.logoutUser = async function() {
             await signOut(auth);
@@ -339,6 +363,7 @@
                 const remaining = total - paid;
                 const lawyer = lawyerEl.value.trim();
                 const client = complainantEl.value.trim();
+                const representative = (document.getElementById('financialRepresentative')?.value || '').trim();
                 const chosenDate = dateEl.value || '';
                 const dateText = chosenDate ? new Date(chosenDate + 'T12:00:00').toLocaleDateString('ar-IQ') : '';
                 const fmt = n => new Intl.NumberFormat('ar-IQ').format(n) + ' د.ع';
@@ -353,13 +378,14 @@
                     <header class="financial-receipt-head"><h1>وصل استلام أتعاب المحاماة</h1><p>إيصال بالمبالغ الخاصة بأتعاب المحاماة</p></header>
                     <p class="financial-receipt-responsible">اسم المحامي: <strong>${esc(lawyer || '—')}</strong></p>
                     <p class="financial-receipt-responsible">اسم الموكل: <strong>${esc(client || '—')}</strong></p>
-                    ${dateText ? `<p class="financial-receipt-date">تاريخ الطباعة: <strong>${esc(dateText)}</strong></p>` : ''}
+                    ${representative ? `<p class="financial-receipt-responsible">ينوب عن الموكل: <strong>${esc(representative)}</strong></p>` : ''}
+                    ${dateText ? `<p class="financial-receipt-date">تاريخ الوصل: <strong>${esc(dateText)}</strong></p>` : ''}
                     <table><thead><tr><th>التفاصيل</th><th>المبلغ</th></tr></thead><tbody>
                     <tr><td>أتعاب المحاماة الكلية</td><td>${esc(fmt(total))}</td></tr>
                     <tr><td>المبالغ المستلمة مقدماً</td><td>${esc(fmt(paid))}</td></tr>
                     <tr><td><strong>المبلغ المتبقي</strong><small class="financial-receipt-formula">الأتعاب الكلية − المبالغ المستلمة</small></td><td><strong>${esc(fmt(remaining))}</strong></td></tr>
                     </tbody></table>
-                    <footer class="financial-receipt-signatures"><div>توقيع الموكل<br><strong>${esc(client || '—')}</strong></div><div>توقيع المحامي<br><strong>${esc(lawyer || '—')}</strong></div></footer>
+                    <footer class="financial-receipt-signatures"><div>توقيع الموكل<br><strong>${esc(client || '—')}</strong>${representative ? `<br><small>ينوب عنه: ${esc(representative)}</small>` : ''}</div><div>توقيع المحامي<br><strong>${esc(lawyer || '—')}</strong></div></footer>
                 </article>`;
                 document.body.classList.remove('print-report','print-contract');
                 document.body.classList.add('print-financial-receipt');
@@ -743,6 +769,113 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         };
 
+        window.previewCaseAttachment = function() {
+            if (!selectedFileBase64) { alert('لا يوجد مرفق محفوظ للمعاينة.'); return; }
+            const w = window.open('', '_blank');
+            if (!w) { alert('يرجى السماح بفتح نافذة المعاينة ثم المحاولة مجدداً.'); return; }
+            const safeSrc = String(selectedFileBase64).replace(/"/g, '%22');
+            w.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>معاينة مرفق الدعوى</title><style>body{font-family:Arial,sans-serif;text-align:center;margin:20px;background:#f1f5f9}img{max-width:95%;max-height:90vh;object-fit:contain;background:white;padding:8px;border-radius:10px;box-shadow:0 4px 20px #0002}</style><style id="responsive-main-buttons-layout">
+/* ترتيب متجاوب لأزرار الواجهة الرئيسية فقط؛ لا يغيّر أحداث الأزرار أو وظائفها */
+#mainSystemView .professional-user-bar {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 16px !important;
+  width: 100%;
+  box-sizing: border-box;
+}
+#mainSystemView .professional-identity-zone,
+#mainSystemView .professional-help-zone,
+#mainSystemView .professional-actions { min-width: 0; width: 100%; box-sizing: border-box; }
+#mainSystemView .professional-help-zone {
+  display: flex !important;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px !important;
+}
+#mainSystemView .professional-actions {
+  display: grid !important;
+  grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  align-items: stretch !important;
+  gap: 12px !important;
+  margin: 0 !important;
+}
+#mainSystemView .professional-actions > button {
+  width: 100% !important;
+  min-width: 0 !important;
+  min-height: 48px !important;
+  height: auto !important;
+  padding: 11px 9px !important;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  line-height: 1.45 !important;
+  box-sizing: border-box !important;
+}
+@media (min-width: 1100px) {
+  #mainSystemView .professional-user-bar { padding: 20px !important; }
+  #mainSystemView .professional-actions > button { font-size: 13px !important; }
+}
+@media (min-width: 701px) and (max-width: 1099px) {
+  #mainSystemView .professional-actions { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; gap: 10px !important; }
+  #mainSystemView .professional-actions > button { font-size: 12px !important; min-height: 46px !important; }
+  #mainSystemView .professional-user-bar { padding: 15px !important; }
+}
+@media (max-width: 700px) {
+  #mainSystemView .professional-actions { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 9px !important; }
+  #mainSystemView .professional-actions > button { font-size: 12px !important; min-height: 46px !important; padding: 10px 7px !important; }
+  #mainSystemView .professional-user-bar { padding: 12px !important; gap: 12px !important; }
+  #mainSystemView .professional-help-zone { justify-content: space-between; }
+}
+@media (max-width: 360px) {
+  #mainSystemView .professional-actions { grid-template-columns: minmax(0, 1fr) !important; }
+  #mainSystemView .professional-actions > button { min-height: 44px !important; font-size: 13px !important; }
+}
+</style>
+
+</head><body><h3>معاينة مرفق الدعوى</h3><img src="${safeSrc}" alt="مرفق الدعوى"></body></html>`);
+            w.document.close();
+        };
+        window.changeCaseAttachment = function() {
+            const input = document.getElementById('attachment');
+            if (input) input.click();
+        };
+
+        window.removeCaseAttachment = function() {
+            selectedFileBase64 = '';
+            selectedFileName = '';
+            const input = document.getElementById('attachment');
+            if (input) input.value = '';
+            const host = document.getElementById('fileInfo');
+            if (host) {
+                host.innerHTML = '<span style="color:#b91c1c;font-weight:600">تم حذف المرفق. احفظ الدعوى لتثبيت التغيير.</span>';
+            }
+        };
+
+        function renderAttachmentPreview() {
+            const host = document.getElementById('fileInfo');
+            if (!host) return;
+            host.innerHTML = '';
+            if (!selectedFileBase64 || !selectedFileName) return;
+            const wrap = document.createElement('div');
+            wrap.className = 'attachment-preview';
+            const img = document.createElement('img');
+            img.src = selectedFileBase64; img.alt = 'معاينة مصغرة لمرفق الدعوى';
+            const label = document.createElement('div'); label.className = 'attachment-preview-name'; label.textContent = '📎 ' + selectedFileName;
+            const actions = document.createElement('div');
+            actions.className = 'attachment-preview-actions';
+            const previewBtn = document.createElement('button'); previewBtn.type = 'button'; previewBtn.className = 'btn-search btn-3d'; previewBtn.textContent = '👁️ معاينة'; previewBtn.onclick = window.previewCaseAttachment;
+            const changeBtn = document.createElement('button'); changeBtn.type = 'button'; changeBtn.className = 'btn-search btn-3d attachment-change-btn'; changeBtn.textContent = '🔄 تغيير الصورة'; changeBtn.onclick = window.changeCaseAttachment;
+            const deleteBtn = document.createElement('button'); deleteBtn.type = 'button'; deleteBtn.className = 'btn-search btn-3d attachment-delete-btn'; deleteBtn.textContent = '🗑️ حذف'; deleteBtn.onclick = window.removeCaseAttachment;
+            actions.append(previewBtn, changeBtn, deleteBtn);
+            wrap.append(img,label,actions); host.appendChild(wrap);
+        }
+
         window.handleFileSelect = function(event) {
             const file = event.target.files[0];
             if (!file) return;
@@ -763,7 +896,8 @@
                     const ctx = canvas.getContext('2d');
                     ctx.drawImage(img, 0, 0, width, height);
                     selectedFileBase64 = canvas.toDataURL('image/jpeg', 0.7);
-                    document.getElementById('fileInfo').innerHTML = `📎 تم ضغط وتجهيز الصورة بنجاح: <b>${file.name}</b>`;
+                    renderAttachmentPreview();
+                    document.getElementById('fileInfo').insertAdjacentHTML('afterbegin', `📎 تم تجهيز الصورة: <b>${safeChatText(file.name)}</b><br>`);
                 };
                 img.src = e.target.result;
             };
@@ -1197,7 +1331,7 @@
                     selectedFileName = data.fileName || "";
 
                     if (selectedFileName) {
-                        document.getElementById('fileInfo').innerHTML = `📎 الملف المرفق: <a href="${selectedFileBase64}" download="${selectedFileName}" style="color: #2980b9; font-weight: bold;">تحميل (${selectedFileName})</a>`;
+                        renderAttachmentPreview();
                     } else {
                         document.getElementById('fileInfo').textContent = "";
                     }
@@ -3285,7 +3419,7 @@ svg {
           .chat-compose button{min-width:70px}
         }
         @media(min-width:681px) and (max-width:900px){.chat-person-avatar{width:36px;height:36px;flex-basis:36px}.chat-online-label{display:none}.chat-bubble{max-width:90%}}
-        @page { size: A4 portrait; margin: 12mm; }
+        @page { size: A4 portrait; margin: 0; }
         #financialReceiptPrintArea{display:none}
         .financial-receipt-paper{box-sizing:border-box;width:186mm;max-width:186mm;min-height:273mm;margin:0 auto;padding:14mm;border:1.5px solid #222;background:#fff;color:#111;font-family:Tahoma,Arial,sans-serif;direction:rtl}
         .financial-receipt-head{text-align:center;border-bottom:1px solid #999;padding-bottom:7mm;margin-bottom:8mm}
@@ -3298,7 +3432,7 @@ svg {
         .financial-receipt-signatures{display:flex;gap:15mm;justify-content:space-between;margin-top:25mm}
         .financial-receipt-signatures div{width:45%;padding-top:4mm;border-top:1px solid #555;text-align:center;font-size:11pt;line-height:2}
         @media print{
-          @page { size: A4 portrait; margin: 12mm; }
+          @page { size: A4 portrait; margin: 0; }
           html,body{width:auto!important;min-width:0!important;height:auto!important;min-height:0!important;margin:0!important;padding:0!important;background:#fff!important;overflow:visible!important}
           body.print-financial-receipt > :not(#financialReceiptPrintArea){display:none!important;visibility:hidden!important}
           body.print-financial-receipt > #financialReceiptPrintArea{display:block!important;visibility:visible!important;position:static!important;inset:auto!important;width:100%!important;max-width:none!important;height:auto!important;margin:0!important;padding:0!important;overflow:visible!important;opacity:1!important}
@@ -3595,6 +3729,58 @@ svg {
     @media(max-width:480px){.share-visibility-grid{grid-template-columns:1fr}.share-visibility-option{padding:10px}.share-visibility-panel{padding:11px}}
 </style>
 
+
+<style id="chat-premium-refresh">
+/* واجهة محادثة عصرية ومحترفة مع الحفاظ على وظائف الرسائل الحالية */
+.chat-modal-overlay{backdrop-filter:blur(8px);background:rgba(12,22,32,.58)!important}
+.chat-modal-content{background:var(--card-bg)!important;border:1px solid rgba(197,160,74,.32)!important;border-radius:24px!important;box-shadow:0 28px 90px rgba(0,0,0,.32),0 0 0 1px rgba(255,255,255,.04) inset!important}
+.chat-modal-content>.modal-header{background:linear-gradient(110deg,rgba(197,160,74,.11),transparent 65%);border-radius:16px;padding:12px 14px 16px!important}
+.chat-modal-content>.modal-header h3{display:flex;align-items:center;gap:9px;color:var(--primary-color)!important}
+.chat-modal-content>.modal-header h3:before{content:'✉';display:inline-grid;place-items:center;width:38px;height:38px;border-radius:13px;background:linear-gradient(145deg,#c5a04a,#e6cb82);color:#25302c;font-size:20px;box-shadow:0 5px 14px rgba(197,160,74,.22)}
+.chat-contacts-pane{display:flex;flex-direction:column;background:linear-gradient(180deg,var(--section-bg),var(--card-bg))!important;border-radius:20px!important;padding:15px!important}
+.chat-contacts-pane>label{display:flex;align-items:center;gap:7px;font-size:13px!important;letter-spacing:.1px}
+.chat-contacts-pane>label:before{content:'◉';color:#c5a04a;font-size:16px}
+#chatContactSearch{box-shadow:0 2px 8px rgba(0,0,0,.025);transition:border-color .2s,box-shadow .2s}
+.chat-contact-item{background:var(--card-bg)!important;border:1px solid var(--border-color)!important;border-radius:15px!important;padding:13px 14px 13px 12px!important;box-shadow:0 3px 10px rgba(0,0,0,.025);text-align:right;position:relative;overflow:hidden}
+.chat-contact-item:after{content:'›';position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:23px;color:var(--label-color);opacity:.55}
+.chat-contact-item:hover{background:var(--section-bg)!important;border-color:rgba(197,160,74,.7)!important;box-shadow:0 7px 18px rgba(0,0,0,.07);transform:translateY(-2px)}
+.chat-contact-item.active{background:linear-gradient(110deg,rgba(197,160,74,.17),var(--card-bg))!important;border-color:#c5a04a!important;box-shadow:inset -4px 0 #c5a04a,0 5px 15px rgba(197,160,74,.09)!important}
+.chat-contact-item b{font-size:14px!important;font-weight:800; padding-left:22px}
+.chat-conversation-pane{display:flex;flex-direction:column;border-radius:20px!important;background:var(--card-bg)!important;box-shadow:0 6px 22px rgba(0,0,0,.045)!important}
+.chat-conversation-header{position:relative;flex-direction:row!important;align-items:center;gap:12px;min-height:76px!important;padding:13px 18px!important;background:linear-gradient(100deg,rgba(197,160,74,.13),var(--section-bg))!important}
+.chat-conversation-header:has(.chat-person-avatar){justify-content:flex-start}
+.chat-person-avatar{flex:0 0 44px;width:44px!important;height:44px!important;border-radius:15px!important;display:grid;place-items:center;background:linear-gradient(145deg,#c5a04a,#e9d69d)!important;color:#27312d!important;font-size:19px!important;font-weight:900;box-shadow:0 5px 14px rgba(197,160,74,.23)}
+.chat-person-details{display:flex;flex-direction:column;min-width:0;flex:1;gap:2px}
+.chat-person-details b{font-size:15px!important;font-weight:850}
+.chat-person-details small{direction:ltr;text-align:right;overflow-wrap:anywhere}
+.chat-online-label{display:inline-flex;align-items:center;gap:6px;white-space:nowrap;font-size:11px;color:var(--label-color);background:var(--card-bg);border:1px solid var(--border-color);padding:7px 10px;border-radius:999px}
+.chat-online-label i{width:7px;height:7px;display:inline-block;border-radius:50%;background:#36b37e;box-shadow:0 0 0 3px rgba(54,179,126,.13)}
+.chat-messages{background-color:var(--card-bg)!important;background-image:radial-gradient(rgba(197,160,74,.12) .7px,transparent .7px)!important;background-size:18px 18px!important}
+.chat-bubble{padding:12px 15px!important;border-radius:18px!important;box-shadow:0 4px 13px rgba(0,0,0,.07)!important;font-size:14px!important;line-height:1.75!important;max-width:min(76%,620px)!important}
+.chat-bubble.mine{background:linear-gradient(135deg,#d9fdd3,#c9f3c3)!important;color:#173c2c!important;border:1px solid rgba(45,120,70,.10)!important;border-bottom-left-radius:5px!important}
+.chat-bubble.theirs{background:var(--section-bg)!important;border:1px solid var(--border-color)!important;border-bottom-right-radius:5px!important}
+.chat-meta{margin-top:7px!important;gap:7px!important;color:inherit;opacity:.68}
+.chat-compose{gap:10px!important;padding:12px!important;background:var(--card-bg)!important;border-top:1px solid var(--border-color)!important}
+.chat-compose textarea{border-radius:16px!important;min-height:52px!important;padding:13px 15px!important;box-shadow:0 2px 8px rgba(0,0,0,.025);resize:none!important}
+.chat-compose button{border-radius:15px!important;min-height:52px!important;box-shadow:0 5px 14px rgba(0,0,0,.1);transition:transform .18s,filter .18s}
+.chat-compose button:not(:disabled):hover{transform:translateY(-2px);filter:brightness(1.04)}
+.chat-empty{background:rgba(197,160,74,.055);border:1px dashed rgba(197,160,74,.35);border-radius:20px}
+@media(max-width:680px){
+ .chat-modal-content{border-radius:0!important}
+ .chat-modal-content>.modal-header{border-radius:13px;padding:8px 8px 11px!important}
+ .chat-modal-content>.modal-header h3:before{width:32px;height:32px;border-radius:11px;font-size:17px}
+ .chat-contacts-pane{padding:8px!important}
+ .chat-contact-item{flex-basis:min(70vw,245px)!important;padding:8px 11px!important}
+ .chat-conversation-header{gap:8px;padding:8px 10px!important;min-height:54px!important}
+ .chat-person-avatar{flex-basis:34px;width:34px!important;height:34px!important;border-radius:11px!important;font-size:15px!important}
+ .chat-person-details b{font-size:13px!important}
+ .chat-online-label{font-size:9px;padding:5px 7px}
+ .chat-bubble{max-width:90%!important;padding:9px 11px!important;font-size:13px!important}
+ .chat-compose{padding:7px!important;gap:6px!important}
+ .chat-compose textarea{min-height:44px!important;padding:10px!important;font-size:14px}
+ .chat-compose button{min-height:44px!important;min-width:76px!important;padding:8px 10px!important;font-size:12px}
+}
+</style>
 </head>
 <body>
     <div id="legalScreensaver" role="dialog" aria-modal="true" aria-label="شاشة التوقف القانونية">
@@ -3625,7 +3811,7 @@ svg {
             <label>كلمة المرور:</label>
             <input type="password" id="password" placeholder="********">
         </div>
-        <button type="button" class="btn-main btn-3d" onclick="loginUser()">دخول للنظام</button>
+        <button type="button" id="loginSubmitButton" class="btn-main btn-3d" onclick="window.loginUser ? window.loginUser() : (document.getElementById('loginError').textContent = 'جاري تجهيز نظام الدخول، انتظر لحظة ثم أعد المحاولة.')">دخول للنظام</button>
         <div id="loginError" style="font-size: 13px; margin-top: 10px;"></div>
     </div>
 
@@ -3996,11 +4182,15 @@ svg {
                     <input type="number" id="paidFees" placeholder="مثال: 500000">
                 </div>
                 <div class="form-group" style="margin: 0;">
+                    <label for="financialRepresentative">ينوب عن الموكل (اختياري):</label>
+                    <input type="text" id="financialRepresentative" placeholder="اسم الشخص الذي ينوب عن الموكل">
+                </div>
+                <div class="form-group" style="margin: 0;">
                     <label>المصاريف القضائية المدفوعة:</label>
                     <input type="number" id="courtExpenses" placeholder="رسوم، خبراء...">
                 </div>
                 <div class="form-group" style="margin:0;">
-                    <label for="financialReceiptDate">تاريخ الطباعة (اختياري — اتركه فارغاً لإخفائه):</label>
+                    <label for="financialReceiptDate">تاريخ الوصل (اختياري — اتركه فارغاً لإخفائه):</label>
                     <input type="date" id="financialReceiptDate">
                 </div>
                 <button type="button" class="btn-print btn-3d" style="margin-top:10px;" onclick="printFinancialReceipt()">🖨️ طباعة وصل استلام الأتعاب</button>
@@ -4062,7 +4252,6 @@ svg {
                 <label for="calendarEventType">نوع التاريخ الذي تريد البحث عنه:</label>
                 <select id="calendarEventType" style="width:100%;">
                     <option value="registeredDate">تاريخ تسجيل الدعوى</option>
-                    <option value="nextHearingDate">موعد جلسة المحكمة</option>
                     <option value="followUpDate">موعد المحكمة</option>
                     <option value="all">جميع المواعيد في هذا اليوم</option>
                 </select>
@@ -4381,6 +4570,104 @@ body.dark-mode .quick-mode-btn{background:linear-gradient(145deg,#263b57 0%,#111
 body.dark-mode .professional-help-btn{background:linear-gradient(145deg,rgba(99,102,241,.22),rgba(30,41,59,.7));color:#e0e7ff;border-color:rgba(165,180,252,.28)}
 @media(max-width:700px){.professional-help-zone{gap:6px!important;padding:0 3px!important}.quick-mode-buttons{gap:5px;padding:3px;border-radius:13px}.quick-mode-btn{width:33px!important;height:33px!important;min-width:33px!important;min-height:33px!important;font-size:18px!important}.professional-help-btn{min-width:66px!important;min-height:36px!important;padding:6px 8px!important}}
 @media(max-width:390px){.professional-help-zone{gap:4px!important}.quick-mode-btn{width:31px!important;height:31px!important;min-width:31px!important;min-height:31px!important}.professional-help-btn{min-width:58px!important;font-size:9px!important;gap:4px!important}}
+
+        /* تحسينات معاينة المرفقات ومربع المحادثة */
+        .attachment-preview{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;padding:10px;border:1px solid var(--border-color,#cbd5e1);border-radius:12px;background:var(--card-bg,#fff);width:fit-content;max-width:100%}
+        .attachment-preview img{width:92px;height:76px;object-fit:cover;border-radius:8px;border:1px solid #cbd5e1;background:#fff}
+        .attachment-preview div{font-size:12px;max-width:220px;overflow-wrap:anywhere}
+        #chatMessageInput{width:100%;min-height:76px;resize:vertical;padding:14px 16px;border:2px solid #94a3b8;border-radius:14px;background:#fff;color:#0f172a;font:15px/1.7 Arial,sans-serif;box-shadow:inset 0 1px 3px rgba(15,23,42,.08);outline:none;transition:border-color .2s,box-shadow .2s}
+        #chatMessageInput:focus{border-color:#2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.14)}
+        #chatMessageInput:disabled{background:#f1f5f9;color:#64748b;cursor:not-allowed}
+        .chat-compose{align-items:stretch;gap:10px}
+        /* التوقيعات أسفل العقد: الموكل يسار الصفحة والمحامي يمين الصفحة */
+        #contractPrintSection .contract-content-wrapper > div[style*="display: flex"]:not(.actions-section){
+          display:flex!important;flex-direction:row!important;align-items:flex-end!important;justify-content:space-between!important;
+          gap:18px!important;margin-top:auto!important;padding-top:30px!important;width:100%!important;box-sizing:border-box!important;direction:ltr!important;
+        }
+        #contractPrintSection .contract-content-wrapper > div[style*="display: flex"]:not(.actions-section) > div{
+          flex:0 1 45%!important;width:45%!important;line-height:1.8!important;white-space:normal!important;
+        }
+        #contractPrintSection .contract-content-wrapper > div[style*="display: flex"]:not(.actions-section) > div:first-child{order:1!important;text-align:left!important}
+        #contractPrintSection .contract-content-wrapper > div[style*="display: flex"]:not(.actions-section) > div:last-child{order:2!important;text-align:right!important}
+        @media print{
+          #contractPrintSection .contract-content-wrapper > div[style*="display: flex"]:not(.actions-section){flex-direction:row!important;justify-content:space-between!important;align-items:flex-end!important;}
+        }
+
+        /* حقل كتابة المحادثة واضح وكبير ومتجاوب مع مختلف الشاشات */
+        .chat-compose{display:flex!important;align-items:stretch!important;gap:10px!important;padding:12px!important;box-sizing:border-box!important}
+        #chatMessageInput{display:block!important;flex:1 1 auto!important;width:100%!important;min-width:0!important;min-height:84px!important;max-height:190px!important;
+          padding:14px 16px!important;box-sizing:border-box!important;resize:vertical!important;font-size:16px!important;line-height:1.7!important;
+          border:2px solid #94a3b8!important;border-radius:14px!important;background:#fff!important;color:#0f172a!important}
+        #chatMessageInput:focus{border-color:#2563eb!important;box-shadow:0 0 0 4px rgba(37,99,235,.14)!important;outline:none!important}
+        .chat-compose button{flex:0 0 auto!important;min-height:52px!important;align-self:flex-end!important;font-size:15px!important}
+        @media(max-width:680px){
+          .chat-compose{gap:8px!important;padding:9px!important;align-items:stretch!important}
+          #chatMessageInput{min-height:76px!important;max-height:150px!important;padding:12px!important;font-size:16px!important;resize:vertical!important}
+          .chat-compose button{min-width:74px!important;min-height:48px!important;font-size:13px!important;padding:8px 10px!important}
+        }
+        @media(max-width:380px){
+          .chat-compose{gap:6px!important;padding:7px!important}
+          #chatMessageInput{min-height:72px!important;padding:10px!important}
+          .chat-compose button{min-width:64px!important;padding:7px!important;font-size:12px!important}
+        }
+        @media print{
+          @page{size:A4 portrait;margin:0}
+          body.print-report #mainSystemView .container{width:190mm!important;max-width:190mm!important;min-width:0!important;box-sizing:border-box!important;margin:0 auto!important;padding:0!important}
+          body.print-report #mainSystemView{width:190mm!important;max-width:190mm!important;margin:0 auto!important}
+          body.print-contract #contractPrintSection{width:210mm!important;height:297mm!important;min-height:297mm!important;max-height:none!important;margin:0!important;padding:16mm 19mm!important;box-sizing:border-box!important;overflow:visible!important}
+          body.print-contract #appSection,body.print-contract #mainSystemView{width:210mm!important;max-width:210mm!important;margin:0!important;padding:0!important}
+          body.print-contract #contractPrintSection .contract-content-wrapper > div[style*="display: flex"]:not(.actions-section){flex-direction:column!important;align-items:flex-start!important;gap:10px!important;direction:ltr!important}
+          body.print-contract #contractPrintSection .contract-content-wrapper > div[style*="display: flex"]:not(.actions-section) > div{width:100%!important;text-align:left!important}
+        }
+
+        .attachment-preview-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;margin-top:8px}
+        .attachment-preview-name{overflow-wrap:anywhere;max-width:100%;margin:5px 0;font-size:12px}
+        .attachment-change-btn{background:#2563eb!important;color:#fff!important}
+        .attachment-delete-btn{background:#dc2626!important;color:#fff!important}
+        .attachment-preview-actions button{min-height:38px;padding:8px 12px;cursor:pointer}
+        @media(max-width:600px){.attachment-preview{max-width:100%;box-sizing:border-box}.attachment-preview-actions{width:100%;gap:6px}.attachment-preview-actions button{flex:1 1 100px;font-size:13px;padding:8px 6px}}
+
+/* تثبيت التوقيعين في أسفل ورقة A4: الموكل أقصى اليسار والمحامي أقصى اليمين */
+@media print {
+  body.print-contract #contractPrintSection .contract-content-wrapper {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 263mm !important;
+    min-height: 263mm !important;
+    max-height: 263mm !important;
+    box-sizing: border-box !important;
+  }
+  body.print-contract #contractPrintSection .contract-content-wrapper > div[style*="display: flex"]:not(.actions-section) {
+    display: flex !important;
+    flex-direction: row !important;
+    flex-wrap: nowrap !important;
+    align-items: flex-end !important;
+    justify-content: space-between !important;
+    direction: ltr !important;
+    gap: 0 !important;
+    width: 100% !important;
+    margin-top: auto !important;
+    padding-top: 15mm !important;
+    padding-bottom: 0 !important;
+    box-sizing: border-box !important;
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+  body.print-contract #contractPrintSection .contract-content-wrapper > div[style*="display: flex"]:not(.actions-section) > div:first-child {
+    order: 1 !important;
+    flex: 0 0 45% !important;
+    width: 45% !important;
+    margin-right: auto !important;
+    text-align: left !important;
+  }
+  body.print-contract #contractPrintSection .contract-content-wrapper > div[style*="display: flex"]:not(.actions-section) > div:last-child {
+    order: 2 !important;
+    flex: 0 0 45% !important;
+    width: 45% !important;
+    margin-left: auto !important;
+    text-align: right !important;
+  }
+}
 </style>
 
 </body>
