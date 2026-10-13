@@ -838,7 +838,65 @@
 }
 </style>
 
-</head><body><h3>معاينة مرفق الدعوى</h3><img src="${safeSrc}" alt="مرفق الدعوى"></body></html>`);
+</head><body><h3>معاينة مرفق الدعوى</h3><img src="${safeSrc}" alt="مرفق الدعوى">
+<style id="luxury-legal-identity">
+/* الهوية البصرية القانونية الفاخرة — كحلي وذهبي، دون تغيير منطق النظام */
+:root{
+ --primary-color:#14284b;--secondary-color:#b89543;--success-color:#218568;
+ --print-color:#b89543;--danger-color:#bd3d46;--bg-color:#f4f2ec;
+ --card-bg:#fffefa;--text-main:#202c40;--border-color:#d8d4c8;
+ --label-color:#657087;--input-bg:#fffefa;--userbar-bg:#f4f0e5;
+ --userbar-border:#dfd2ad;--section-bg:#f8f6f0;
+ --luxury-gold:#c4a45b;--luxury-navy:#14284b;
+}
+body.dark-mode{
+ --primary-color:#e0c477;--secondary-color:#c4a45b;--success-color:#50b99a;
+ --print-color:#d5b65e;--danger-color:#f0787e;--bg-color:#101827;
+ --card-bg:#172238;--text-main:#f4f0e6;--border-color:#35435a;
+ --label-color:#b7c0d0;--input-bg:#111b2d;--userbar-bg:#1b2940;
+ --userbar-border:#46516a;--section-bg:#1b2639;
+}
+@media screen{
+ body{background:var(--bg-color)!important;color:var(--text-main);transition:background .25s ease,color .25s ease}
+ .container,.modal-content,.auth-card,.card,.section,.dashboard-card,.chat-conversation-pane,.chat-contacts-pane{
+   border-color:var(--border-color)!important;
+ }
+ .container{border-radius:20px!important;box-shadow:0 12px 34px rgba(20,40,75,.08),0 2px 7px rgba(20,40,75,.04)!important}
+ .auth-card,.modal-content{border-radius:20px!important;box-shadow:0 18px 50px rgba(20,40,75,.14),0 0 0 1px rgba(196,164,91,.12)!important}
+ .header-title,.section-title,.modal-header h3,.auth-card h2,.chat-contacts-pane>label{color:var(--primary-color)!important}
+ .section-title{border-bottom-color:var(--luxury-gold)!important;border-bottom-width:2px!important;background:var(--section-bg)!important;border-radius:10px!important;padding:10px 12px!important}
+ button,.btn,.btn-main,.btn-search,.btn-3d,.modal-close-btn{
+   transition:transform .18s ease,box-shadow .18s ease,background-color .18s ease,border-color .18s ease!important;
+ }
+ .btn-main,.btn-search,button.btn-main,button.btn-search{
+   background:linear-gradient(135deg,#1b355e 0%,#14284b 72%,#20395f 100%)!important;
+   color:#fff!important;border:1px solid rgba(196,164,91,.7)!important;
+   box-shadow:0 5px 13px rgba(20,40,75,.17),inset 0 1px rgba(255,255,255,.12)!important;
+   border-radius:12px!important;
+ }
+ .btn-main:hover,.btn-search:hover,button.btn-main:hover,button.btn-search:hover{
+   background:linear-gradient(135deg,#27466f,#1b3153)!important;
+   box-shadow:0 8px 18px rgba(20,40,75,.22),0 0 0 2px rgba(196,164,91,.12)!important;
+   transform:translateY(-1px)
+ }
+ body.dark-mode .btn-main,body.dark-mode .btn-search,body.dark-mode button.btn-main,body.dark-mode button.btn-search{
+   background:linear-gradient(135deg,#c4a45b,#a9893f)!important;color:#172238!important;border-color:#e1ca88!important
+ }
+ input,select,textarea{border-radius:10px;transition:border-color .18s ease,box-shadow .18s ease}
+ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--luxury-gold)!important;box-shadow:0 0 0 3px rgba(196,164,91,.18)!important}
+ .user-bar{border-radius:14px!important;background:var(--userbar-bg)!important;border-color:var(--userbar-border)!important}
+ .chat-compose{background:var(--card-bg)!important;border-top-color:var(--border-color)!important}
+ #chatMessageInput{border-color:#c9c3b3!important;background:var(--input-bg)!important;color:var(--text-main)!important}
+ #chatMessageInput:focus{border-color:var(--luxury-gold)!important;box-shadow:0 0 0 4px rgba(196,164,91,.17)!important}
+ .chat-person-avatar{background:linear-gradient(135deg,#d8c17c,#a9893f)!important;color:#172238!important}
+ .chat-contact-item:hover,.chat-contact-item.active{border-color:var(--luxury-gold)!important;background:var(--section-bg)!important}
+ a{transition:color .18s ease}
+ ::selection{background:rgba(196,164,91,.28);color:inherit}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+</style>
+
+</body></html>`);
             w.document.close();
         };
         window.changeCaseAttachment = function() {
@@ -4677,6 +4735,64 @@ body.dark-mode .professional-help-btn{background:linear-gradient(145deg,rgba(99,
     text-align: right !important;
   }
 }
+</style>
+
+
+<style id="luxury-legal-identity">
+/* الهوية البصرية القانونية الفاخرة — كحلي وذهبي، دون تغيير منطق النظام */
+:root{
+ --primary-color:#14284b;--secondary-color:#b89543;--success-color:#218568;
+ --print-color:#b89543;--danger-color:#bd3d46;--bg-color:#f4f2ec;
+ --card-bg:#fffefa;--text-main:#202c40;--border-color:#d8d4c8;
+ --label-color:#657087;--input-bg:#fffefa;--userbar-bg:#f4f0e5;
+ --userbar-border:#dfd2ad;--section-bg:#f8f6f0;
+ --luxury-gold:#c4a45b;--luxury-navy:#14284b;
+}
+body.dark-mode{
+ --primary-color:#e0c477;--secondary-color:#c4a45b;--success-color:#50b99a;
+ --print-color:#d5b65e;--danger-color:#f0787e;--bg-color:#101827;
+ --card-bg:#172238;--text-main:#f4f0e6;--border-color:#35435a;
+ --label-color:#b7c0d0;--input-bg:#111b2d;--userbar-bg:#1b2940;
+ --userbar-border:#46516a;--section-bg:#1b2639;
+}
+@media screen{
+ body{background:var(--bg-color)!important;color:var(--text-main);transition:background .25s ease,color .25s ease}
+ .container,.modal-content,.auth-card,.card,.section,.dashboard-card,.chat-conversation-pane,.chat-contacts-pane{
+   border-color:var(--border-color)!important;
+ }
+ .container{border-radius:20px!important;box-shadow:0 12px 34px rgba(20,40,75,.08),0 2px 7px rgba(20,40,75,.04)!important}
+ .auth-card,.modal-content{border-radius:20px!important;box-shadow:0 18px 50px rgba(20,40,75,.14),0 0 0 1px rgba(196,164,91,.12)!important}
+ .header-title,.section-title,.modal-header h3,.auth-card h2,.chat-contacts-pane>label{color:var(--primary-color)!important}
+ .section-title{border-bottom-color:var(--luxury-gold)!important;border-bottom-width:2px!important;background:var(--section-bg)!important;border-radius:10px!important;padding:10px 12px!important}
+ button,.btn,.btn-main,.btn-search,.btn-3d,.modal-close-btn{
+   transition:transform .18s ease,box-shadow .18s ease,background-color .18s ease,border-color .18s ease!important;
+ }
+ .btn-main,.btn-search,button.btn-main,button.btn-search{
+   background:linear-gradient(135deg,#1b355e 0%,#14284b 72%,#20395f 100%)!important;
+   color:#fff!important;border:1px solid rgba(196,164,91,.7)!important;
+   box-shadow:0 5px 13px rgba(20,40,75,.17),inset 0 1px rgba(255,255,255,.12)!important;
+   border-radius:12px!important;
+ }
+ .btn-main:hover,.btn-search:hover,button.btn-main:hover,button.btn-search:hover{
+   background:linear-gradient(135deg,#27466f,#1b3153)!important;
+   box-shadow:0 8px 18px rgba(20,40,75,.22),0 0 0 2px rgba(196,164,91,.12)!important;
+   transform:translateY(-1px)
+ }
+ body.dark-mode .btn-main,body.dark-mode .btn-search,body.dark-mode button.btn-main,body.dark-mode button.btn-search{
+   background:linear-gradient(135deg,#c4a45b,#a9893f)!important;color:#172238!important;border-color:#e1ca88!important
+ }
+ input,select,textarea{border-radius:10px;transition:border-color .18s ease,box-shadow .18s ease}
+ input:focus,select:focus,textarea:focus{outline:none;border-color:var(--luxury-gold)!important;box-shadow:0 0 0 3px rgba(196,164,91,.18)!important}
+ .user-bar{border-radius:14px!important;background:var(--userbar-bg)!important;border-color:var(--userbar-border)!important}
+ .chat-compose{background:var(--card-bg)!important;border-top-color:var(--border-color)!important}
+ #chatMessageInput{border-color:#c9c3b3!important;background:var(--input-bg)!important;color:var(--text-main)!important}
+ #chatMessageInput:focus{border-color:var(--luxury-gold)!important;box-shadow:0 0 0 4px rgba(196,164,91,.17)!important}
+ .chat-person-avatar{background:linear-gradient(135deg,#d8c17c,#a9893f)!important;color:#172238!important}
+ .chat-contact-item:hover,.chat-contact-item.active{border-color:var(--luxury-gold)!important;background:var(--section-bg)!important}
+ a{transition:color .18s ease}
+ ::selection{background:rgba(196,164,91,.28);color:inherit}
+}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 </style>
 
 </body>
