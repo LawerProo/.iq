@@ -750,6 +750,14 @@
             const pageNameText = document.getElementById('watermarkNameOnPageText');
             if (pageName) pageName.style.display = showWatermark ? 'block' : 'none';
             if (pageNameText) pageNameText.textContent = showWatermark ? watermarkInput.value.trim() : '';
+            // تضمين حالة الدعوى صراحةً في نسخة التقرير المطبوعة، بغض النظر عن الثيم.
+            const printStatus = document.getElementById('printCaseStatusLabel');
+            const isClosed = !!(document.getElementById('caseClosed') && document.getElementById('caseClosed').checked);
+            const closureReason = (document.getElementById('caseClosureReason') && document.getElementById('caseClosureReason').value) || 'منتهية';
+            if (printStatus) {
+                printStatus.textContent = isClosed ? ('حالة الدعوى: ' + closureReason + ' / مغلقة') : 'حالة الدعوى: الدعوى لا تزال نشطة';
+                printStatus.style.color = isClosed ? '#b91c1c' : '#15803d';
+            }
             document.body.classList.toggle('show-print-watermark', showWatermark);
             runPrintMode('print-report');
             return false;
@@ -4642,6 +4650,7 @@ body.luxury-gold-mode #caseStatusLight {
                             <button type="button" id="caseStatusLight" title="الدعوى نشطة — اضغط لتغيير الحالة" aria-label="تغيير حالة الدعوى" onclick="toggleCaseStatusLight()" style="flex:0 0 42px;width:42px;height:42px;border:2px solid #fff;border-radius:50%;background:#16a34a;box-shadow:0 0 0 2px #15803d,0 0 12px #16a34a88;cursor:pointer;font-size:0;"></button>
                         </div>
                         <small id="caseStatusLightText" style="display:block;margin-top:6px;color:#16a34a;font-weight:700">🟢 الدعوى لا تزال نشطة</small>
+                        <div id="printCaseStatusLabel" style="display:none;margin-top:8px;padding:6px 10px;border:1px solid #999;border-radius:5px;font-weight:700;color:#111;background:#fff">حالة الدعوى: الدعوى لا تزال نشطة</div>
                     </div>
                     <div class="form-group">
                         <label>المحكمة المختصة:</label>
@@ -5726,6 +5735,96 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
   }
   body.print-report #caseStatusLight { print-color-adjust:exact !important; -webkit-print-color-adjust:exact !important; }
 }
+</style>
+
+<style id="print-report-theme-independent-final">
+/* تثبيت طباعة التقرير على ورق أبيض ونص داكن، مهما كان ثيم الشاشة */
+@media print {
+  body.print-report,
+  body.print-report #appSection,
+  body.print-report #mainSystemView,
+  body.print-report #mainSystemView .container,
+  body.print-report #lawForm,
+  body.print-report #lawForm * {
+    color: #111 !important;
+    background-color: #fff !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+    -webkit-print-color-adjust: economy !important;
+    print-color-adjust: economy !important;
+  }
+  body.print-report #lawForm input,
+  body.print-report #lawForm select,
+  body.print-report #lawForm textarea,
+  body.print-report #lawForm [contenteditable="true"] {
+    color: #111 !important;
+    background: #fff !important;
+    border-color: #999 !important;
+    -webkit-text-fill-color: #111 !important;
+  }
+  body.print-report #lawForm button,
+  body.print-report #caseEditLockBar {
+    display: none !important;
+  }
+  body.print-report #watermarkLayer,
+  body.print-report.show-print-watermark #watermarkLayer {
+    background: transparent !important;
+    background-image: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+  }
+}
+</style>
+
+
+<style id="print-case-status-label-fix">
+#printCaseStatusLabel { display:none !important; }
+@media print {
+  body.print-report #printCaseStatusLabel { display:block !important; visibility:visible !important; opacity:1 !important; font-size:12pt !important; line-height:1.5 !important; margin:8px 0 !important; padding:6px 10px !important; border:1px solid #888 !important; background:#fff !important; -webkit-print-color-adjust:exact !important; print-color-adjust:exact !important; }
+}
+</style>
+
+<style id="hide-case-status-in-report-print">
+@media print {
+  body.print-report #printCaseStatusLabel,
+  body.print-report #caseStatusLightText,
+  body.print-report #caseStatusLight {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}
+</style>
+
+<style id="contact-picker-readable-names">
+/* تحسين وضوح أسماء المستلمين في نافذة اختيار المستلم فقط */
+#contactPickerModal #contactPickerList{padding:6px 3px;display:flex;flex-direction:column;gap:9px}
+#contactPickerModal #contactPickerList button[data-pick-contact]{
+  background:var(--card-bg,#fff)!important;color:var(--text-main,#172033)!important;
+  border:2px solid var(--border-color,#cbd5e1)!important;border-right:6px solid #b58b2a!important;
+  border-radius:13px!important;padding:15px 16px!important;margin:0!important;
+  text-align:right!important;line-height:1.7!important;white-space:normal!important;
+  box-shadow:0 3px 10px rgba(0,0,0,.08)!important;min-height:82px;
+}
+#contactPickerModal #contactPickerList button[data-pick-contact] b{
+  display:block!important;font-size:21px!important;font-weight:900!important;line-height:1.5!important;
+  color:var(--text-main,#172033)!important;overflow-wrap:anywhere;margin-bottom:4px
+}
+#contactPickerModal #contactPickerList button[data-pick-contact] span{
+  display:block!important;font-size:15px!important;font-weight:600!important;line-height:1.6!important;
+  color:var(--text-main,#172033)!important;direction:ltr;text-align:right;overflow-wrap:anywhere
+}
+#contactPickerModal #contactPickerList button[data-pick-contact] small{
+  display:block!important;font-size:14px!important;font-weight:600!important;line-height:1.6!important;
+  color:var(--label-color,#475569)!important;overflow-wrap:anywhere;margin-top:2px
+}
+#contactPickerModal #contactPickerList button[data-pick-contact]:hover,
+#contactPickerModal #contactPickerList button[data-pick-contact]:focus-visible{
+  border-color:#b58b2a!important;background:rgba(197,160,74,.14)!important;
+  outline:2px solid rgba(181,139,42,.25);outline-offset:1px;transform:translateY(-1px)
+}
+@media(max-width:600px){#contactPickerModal #contactPickerList button[data-pick-contact] b{font-size:19px!important}#contactPickerModal #contactPickerList button[data-pick-contact]{padding:13px!important}}
 </style>
 </body>
 </html>
