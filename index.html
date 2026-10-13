@@ -44,6 +44,7 @@
                 appBox.style.display = 'block';
                 userEmailSpan.textContent = user.email;
                 loadUserProfile();
+                refreshSmartCaseDashboard();
                 checkAllCasesForHearings();
                 checkUserInbox(user.email);
                 startChatNotificationMonitor(user.email);
@@ -196,6 +197,28 @@
                 btn.setAttribute('aria-label', btn.title);
             }
         };
+
+        window.toggleLuxuryGoldMode = function() {
+            const enabled = !document.body.classList.contains('luxury-gold-mode');
+            document.body.classList.toggle('luxury-gold-mode', enabled);
+            localStorage.setItem('luxuryGoldMode', enabled ? 'true' : 'false');
+            const btn = document.getElementById('luxuryGoldModeBtn');
+            if (btn) {
+                btn.classList.toggle('luxury-gold-active', enabled);
+                btn.title = enabled ? 'إيقاف الوضع الذهبي الفاخر' : 'تفعيل الوضع الذهبي الفاخر';
+                btn.setAttribute('aria-label', btn.title);
+            }
+        };
+        document.addEventListener('DOMContentLoaded', function() {
+            const enabled = localStorage.getItem('luxuryGoldMode') === 'true';
+            document.body.classList.toggle('luxury-gold-mode', enabled);
+            const btn = document.getElementById('luxuryGoldModeBtn');
+            if (btn) {
+                btn.classList.toggle('luxury-gold-active', enabled);
+                btn.title = enabled ? 'إيقاف الوضع الذهبي الفاخر' : 'تفعيل الوضع الذهبي الفاخر';
+                btn.setAttribute('aria-label', btn.title);
+            }
+        });
 
         // أصوات ضغط الأزرار مع إمكانية كتمها وحفظ الاختيار
         window.isSystemMuted = localStorage.getItem('systemButtonSoundsMuted') === 'true';
@@ -718,6 +741,16 @@
 
         window.printCaseReportOnly = function(event) {
             if (event) event.preventDefault();
+            const watermarkInput = document.getElementById('watermarkText');
+            const watermarkCheckbox = document.getElementById('showWatermarkOnPrint');
+            const watermarkDisplay = document.getElementById('watermarkDisplay');
+            const showWatermark = !!(watermarkCheckbox && watermarkCheckbox.checked && watermarkInput && watermarkInput.value.trim());
+            if (watermarkDisplay) watermarkDisplay.textContent = showWatermark ? watermarkInput.value.trim() : '';
+            const pageName = document.getElementById('watermarkNameOnPage');
+            const pageNameText = document.getElementById('watermarkNameOnPageText');
+            if (pageName) pageName.style.display = showWatermark ? 'block' : 'none';
+            if (pageNameText) pageNameText.textContent = showWatermark ? watermarkInput.value.trim() : '';
+            document.body.classList.toggle('show-print-watermark', showWatermark);
             runPrintMode('print-report');
             return false;
         };
@@ -838,6 +871,159 @@
 }
 </style>
 
+
+<style id="eye-comfort-main-screen">
+/* تهدئة ألوان الواجهة الرئيسية لتقليل الوهج، مع الحفاظ على وظائف النظام والطباعة */
+@media screen {
+  #mainSystemView {
+    background: #eeeae1 !important;
+    color: #293449 !important;
+    border-radius: 18px;
+  }
+  #mainSystemView .professional-user-bar,
+  #mainSystemView .professional-user-card {
+    background: #e7e3d9 !important;
+    border-color: #d3cbbb !important;
+    box-shadow: 0 3px 12px rgba(38,48,65,.055) !important;
+  }
+  #mainSystemView .section,
+  #mainSystemView .card,
+  #mainSystemView .dashboard-card,
+  #mainSystemView .preview-box {
+    background-color: #f7f5ef !important;
+    color: #293449 !important;
+    border-color: #d8d2c6 !important;
+    box-shadow: 0 3px 12px rgba(38,48,65,.045) !important;
+  }
+  #mainSystemView .section-title {
+    background: #e9e5db !important;
+    color: #263650 !important;
+  }
+  #mainSystemView input,
+  #mainSystemView select,
+  #mainSystemView textarea {
+    background-color: #f8f6f0 !important;
+    color: #293449 !important;
+    border-color: #d0c9bb !important;
+  }
+  #mainSystemView .professional-actions > button {
+    box-shadow: 0 2px 7px rgba(20,40,75,.10) !important;
+    filter: saturate(.84);
+  }
+  body.dark-mode #mainSystemView {
+    background: #202a39 !important;
+    color: #e0e5ec !important;
+  }
+  body.dark-mode #mainSystemView .professional-user-bar,
+  body.dark-mode #mainSystemView .professional-user-card {
+    background: #263244 !important;
+    border-color: #3c4859 !important;
+    box-shadow: 0 3px 12px rgba(0,0,0,.12) !important;
+  }
+  body.dark-mode #mainSystemView .section,
+  body.dark-mode #mainSystemView .card,
+  body.dark-mode #mainSystemView .dashboard-card,
+  body.dark-mode #mainSystemView .preview-box {
+    background-color: #283445 !important;
+    color: #e0e5ec !important;
+    border-color: #414d5e !important;
+    box-shadow: 0 3px 12px rgba(0,0,0,.12) !important;
+  }
+  body.dark-mode #mainSystemView .section-title {
+    background: #303c4e !important;
+    color: #e4d5a6 !important;
+  }
+  body.dark-mode #mainSystemView input,
+  body.dark-mode #mainSystemView select,
+  body.dark-mode #mainSystemView textarea {
+    background-color: #202b3a !important;
+    color: #e7ebf0 !important;
+    border-color: #4a5667 !important;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  #mainSystemView, #mainSystemView * { transition: none !important; }
+}
+</style>
+
+<style id="luxury-black-gold-main-screen">
+/* واجهة رئيسية سوداء وذهبية فاخرة — محصورة بالشاشة الرئيسية */
+@media screen {
+  #mainSystemView {
+    background: linear-gradient(145deg,#101010 0%,#191919 55%,#111 100%) !important;
+    color:#f3ead2 !important; border:1px solid rgba(202,168,85,.28);
+    border-radius:18px; box-shadow:0 16px 42px rgba(0,0,0,.22) !important;
+  }
+  #mainSystemView .professional-user-bar,
+  #mainSystemView .professional-user-card,
+  #mainSystemView .section,
+  #mainSystemView .card,
+  #mainSystemView .dashboard-card,
+  #mainSystemView .preview-box,
+  #mainSystemView .password-box {
+    background:linear-gradient(145deg,#202020,#171717) !important;
+    color:#f3ead2 !important; border:1px solid rgba(202,168,85,.32) !important;
+    box-shadow:0 7px 20px rgba(0,0,0,.22),inset 0 1px rgba(255,255,255,.025) !important;
+  }
+  #mainSystemView .header-title,
+  #mainSystemView .section-title,
+  #mainSystemView label,
+  #mainSystemView .professional-user-label,
+  #mainSystemView .professional-user-name,
+  #mainSystemView .professional-user-hint { color:#e4c477 !important; }
+  #mainSystemView .section-title {
+    background:linear-gradient(90deg,#292315,#1b1a16) !important;
+    border-inline-start:4px solid #c9a44f !important;
+    padding:11px 13px; border-radius:9px;
+  }
+  #mainSystemView input:not([type="checkbox"]):not([type="radio"]),
+  #mainSystemView select,
+  #mainSystemView textarea {
+    background:#111 !important; color:#f5f0e5 !important;
+    border:1px solid #51452b !important; border-radius:9px !important;
+    box-shadow:inset 0 2px 5px rgba(0,0,0,.24) !important;
+  }
+  #mainSystemView input:focus,
+  #mainSystemView select:focus,
+  #mainSystemView textarea:focus {
+    border-color:#d7b45e !important; outline:none !important;
+    box-shadow:0 0 0 3px rgba(215,180,94,.15) !important;
+  }
+  #mainSystemView button.btn-3d,
+  #mainSystemView .professional-actions > button,
+  #mainSystemView .btn-search,
+  #mainSystemView .btn-new-entry,
+  #mainSystemView .btn-share-case,
+  #mainSystemView .btn-delete-case {
+    background:linear-gradient(135deg,#d9bd73 0%,#b18a35 52%,#8e6a25 100%) !important;
+    color:#17130b !important; border:1px solid #e7d08c !important;
+    font-weight:800 !important; text-shadow:none !important;
+    box-shadow:0 4px 10px rgba(0,0,0,.28),inset 0 1px rgba(255,255,255,.3) !important;
+  }
+  #mainSystemView button.btn-3d:hover,
+  #mainSystemView .professional-actions > button:hover {
+    filter:brightness(1.08) !important; transform:translateY(-1px);
+  }
+  #mainSystemView .professional-avatar { border-color:#c9a44f !important; box-shadow:0 0 0 3px rgba(201,164,79,.14) !important; }
+  #mainSystemView .top-search-hearing-bar { background:rgba(8,8,8,.45) !important; border-color:#51452b !important; border-radius:12px; }
+  #mainSystemView small, #mainSystemView .muted, #mainSystemView .hint { color:#c9c0ad !important; }
+  body.dark-mode #mainSystemView { background:linear-gradient(145deg,#090909,#171717) !important; }
+}
+</style>
+
+
+<style id="smart-case-dashboard-styles">
+.smart-case-dashboard{margin:16px 0 20px;padding:18px;border:1px solid rgba(201,163,74,.55);border-radius:18px;background:linear-gradient(145deg,rgba(20,20,20,.97),rgba(40,33,18,.96));color:#f8f2df;box-shadow:0 8px 28px rgba(0,0,0,.12)}
+.smart-dashboard-heading{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}.smart-dashboard-heading h3{margin:0;color:#e8c76d;font-size:20px}.smart-dashboard-heading p{margin:5px 0 0;color:#d5c8a4;font-size:13px}.smart-dashboard-stats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;margin:16px 0}.smart-stat{border:1px solid rgba(219,181,87,.55);border-radius:13px;padding:14px 9px;background:linear-gradient(135deg,#171717,#302716);color:#f7e7b5;cursor:pointer;text-align:center;transition:transform .18s,box-shadow .18s}.smart-stat:hover{transform:translateY(-2px);box-shadow:0 0 16px rgba(226,187,82,.25)}.smart-stat span{display:block;font-size:12px;line-height:1.5}.smart-stat strong{display:block;margin-top:6px;color:#f0cb62;font-size:26px}.smart-dashboard-lower{display:grid;grid-template-columns:1fr 1fr;gap:14px}.smart-dashboard-lower>div{min-width:0;padding:12px;border-radius:13px;background:rgba(255,255,255,.035);border:1px solid rgba(219,181,87,.22)}.smart-dashboard-lower h4{margin:0 0 9px;color:#e8c76d}.smart-case-list{display:grid;gap:7px}.smart-case-row{display:flex;flex-direction:column;align-items:flex-start;gap:3px;width:100%;text-align:right;padding:10px;border-radius:10px;border:1px solid rgba(219,181,87,.23);background:rgba(0,0,0,.22);color:#f8f2df;cursor:pointer}.smart-case-row strong{color:#f0cb62}.smart-case-row span,.smart-case-row small{font-size:12px;color:#ded3b5}.smart-case-row:hover{border-color:#e8c76d;background:rgba(201,163,74,.1)}.smart-empty{margin:4px 0;color:#c9c0a7;font-size:13px}.smart-filter-results{margin-top:12px;padding:12px;border:1px solid rgba(219,181,87,.35);border-radius:12px}.smart-filter-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;color:#e8c76d}.smart-filter-head button{border:0;background:transparent;color:inherit;cursor:pointer}.case-closure-group{padding:12px;border:1px solid rgba(201,163,74,.45);border-radius:12px;background:rgba(201,163,74,.06)}.case-closure-label{display:flex;align-items:center;gap:8px;cursor:pointer}.case-closure-group select{margin-top:10px;width:100%}.case-closure-group small{display:block;margin-top:7px;color:var(--label-color);font-size:12px;line-height:1.6}.case-closure-group select:disabled{opacity:.55}
+@media(max-width:900px){.smart-dashboard-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.smart-dashboard-lower{grid-template-columns:1fr}.smart-stat:last-child{grid-column:span 2}}
+@media print{#smartCaseDashboard{display:none!important}}
+
+.smart-dashboard-page{max-width:1400px;margin:0 auto;padding:18px;min-height:60vh;box-sizing:border-box}
+.smart-dashboard-page-toolbar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px;padding:12px 14px;border:1px solid rgba(201,163,74,.4);border-radius:14px;background:rgba(201,163,74,.06);color:var(--label-color);font-weight:700}
+.smart-dashboard-page #smartCaseDashboard{margin-top:0}
+@media(max-width:650px){.smart-dashboard-page{padding:10px}.smart-dashboard-page-toolbar{align-items:stretch}.smart-dashboard-page-toolbar button{width:100%}}
+@media print{#smartDashboardPage{display:none!important}}
+</style>
 </head><body><h3>معاينة مرفق الدعوى</h3><img src="${safeSrc}" alt="مرفق الدعوى">
 <style id="luxury-legal-identity">
 /* الهوية البصرية القانونية الفاخرة — كحلي وذهبي، دون تغيير منطق النظام */
@@ -894,6 +1080,100 @@ body.dark-mode{
  ::selection{background:rgba(196,164,91,.28);color:inherit}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+</style>
+
+
+<style id="luxury-deep-gold-theme">
+/* زر الوضع الذهبي الفاخر: هوية ذهبية قاتمة مستقلة عن الوضعين النهاري والليلي */
+.quick-mode-buttons { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.luxury-gold-mode-btn { font-size:18px!important; font-weight:900!important; color:#f4d47a!important; background:linear-gradient(145deg,#211a0a,#080807)!important; border:1px solid #c5a24b!important; box-shadow:0 0 9px rgba(197,162,75,.18),inset 0 1px rgba(255,229,154,.15)!important; }
+.luxury-gold-mode-btn:hover,.luxury-gold-mode-btn.luxury-gold-active { box-shadow:0 0 0 1px #e8c968,0 0 18px rgba(218,177,65,.55),inset 0 0 12px rgba(218,177,65,.15)!important; }
+body.luxury-gold-mode { --primary-color:#d2ad53!important; --secondary-color:#8b6a25!important; --bg-color:#100e0a!important; --card-bg:#19160f!important; --text-main:#f2e5c0!important; --border-color:#6f5723!important; --label-color:#d7c28e!important; --input-bg:#14120d!important; --section-bg:#1b170e!important; background:radial-gradient(ellipse at top,#30230c 0%,#15120b 42%,#080807 100%)!important; color:#f2e5c0!important; }
+body.luxury-gold-mode #mainSystemView, body.luxury-gold-mode #appSection { background:transparent!important; color:#f2e5c0!important; }
+body.luxury-gold-mode .container, body.luxury-gold-mode .card, body.luxury-gold-mode .section, body.luxury-gold-mode .dashboard-card, body.luxury-gold-mode .modal-content, body.luxury-gold-mode .auth-card, body.luxury-gold-mode .professional-user-bar, body.luxury-gold-mode .professional-user-card, body.luxury-gold-mode .preview-box { background:linear-gradient(145deg,#211b10,#12100b)!important; color:#f2e5c0!important; border-color:#8d6e2a!important; box-shadow:0 12px 28px rgba(0,0,0,.38),0 0 0 1px rgba(211,174,77,.10),inset 0 1px rgba(255,226,145,.05)!important; }
+body.luxury-gold-mode button, body.luxury-gold-mode .btn, body.luxury-gold-mode .btn-3d, body.luxury-gold-mode .btn-main, body.luxury-gold-mode .btn-search, body.luxury-gold-mode [role="button"] { background:linear-gradient(135deg,#3a2b0e,#17130a 60%,#080807)!important; color:#f5d985!important; border-color:#b8943c!important; }
+body.luxury-gold-mode button:hover, body.luxury-gold-mode .btn:hover, body.luxury-gold-mode .btn-3d:hover, body.luxury-gold-mode .btn-main:hover, body.luxury-gold-mode .btn-search:hover, body.luxury-gold-mode [role="button"]:hover { box-shadow:0 0 0 1px #e5c35f,0 0 20px rgba(215,174,61,.38),inset 0 0 12px rgba(229,195,95,.08)!important; filter:brightness(1.08); }
+body.luxury-gold-mode input, body.luxury-gold-mode select, body.luxury-gold-mode textarea { background:#100e09!important; color:#f4e8c8!important; border-color:#806324!important; }
+body.luxury-gold-mode input::placeholder, body.luxury-gold-mode textarea::placeholder { color:#aa9a73!important; }
+body.luxury-gold-mode .section-title, body.luxury-gold-mode .header-title, body.luxury-gold-mode .modal-header h3, body.luxury-gold-mode label { color:#e2c36c!important; }
+body.luxury-gold-mode table, body.luxury-gold-mode th, body.luxury-gold-mode td { border-color:#65501f!important; color:#eee0b9!important; }
+body.luxury-gold-mode th { background:#2a210f!important; }
+body.luxury-gold-mode .quick-mode-buttons { background:rgba(5,5,4,.55)!important; border-color:rgba(202,166,70,.45)!important; }
+@media(prefers-reduced-motion:reduce){.luxury-gold-mode-btn,.luxury-gold-mode *{transition:none!important;animation:none!important}}
+</style>
+
+
+<style id="smart-dashboard-theme-sync">
+/* مزامنة زر اللوحة وصفحتها مع نمط النظام الحالي؛ التأثيرات محصورة بالواجهة */
+body:not(.dark-mode):not(.luxury-gold-mode) .smart-dashboard-open-btn{
+  background:linear-gradient(145deg,#fffdf8 0%,#f3e7c7 48%,#dfc47d 100%)!important;
+  color:#382b0d!important;border:1px solid #b99543!important;
+  box-shadow:inset 0 1px 0 #fff,0 4px 0 #b18b36,0 8px 16px rgba(90,68,19,.18)!important;
+}
+body:not(.dark-mode):not(.luxury-gold-mode) .smart-dashboard-open-btn:hover{
+  box-shadow:inset 0 1px 0 #fff,0 6px 0 #b18b36,0 12px 20px rgba(90,68,19,.23)!important;
+}
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage{background:radial-gradient(ellipse at top,rgba(219,185,99,.16),transparent 65%)}
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-page-toolbar,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage #smartCaseDashboard,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-lower>div,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-filter-results{
+  background:linear-gradient(145deg,#fffefa 0%,#f8f3e7 55%,#eee3c9 100%)!important;
+  color:#29251b!important;border-color:#c7a75c!important;
+  box-shadow:inset 0 1px 0 #fff,0 5px 0 #d2bd8a,0 10px 22px rgba(65,49,14,.12)!important;
+}
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-stat,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-case-row{
+  background:linear-gradient(145deg,#ffffff 0%,#f5f0e4 58%,#e9dfc8 100%)!important;
+  color:#29251b!important;border-color:#cfb46f!important;
+  box-shadow:inset 0 1px 0 #fff,0 4px 0 #d0bb86,0 8px 14px rgba(65,49,14,.12)!important;
+}
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-stat span,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-heading h3,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-lower h4,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-case-row strong,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-filter-head{color:#5c4718!important;text-shadow:none!important}
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-heading p,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-case-row span,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-case-row small{color:#514b3e!important}
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage button.btn-3d,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-page-toolbar button{
+  background:linear-gradient(145deg,#fffdf6,#e9d7a8)!important;color:#3b2d0d!important;border-color:#c4a153!important;
+  box-shadow:inset 0 1px 0 #fff,0 4px 0 #b18b36,0 7px 12px rgba(65,49,14,.15)!important;
+}
+body.dark-mode:not(.luxury-gold-mode) .smart-dashboard-open-btn{
+  background:linear-gradient(145deg,#263b57,#111c30)!important;color:#f3d88e!important;border:1px solid #b99651!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 4px 0 #111827,0 8px 16px rgba(0,0,0,.3)!important;
+}
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage{background:radial-gradient(ellipse at top,rgba(74,105,146,.22),transparent 65%)}
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-page-toolbar,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage #smartCaseDashboard,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-lower>div,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-filter-results{
+  background:linear-gradient(145deg,#1e2b3d 0%,#111c2c 60%,#0a1220 100%)!important;color:#e7edf6!important;
+  border-color:#536985!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 5px 0 #0a1220,0 11px 23px rgba(0,0,0,.35)!important;
+}
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-stat,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-case-row{
+  background:linear-gradient(145deg,#2a3c53 0%,#182538 60%,#101a29 100%)!important;color:#edf2f8!important;border-color:#647b98!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 4px 0 #0b1421,0 8px 15px rgba(0,0,0,.3)!important;
+}
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-stat span,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-heading h3,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-lower h4,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-case-row strong,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-filter-head{color:#f3d88e!important;text-shadow:0 1px 0 #111!important}
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-heading p,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-case-row span,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-case-row small{color:#d1dae7!important}
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage button.btn-3d,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-page-toolbar button{
+  background:linear-gradient(145deg,#314763,#17263b)!important;color:#f3d88e!important;border-color:#b99651!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 4px 0 #0b1421,0 7px 12px rgba(0,0,0,.3)!important;
+}
+/* الوضع الذهبي له الأولوية إذا كان مفعلاً */
+body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135deg,#3a2b0e,#17130a 60%,#080807)!important;color:#f5d985!important;border-color:#b8943c!important;box-shadow:0 0 14px rgba(215,174,61,.28),0 4px 0 #5b461d!important}
+@media print{#smartDashboardPage,#smartDashboardPage *{animation:none!important;transition:none!important;filter:none!important}#smartDashboardPage .smart-dashboard-page-toolbar,#smartDashboardPage #smartCaseDashboard,#smartDashboardPage .smart-stat,#smartDashboardPage .smart-case-row{transform:none!important}}
 </style>
 
 </body></html>`);
@@ -1195,7 +1475,7 @@ body.dark-mode{
             for(let i=0;i<firstDay;i++) html += '<div class="registered-calendar-day empty"></div>';
             for(let day=1;day<=daysInMonth;day++) {
                 const date = calendarDateKey(new Date(year,month,day));
-                const hasEvent = registeredCalendarCases.some(item => [item.registeredDate, String(item.nextHearingDate||'').slice(0,10), String(item.followUpDate||'').slice(0,10)].includes(date));
+                const hasEvent = registeredCalendarCases.some(item => [item.registeredDate, String(item.nextHearingDate||'').slice(0,10), String(item.nextHearingDate||'').slice(0,10)].includes(date));
                 const classes = ['registered-calendar-day', date===selected?'selected':'', date===today?'today':''].filter(Boolean).join(' ');
                 html += `<button type="button" class="${classes}" data-calendar-date="${date}" aria-label="${date}"><span>${day}</span><span class="registered-calendar-dots">${hasEvent?'●':''}</span></button>`;
             }
@@ -1258,8 +1538,8 @@ body.dark-mode{
                         events.push({label:'تاريخ تسجيل الدعوى', value:data.registeredDate});
                     if ((eventType === 'nextHearingDate' || eventType === 'all') && data.nextHearingDate && String(data.nextHearingDate).slice(0,10) === selectedDate)
                         events.push({label:'جلسة المحكمة', value:data.nextHearingDate.replace('T',' ')});
-                    if ((eventType === 'followUpDate' || eventType === 'all') && data.followUpDate && String(data.followUpDate).slice(0,10) === selectedDate)
-                        events.push({label:'موعد المحكمة', value:data.followUpDate.replace('T',' ')});
+                    if ((eventType === 'followUpDate' || eventType === 'all') && data.nextHearingDate && String(data.nextHearingDate).slice(0,10) === selectedDate)
+                        events.push({label:'موعد الجلسة', value:data.nextHearingDate.replace('T',' ')});
                     if (events.length) matches.push({id:caseDoc.id, caseNumber:data.caseNumber || caseDoc.id, caseTitle:data.caseTitle || '', complainant:data.complainant || '', court:data.court || '', events});
                 });
                 matches.sort((a,b) => String(a.caseNumber).localeCompare(String(b.caseNumber),'ar',{numeric:true}));
@@ -1287,6 +1567,7 @@ body.dark-mode{
         };
 
         let caseSaveInProgress = false;
+        let currentLoadedClosedAt = '';
         window.saveDataToFirebase = async function() {
             if (!currentUser) {
                 alert("يجب تسجيل الدخول أولاً. لم يتم حفظ أي بيانات محلياً.");
@@ -1315,12 +1596,16 @@ body.dark-mode{
                     registeredDate: calendarDateKey(new Date()),
                     registeredAt: new Date().toISOString(),
                     caseTitle: document.getElementById('caseTitle').value,
+                    caseClosed: document.getElementById('caseClosed').checked,
+                    caseStatus: document.getElementById('caseClosed').checked ? 'closed' : 'active',
+                    caseClosureReason: document.getElementById('caseClosed').checked ? document.getElementById('caseClosureReason').value : '',
+                    caseClosedAt: document.getElementById('caseClosed').checked ? (currentLoadedClosedAt || new Date().toISOString()) : '',
                     complainant: complainant,
                     complainantPhone: document.getElementById('complainantPhone').value,
                     defendant: document.getElementById('defendant').value,
                     court: document.getElementById('court').value,
                     nextHearingDate: document.getElementById('nextHearingDate').value,
-                    followUpDate: document.getElementById('followUpDate').value,
+                    followUpDate: '',
                     totalFees: document.getElementById('totalFees').value,
                     paidFees: document.getElementById('paidFees').value,
                     courtExpenses: document.getElementById('courtExpenses').value,
@@ -1336,7 +1621,10 @@ body.dark-mode{
                 currentLoadedDocId = docId;
                 document.getElementById('deleteCaseBtn').style.display = 'inline-block';
                 document.getElementById('shareCaseBtn').style.display = 'inline-block';
+                currentLoadedClosedAt = caseData.caseClosedAt || '';
                 alert("تم حفظ الدعوى في السحاب بنجاح ✅");
+                refreshSmartCaseDashboard();
+                checkAllCasesForHearings();
             } catch (error) {
                 alert("فشل الحفظ في السحاب؛ لم يتم حفظ الدعوى محلياً. تحقق من الاتصال والصلاحيات ثم أعد المحاولة.\n" + (error.message || error));
             } finally {
@@ -1364,12 +1652,18 @@ body.dark-mode{
                     currentLoadedRegisteredDate = data.registeredDate || "";
                     document.getElementById('caseNumber').value = data.caseNumber || '';
                     document.getElementById('caseTitle').value = data.caseTitle || '';
+                    document.getElementById('caseClosed').checked = data.caseClosed === true;
+                    document.getElementById('caseClosureReason').value = data.caseClosureReason || 'منتهية';
+                    document.getElementById('caseClosureReason').disabled = !document.getElementById('caseClosed').checked;
+                    setCaseStatusLight(data.caseClosed === true || data.caseStatus === 'closed', false);
+                    setCaseEditLock(true);
+                    currentLoadedClosedAt = data.caseClosedAt || '';
                     document.getElementById('complainant').value = data.complainant || '';
                     document.getElementById('complainantPhone').value = data.complainantPhone || '';
                     document.getElementById('defendant').value = data.defendant || '';
                     document.getElementById('court').value = data.court || '';
                     document.getElementById('nextHearingDate').value = data.nextHearingDate || '';
-                    document.getElementById('followUpDate').value = data.followUpDate || '';
+                    
                     checkHearingAlert(data.nextHearingDate);
 
                     document.getElementById('totalFees').value = data.totalFees || '';
@@ -1397,6 +1691,7 @@ body.dark-mode{
                     document.getElementById('deleteCaseBtn').style.display = 'inline-block';
                     document.getElementById('shareCaseBtn').style.display = 'inline-block';
                     alert("تم استرجاع الدعوة بنجاح! 🔍");
+                    refreshSmartCaseDashboard();
                 } else {
                     currentLoadedDocId = "";
                     document.getElementById('deleteCaseBtn').style.display = 'none';
@@ -1408,11 +1703,93 @@ body.dark-mode{
             }
         };
 
+        window.openSmartDashboardPage = async function() {
+            const main = document.getElementById('mainSystemView');
+            const page = document.getElementById('smartDashboardPage');
+            if (main) main.style.display = 'none';
+            if (page) page.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            if (typeof window.refreshSmartCaseDashboard === 'function') await window.refreshSmartCaseDashboard();
+        };
+        window.closeSmartDashboardPage = function() {
+            const page = document.getElementById('smartDashboardPage');
+            const main = document.getElementById('mainSystemView');
+            if (page) page.style.display = 'none';
+            if (main) main.style.display = 'block';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        };
+
+        let smartDashboardCases = [];
+        window.refreshSmartCaseDashboard = async function() {
+            const listA = document.getElementById('smartUpcomingList');
+            const listB = document.getElementById('smartFollowupList');
+            if (!currentUser) return;
+            if (listA) listA.innerHTML = '<p>جارٍ تحديث البيانات...</p>';
+            try {
+                const snap = await getDocs(collection(db, `users/${currentUser.uid}/cases`));
+                smartDashboardCases = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+                const now = new Date(); now.setHours(0,0,0,0);
+                const inSeven = new Date(now); inSeven.setDate(inSeven.getDate()+7);
+                const isClosed = c => c.caseClosed === true;
+                const active = smartDashboardCases.filter(c => !isClosed(c));
+                const upcomingEvents = [];
+                const overdue = [];
+                const needsFollowup = [];
+                smartDashboardCases.forEach(c => {
+                    if (isClosed(c)) return;
+                    [['nextHearingDate','موعد الجلسة']].forEach(([field,label]) => {
+                        if (!c[field]) return;
+                        const dt = new Date(c[field]); if (Number.isNaN(dt.getTime())) return;
+                        const day = new Date(dt); day.setHours(0,0,0,0);
+                        const event = { id:c.id, caseNumber:c.caseNumber || c.id, caseTitle:c.caseTitle || '', complainant:c.complainant || '', court:c.court || '', date:c[field], label, time:dt.getTime() };
+                        if (day >= now && day <= inSeven) upcomingEvents.push(event);
+                        if (day < now) overdue.push(event);
+                    });
+                    if (!c.nextHearingDate || overdue.some(e => e.id === c.id)) needsFollowup.push(c);
+                });
+                upcomingEvents.sort((a,b)=>a.time-b.time); overdue.sort((a,b)=>a.time-b.time);
+                const setText = (id,val) => { const el=document.getElementById(id); if(el) el.textContent=String(val); };
+                setText('smartTotalCases', smartDashboardCases.length);
+                setText('smartActiveCases', active.length);
+                setText('smartClosedCases', smartDashboardCases.filter(isClosed).length);
+                setText('smartUpcomingCases', new Set(upcomingEvents.map(e=>e.id)).size);
+                setText('smartOverdueCases', new Set(overdue.map(e=>e.id)).size);
+                const esc = v => String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+                const dateText = v => { const d=new Date(v); return Number.isNaN(d.getTime()) ? esc(v) : d.toLocaleString('ar-IQ',{dateStyle:'medium',timeStyle:'short'}); };
+                const eventHtml = e => `<button type="button" class="smart-case-row" data-smart-case="${esc(e.id)}"><strong>${esc(e.caseNumber)}</strong><span>${esc(e.label)} — ${dateText(e.date)}</span><small>${esc(e.caseTitle || e.complainant || 'دون عنوان')}</small></button>`;
+                if (listA) listA.innerHTML = upcomingEvents.length ? upcomingEvents.slice(0,5).map(eventHtml).join('') : '<p class="smart-empty">لا توجد جلسات أو مواعيد خلال الأيام السبعة القادمة.</p>';
+                if (listB) listB.innerHTML = needsFollowup.length ? needsFollowup.slice(0,5).map(c=>`<button type="button" class="smart-case-row" data-smart-case="${esc(c.id)}"><strong>${esc(c.caseNumber || c.id)}</strong><span>${esc(c.court || 'المحكمة غير محددة')}</span><small>${esc(c.caseTitle || c.complainant || 'تحتاج إلى مراجعة الموعد والإجراء القادم')}</small></button>`).join('') : '<p class="smart-empty">لا توجد دعاوى ظاهرة تحتاج متابعة.</p>';
+                document.querySelectorAll('[data-smart-case]').forEach(btn => btn.onclick = async () => { const c=smartDashboardCases.find(x=>x.id===btn.dataset.smartCase); if(c){ window.closeSmartDashboardPage(); document.getElementById('searchQuery').value=c.caseNumber || c.id; await window.fetchDataFromFirebase(); document.getElementById('lawForm').scrollIntoView({behavior:'smooth',block:'start'}); } });
+            } catch (err) {
+                if (listA) listA.innerHTML = '<p class="smart-empty">تعذر تحميل لوحة المتابعة. تحقق من الاتصال والصلاحيات.</p>';
+                if (listB) listB.innerHTML = '<p class="smart-empty">تعذر تحميل البيانات.</p>';
+                console.error('Smart dashboard error:', err);
+            }
+        };
+        window.filterSmartCases = function(filter) {
+            const box=document.getElementById('smartFilterResults'); if(!box) return;
+            let rows=smartDashboardCases;
+            const today=new Date(); today.setHours(0,0,0,0); const end=new Date(today); end.setDate(end.getDate()+7);
+            if(filter==='active') rows=rows.filter(c=>c.caseClosed!==true);
+            else if(filter==='closed') rows=rows.filter(c=>c.caseClosed===true);
+            else if(filter==='upcoming') rows=rows.filter(c=>c.caseClosed!==true && [c.nextHearingDate].some(v=>{if(!v)return false;const d=new Date(v);return !Number.isNaN(d.getTime())&&d>=today&&d<=end;}));
+            else if(filter==='overdue') rows=rows.filter(c=>c.caseClosed!==true && [c.nextHearingDate].some(v=>{if(!v)return false;const d=new Date(v);d.setHours(0,0,0,0);return !Number.isNaN(d.getTime())&&d<today;}));
+            const esc=v=>String(v??'').replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+            box.style.display='block'; box.innerHTML=`<div class="smart-filter-head"><strong>نتائج التصفية (${rows.length})</strong><button type="button" onclick="document.getElementById('smartFilterResults').style.display='none'">إغلاق ✕</button></div>`+(rows.length?rows.map(c=>`<button type="button" class="smart-case-row" data-smart-case="${esc(c.id)}"><strong>${esc(c.caseNumber||c.id)}</strong><span>${esc(c.caseClosed?(c.caseClosureReason||'منتهية'):'نشطة')}</span><small>${esc(c.caseTitle||c.complainant||'دون عنوان')} — ${esc(c.court||'')}</small></button>`).join(''):'<p class="smart-empty">لا توجد دعاوى ضمن هذه الفئة.</p>');
+            box.querySelectorAll('[data-smart-case]').forEach(btn=>btn.onclick=async()=>{const c=smartDashboardCases.find(x=>x.id===btn.dataset.smartCase);if(c){window.closeSmartDashboardPage();document.getElementById('searchQuery').value=c.caseNumber||c.id;await window.fetchDataFromFirebase();document.getElementById('lawForm').scrollIntoView({behavior:'smooth',block:'start'});}});
+        };
+        document.addEventListener('change', e => { if(e.target && e.target.id==='caseClosed'){ const sel=document.getElementById('caseClosureReason'); sel.disabled=!e.target.checked; if(e.target.checked && !sel.value) sel.value='منتهية'; } });
+
         window.startNewEntry = function() {
+            setCaseEditLock(false);
+            setCaseStatusLight(false, false);
             document.getElementById('lawForm').reset();
+            document.getElementById('caseClosed').checked = false;
+            document.getElementById('caseClosureReason').value = 'منتهية';
+            document.getElementById('caseClosureReason').disabled = true;
+            currentLoadedClosedAt = '';
             document.getElementById('searchQuery').value = "";
             document.getElementById('nextHearingDate').value = "";
-            document.getElementById('followUpDate').value = "";
             document.getElementById('qrcodeContainer').style.display = 'none';
             document.getElementById('hearingAlertBox').style.display = 'none';
             document.getElementById('fileInfo').textContent = "";
@@ -1420,6 +1797,7 @@ body.dark-mode{
             document.getElementById('shareCaseBtn').style.display = 'none';
             currentLoadedDocId = "";
             currentLoadedRegisteredDate = "";
+            setCaseEditLock(false);
             selectedFileBase64 = "";
             selectedFileName = "";
             document.getElementById('barcodeSubTextDisplay').textContent = "";
@@ -1496,7 +1874,7 @@ body.dark-mode{
             document.getElementById('previewComplainant').textContent = document.getElementById('complainant').value;
             document.getElementById('previewPhone').textContent = document.getElementById('complainantPhone').value;
             document.getElementById('previewDefendant').textContent = document.getElementById('defendant').value;
-            document.getElementById('previewHearing').textContent = document.getElementById('followUpDate').value || '---';
+            document.getElementById('previewHearing').textContent = document.getElementById('nextHearingDate').value || '---';
             document.getElementById('previewFees').textContent = document.getElementById('totalFees').value + ' د.ع';
             document.getElementById('previewNotes').textContent = document.getElementById('privateNotes').value;
             document.getElementById('previewBarcodeSub').textContent = document.getElementById('barcodeSubText').value || '---';
@@ -1577,7 +1955,7 @@ body.dark-mode{
                     complainant: document.getElementById('complainant').value,
                     complainantPhone: hidePhone ? "" : document.getElementById('complainantPhone').value,
                     defendant: document.getElementById('defendant').value,
-                    nextHearingDate: showHearing ? document.getElementById('followUpDate').value : '',
+                    nextHearingDate: showHearing ? document.getElementById('nextHearingDate').value : '',
                     followUpDate: '',
                     hideHearing: !showHearing,
                     totalFees: hideFees ? "" : (document.getElementById('totalFees').value + ' د.ع'),
@@ -1652,8 +2030,6 @@ body.dark-mode{
             document.getElementById('inc_defendant').textContent = data.defendant || '---';
             document.getElementById('inc_nextHearingDate').textContent = data.nextHearingDate || '---';
             document.getElementById('inc_nextHearingLine').style.display = data.hideHearing ? 'none' : (data.nextHearingDate ? '' : 'none');
-            document.getElementById('inc_followUpDate').textContent = data.followUpDate || '---';
-            document.getElementById('inc_followUpLine').style.display = data.hideHearing ? 'none' : (data.followUpDate ? '' : 'none');
             document.getElementById('inc_totalFees').textContent = data.totalFees || '';
             document.getElementById('inc_totalFees').parentElement.style.display = (data.hideFees || data.totalFees === "[محجوب]") ? "none" : "";
             document.getElementById('inc_privateNotes').textContent = data.privateNotes || '';
@@ -1744,7 +2120,6 @@ body.dark-mode{
             const alertBox = document.getElementById('hearingAlertBox');
             const events = [
                 {label:'جلسة المحكمة', value:dateTimeStr || document.getElementById('nextHearingDate')?.value},
-                {label:'موعد المحكمة', value:document.getElementById('followUpDate')?.value}
             ];
             const today = new Date();
             const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
@@ -1767,6 +2142,76 @@ body.dark-mode{
                 alertBox.textContent = alerts.join(' ');
             } else alertBox.style.display = 'none';
         };
+
+        // قفل موحّد لحقول الدعوى: كلمة المرور مطلوبة مرة واحدة عند فتح القفل.
+        let caseEditUnlocked = false;
+        let caseEditLockBusy = false;
+        function setCaseEditLock(locked) {
+            caseEditUnlocked = !locked;
+            const form = document.getElementById('lawForm');
+            if (!form) return;
+            form.querySelectorAll('input,select,textarea').forEach(el => {
+                // حقول الحالة مخفية عن الواجهة، لكن تبقى موجودة لتوافق حفظ/تحميل الدعاوى القديمة.
+                if (el.id === 'caseClosed' || el.id === 'caseClosureReason') {
+                    el.disabled = true;
+                    return;
+                }
+                // عند إنشاء دعوى جديدة لا يوجد سجل محفوظ يحتاج إلى فتح قفل بكلمة مرور.
+                const shouldLock = !!locked && !!currentLoadedDocId;
+                el.disabled = shouldLock;
+            });
+            const btn = document.getElementById('caseEditLockBtn');
+            const text = document.getElementById('caseLockStateText');
+            if (btn) btn.textContent = locked ? '🔓 فتح قفل التعديل' : '🔒 قفل التعديل';
+            if (text) text.textContent = locked ? '🔒 تعديل الحقول مقفل' : '🔓 التعديل مسموح لجميع الحقول';
+        }
+        window.toggleCaseEditLock = async function() {
+            if (caseEditLockBusy) return;
+            if (caseEditUnlocked) { setCaseEditLock(true); return; }
+            if (!currentLoadedDocId || !currentUser) { alert('ابحث عن دعوى محفوظة أولاً، ثم افتح القفل لتعديلها.'); return; }
+            const password = prompt('🔐 أدخل كلمة مرور حسابك مرة واحدة لفتح قفل تعديل الدعوى:');
+            if (!password) return;
+            caseEditLockBusy = true;
+            const btn = document.getElementById('caseEditLockBtn');
+            if (btn) { btn.disabled = true; btn.textContent = '⏳ جارٍ التحقق...'; }
+            try {
+                await signInWithEmailAndPassword(auth, currentUser.email, password);
+                setCaseEditLock(false);
+            } catch (error) {
+                alert('كلمة المرور غير صحيحة أو تعذر التحقق منها. بقيت الحقول مقفلة.');
+                setCaseEditLock(true);
+            } finally {
+                caseEditLockBusy = false;
+                if (btn) btn.disabled = false;
+            }
+        };
+        window.setCaseStatusLight = function(closed, syncCheckbox=true) {
+            const light = document.getElementById('caseStatusLight');
+            const label = document.getElementById('caseStatusLightText');
+            if (light) {
+                light.style.setProperty('background-color', closed ? '#ef4444' : '#16a34a', 'important');
+                light.style.setProperty('background-image', 'none', 'important');
+                light.style.setProperty('box-shadow', closed ? '0 0 0 2px #b91c1c,0 0 12px #ef444488' : '0 0 0 2px #15803d,0 0 12px #16a34a88', 'important');
+                light.title = closed ? 'الدعوى منتهية / مغلقة / مهملة — اضغط لإعادة تنشيطها' : 'الدعوى نشطة — اضغط لتغيير الحالة';
+            }
+            if (label) { label.style.color = closed ? '#ef4444' : '#16a34a'; label.textContent = closed ? '🔴 الدعوى منتهية / مغلقة / مهملة' : '🟢 الدعوى لا تزال نشطة'; }
+            if (syncCheckbox) {
+                const cb = document.getElementById('caseClosed'); const sel = document.getElementById('caseClosureReason');
+                if (cb) cb.checked = !!closed;
+                if (sel) { if (closed && !sel.value) sel.value = 'منتهية'; sel.disabled = !closed || !caseEditUnlocked; }
+            }
+        };
+        window.toggleCaseStatusLight = function() {
+            if (!caseEditUnlocked && currentLoadedDocId) { alert('افتح قفل التعديل أولاً.'); return; }
+            const closed = document.getElementById('caseClosed').checked;
+            setCaseStatusLight(!closed, true);
+        };
+        document.addEventListener('change', e => {
+            if (e.target && e.target.id === 'caseClosed') setCaseStatusLight(e.target.checked, false);
+        });
+        // عند فتح صفحة النظام تبدأ الحقول مقفلة؛ إنشاء دعوى جديدة يعيد فتحها.
+        document.addEventListener('DOMContentLoaded', () => setCaseEditLock(true));
+
     </script>
 
     <style>
@@ -3848,6 +4293,223 @@ svg {
         @media(min-width:681px){#chatModal #chatMessageInput{min-height:88px!important;height:88px!important}#chatModal #sendChatMessageBtn{flex-basis:82px!important;width:82px!important;min-width:82px!important;max-width:82px!important;height:48px!important}}
         @media(max-width:680px){#chatModal .chat-compose{gap:7px!important;padding:8px 2px calc(8px + env(safe-area-inset-bottom))!important}#chatModal #chatMessageInput{min-height:76px!important;height:76px!important;padding:11px!important;font-size:16px!important}#chatModal #sendChatMessageBtn{flex-basis:66px!important;width:66px!important;min-width:66px!important;max-width:66px!important;height:44px!important;min-height:44px!important;font-size:11px!important;padding:4px!important}}
 </style>
+
+<style id="conditional-report-watermark-print">
+/* العلامة المائية تظهر فقط عند تفعيل مربع الاختيار قبل طباعة التقرير */
+@media print {
+  body.print-report:not(.show-print-watermark) #watermarkLayer { opacity: 0 !important; visibility: hidden !important; }
+  body.print-report.show-print-watermark #watermarkLayer { opacity: 1 !important; visibility: visible !important; }
+  body.print-report #watermarkLayer { pointer-events: none !important; }
+  body.print-report #watermarkLayer .watermark-text-style {
+    color: rgba(184,149,67,.13) !important;
+    font-size: 58px !important;
+    font-weight: 800 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+</style>
+
+<style id="luxury-gold-full-system-theme">
+/* الوضع الذهبي الفاخر: يطبق على كامل النظام وليس الواجهة الرئيسية فقط */
+body.luxury-gold-mode {
+  color-scheme: dark !important;
+  --primary-color:#e3bd58 !important; --secondary-color:#9a7424 !important;
+  --bg-color:#090806 !important; --card-bg:#17130b !important;
+  --text-main:#f8edce !important; --border-color:#8b6a25 !important;
+  --label-color:#e2c36c !important; --input-bg:#100e09 !important; --section-bg:#1a150b !important;
+  background:radial-gradient(ellipse at 50% -15%,#5b4314 0%,#211807 28%,#0d0b07 63%,#050504 100%) fixed !important;
+  color:#f8edce !important;
+}
+body.luxury-gold-mode #mainSystemView,
+body.luxury-gold-mode #appSection,
+body.luxury-gold-mode main,
+body.luxury-gold-mode .main-content,
+body.luxury-gold-mode .content,
+body.luxury-gold-mode .page-content,
+body.luxury-gold-mode .dashboard,
+body.luxury-gold-mode .workspace,
+body.luxury-gold-mode .tab-content,
+body.luxury-gold-mode .modal,
+body.luxury-gold-mode .modal-body { background-color:transparent !important; color:#f8edce !important; }
+body.luxury-gold-mode .container,
+body.luxury-gold-mode .card,
+body.luxury-gold-mode .section,
+body.luxury-gold-mode section,
+body.luxury-gold-mode .dashboard-card,
+body.luxury-gold-mode .panel,
+body.luxury-gold-mode .box,
+body.luxury-gold-mode .modal-content,
+body.luxury-gold-mode .auth-card,
+body.luxury-gold-mode .professional-user-bar,
+body.luxury-gold-mode .professional-user-card,
+body.luxury-gold-mode .preview-box,
+body.luxury-gold-mode fieldset,
+body.luxury-gold-mode .table-container,
+body.luxury-gold-mode .form-section,
+body.luxury-gold-mode .info-box {
+  background:linear-gradient(145deg,rgba(48,37,15,.98),rgba(17,14,8,.99) 68%,rgba(9,8,6,.99)) !important;
+  color:#f8edce !important; border-color:#a98432 !important;
+  box-shadow:0 12px 30px rgba(0,0,0,.42),0 0 0 1px rgba(230,190,79,.14),inset 0 1px rgba(255,230,160,.12) !important;
+}
+body.luxury-gold-mode button,
+body.luxury-gold-mode .btn,
+body.luxury-gold-mode .btn-3d,
+body.luxury-gold-mode .btn-main,
+body.luxury-gold-mode .btn-search,
+body.luxury-gold-mode [role="button"],
+body.luxury-gold-mode input[type="button"],
+body.luxury-gold-mode input[type="submit"] {
+  color:#ffe7a0 !important; border:1px solid #c49b38 !important;
+  background:linear-gradient(135deg,#5a4212 0%,#2b210d 42%,#0d0b07 100%) !important;
+  box-shadow:0 4px 13px rgba(0,0,0,.35),inset 0 1px rgba(255,231,160,.22) !important;
+  transition:box-shadow .22s ease,filter .22s ease,transform .22s ease,border-color .22s ease !important;
+}
+body.luxury-gold-mode button:hover,
+body.luxury-gold-mode .btn:hover,
+body.luxury-gold-mode .btn-3d:hover,
+body.luxury-gold-mode .btn-main:hover,
+body.luxury-gold-mode .btn-search:hover,
+body.luxury-gold-mode [role="button"]:hover,
+body.luxury-gold-mode input[type="button"]:hover,
+body.luxury-gold-mode input[type="submit"]:hover {
+  border-color:#ffe18a !important;
+  box-shadow:0 0 0 1px rgba(255,220,112,.8),0 0 12px rgba(237,190,55,.85),0 0 28px rgba(225,170,35,.48),inset 0 0 15px rgba(255,219,111,.22) !important;
+  filter:brightness(1.16) saturate(1.15) !important; transform:translateY(-1px);
+}
+body.luxury-gold-mode button:active,
+body.luxury-gold-mode .btn:active,
+body.luxury-gold-mode .btn-3d:active,
+body.luxury-gold-mode [role="button"]:active {
+  box-shadow:0 0 0 2px #f6d36d,0 0 30px rgba(245,193,46,.95),inset 0 0 18px rgba(255,222,116,.3) !important;
+}
+body.luxury-gold-mode input:not([type="checkbox"]):not([type="radio"]),
+body.luxury-gold-mode select,
+body.luxury-gold-mode textarea {
+  background:linear-gradient(145deg,#100e09,#1c170c) !important; color:#fff1cb !important;
+  border-color:#8d6b27 !important; box-shadow:inset 0 2px 7px rgba(0,0,0,.35) !important;
+}
+body.luxury-gold-mode input::placeholder,
+body.luxury-gold-mode textarea::placeholder { color:#b4a06e !important; }
+body.luxury-gold-mode label,
+body.luxury-gold-mode h1,body.luxury-gold-mode h2,body.luxury-gold-mode h3,
+body.luxury-gold-mode h4,body.luxury-gold-mode .section-title,
+body.luxury-gold-mode .header-title,body.luxury-gold-mode .modal-header,
+body.luxury-gold-mode .modal-header h3 { color:#f0d27a !important; }
+body.luxury-gold-mode p,body.luxury-gold-mode span,body.luxury-gold-mode div,
+body.luxury-gold-mode li,body.luxury-gold-mode td { scrollbar-color:#9a7424 #100e09; }
+body.luxury-gold-mode table,body.luxury-gold-mode th,body.luxury-gold-mode td,
+body.luxury-gold-mode tr { border-color:#6f551e !important; }
+body.luxury-gold-mode th { background:linear-gradient(135deg,#4a3710,#211907) !important; color:#ffe5a0 !important; }
+body.luxury-gold-mode tr:nth-child(even) td { background-color:rgba(181,139,38,.07) !important; }
+body.luxury-gold-mode a { color:#f1cf69 !important; }
+body.luxury-gold-mode hr { border-color:rgba(210,169,62,.45) !important; }
+body.luxury-gold-mode .quick-mode-buttons { background:rgba(5,5,4,.78) !important; border-color:rgba(226,188,83,.65) !important; box-shadow:0 0 22px rgba(212,165,40,.2) !important; }
+body.luxury-gold-mode ::selection { background:#b58a2d !important; color:#090806 !important; }
+@keyframes luxuryGoldGlowPulse { 0%,100%{box-shadow:0 0 5px rgba(245,201,75,.35),inset 0 0 4px rgba(255,225,130,.08)} 50%{box-shadow:0 0 13px rgba(245,201,75,.8),0 0 27px rgba(208,157,35,.35),inset 0 0 10px rgba(255,225,130,.18)} }
+body.luxury-gold-mode .luxury-gold-mode-btn.luxury-gold-active { animation:luxuryGoldGlowPulse 2.4s ease-in-out infinite !important; }
+@media(prefers-reduced-motion:reduce){body.luxury-gold-mode *,body.luxury-gold-mode *::before,body.luxury-gold-mode *::after{animation:none!important;transition:none!important}}
+/* عند الطباعة: ألغِ تأثير الوضع الذهبي بالكامل، مع إبقاء تنسيقات الطباعة الأصلية والعلامة المائية الاختيارية */
+@media print {
+  html body.luxury-gold-mode,
+  html body.luxury-gold-mode #mainSystemView,
+  html body.luxury-gold-mode #appSection,
+  html body.luxury-gold-mode main,
+  html body.luxury-gold-mode .main-content,
+  html body.luxury-gold-mode .content,
+  html body.luxury-gold-mode .page-content,
+  html body.luxury-gold-mode .dashboard,
+  html body.luxury-gold-mode .workspace,
+  html body.luxury-gold-mode .tab-content,
+  html body.luxury-gold-mode .container,
+  html body.luxury-gold-mode .card,
+  html body.luxury-gold-mode .section,
+  html body.luxury-gold-mode section,
+  html body.luxury-gold-mode .dashboard-card,
+  html body.luxury-gold-mode .panel,
+  html body.luxury-gold-mode .box,
+  html body.luxury-gold-mode .modal-content,
+  html body.luxury-gold-mode .auth-card,
+  html body.luxury-gold-mode .professional-user-bar,
+  html body.luxury-gold-mode .professional-user-card,
+  html body.luxury-gold-mode .preview-box,
+  html body.luxury-gold-mode fieldset,
+  html body.luxury-gold-mode .table-container,
+  html body.luxury-gold-mode .form-section,
+  html body.luxury-gold-mode .info-box {
+    background: transparent !important;
+    background-image: none !important;
+    color: #000 !important;
+    border-color: initial !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    filter: none !important;
+  }
+  html body.luxury-gold-mode *:not(#watermarkLayer):not(.watermark-text-style),
+  html body.luxury-gold-mode *:not(#watermarkLayer):not(.watermark-text-style)::before,
+  html body.luxury-gold-mode *:not(#watermarkLayer):not(.watermark-text-style)::after {
+    box-shadow: none !important;
+    text-shadow: none !important;
+    animation: none !important;
+    filter: none !important;
+  }
+  html body.luxury-gold-mode button,
+  html body.luxury-gold-mode .btn,
+  html body.luxury-gold-mode .btn-3d,
+  html body.luxury-gold-mode .btn-main,
+  html body.luxury-gold-mode .btn-search,
+  html body.luxury-gold-mode [role="button"],
+  html body.luxury-gold-mode input[type="button"],
+  html body.luxury-gold-mode input[type="submit"],
+  html body.luxury-gold-mode input:not([type="checkbox"]):not([type="radio"]),
+  html body.luxury-gold-mode select,
+  html body.luxury-gold-mode textarea,
+  html body.luxury-gold-mode th,
+  html body.luxury-gold-mode td,
+  html body.luxury-gold-mode h1,
+  html body.luxury-gold-mode h2,
+  html body.luxury-gold-mode h3,
+  html body.luxury-gold-mode h4,
+  html body.luxury-gold-mode label,
+  html body.luxury-gold-mode p,
+  html body.luxury-gold-mode span,
+  html body.luxury-gold-mode li,
+  html body.luxury-gold-mode a {
+    color: #000 !important;
+    background-color: transparent !important;
+    background-image: none !important;
+    border-color: initial !important;
+  }
+  html body.luxury-gold-mode {
+    color-scheme: light !important;
+    background: #fff !important;
+    background-image: none !important;
+    color: #000 !important;
+    -webkit-print-color-adjust: economy !important;
+    print-color-adjust: economy !important;
+  }
+}
+</style>
+<style id="independent-case-status-light-and-entry-fix">
+/* ضوء الحالة مستقل تماماً عن ألوان النهاري والليلي والذهبي */
+#caseStatusLight,
+#mainSystemView #caseStatusLight,
+body.dark-mode #caseStatusLight,
+body.luxury-gold-mode #caseStatusLight {
+  appearance:none !important; -webkit-appearance:none !important;
+  background-color:#16a34a !important; border:2px solid #fff !important;
+  opacity:1 !important; filter:none !important; mix-blend-mode:normal !important;
+  position:relative; z-index:2; flex:0 0 42px !important;
+}
+#caseStatusLightText { background:transparent !important; mix-blend-mode:normal !important; }
+/* أخفِ خيار الحالة النصي فقط، مع إبقاء عناصره البرمجية للتوافق مع السجلات السابقة. */
+.case-closure-group[hidden] { display:none !important; }
+#lawForm input:not([type="checkbox"]):not([type="radio"]):not(:disabled),
+#lawForm select:not(:disabled), #lawForm textarea:not(:disabled) {
+  pointer-events:auto !important; user-select:text !important; -webkit-user-select:text !important;
+  cursor:text;
+}
+</style>
 </head>
 <body>
     <div id="legalScreensaver" role="dialog" aria-modal="true" aria-label="شاشة التوقف القانونية">
@@ -3911,12 +4573,14 @@ svg {
         </button>
         <div class="quick-mode-buttons" aria-label="إعدادات سريعة">
             <button type="button" id="darkModeBtn" class="quick-mode-btn" onclick="toggleDarkMode()" title="تبديل إلى الوضع الليلي" aria-label="تبديل إلى الوضع الليلي">☾</button>
+            <button type="button" id="luxuryGoldModeBtn" class="quick-mode-btn luxury-gold-mode-btn" onclick="toggleLuxuryGoldMode()" title="تفعيل الوضع الذهبي الفاخر" aria-label="تفعيل الوضع الذهبي الفاخر">✦</button>
             <button type="button" id="muteModeBtn" class="quick-mode-btn" onclick="toggleSystemMute()" title="كتم أصوات الأزرار" aria-label="كتم أصوات الأزرار">🔈</button>
         </div>
     </div>
 
     <div class="user-actions professional-actions">
                     <button type="button" class="btn-open-laws-top btn-3d" onclick="openLawsPage()">📖 قوانين</button>
+                    <button type="button" class="btn-archive-top btn-3d smart-dashboard-open-btn" onclick="openSmartDashboardPage()">📊 لوحة المتابعة الذكية</button>
                     <button type="button" class="btn-open-wallet-top btn-3d" onclick="openMyWalletPage()">📁 محفظتي</button>
                     <button type="button" class="btn-open-contract-top btn-3d" onclick="openContractModal()">📜 عقد محامي</button>
                     <button type="button" class="btn-archive-top btn-3d" onclick="openRegisteredDatesModal()">🗓️ تواريخ الدعاوى المسجلة</button>
@@ -3946,6 +4610,8 @@ svg {
             <div id="chatNotificationBox" class="chat-notification-box" style="display:none;"></div>
             <div id="hearingAlertBox" class="hearing-alert"></div>
 
+
+
             <div class="top-search-hearing-bar">
                 <div class="search-box-item">
                     <input type="text" id="searchQuery" placeholder="بحث (7-9 أرقام)..." maxlength="9">
@@ -3961,13 +4627,21 @@ svg {
             </div>
 
             <form id="lawForm">
+                <div id="caseEditLockBar" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;padding:12px 14px;margin:0 0 14px;border:1px solid var(--border-color);border-radius:12px;background:var(--section-bg);">
+                    <div><strong id="caseLockStateText">🔒 تعديل الحقول مقفل</strong><div style="font-size:12px;color:var(--label-color);margin-top:4px">افتح القفل مرة واحدة لتعديل جميع حقول الدعوى، وأغلقه لمنع التعديل.</div></div>
+                    <button type="button" id="caseEditLockBtn" class="btn-search btn-3d" onclick="toggleCaseEditLock()">🔓 فتح قفل التعديل</button>
+                </div>
                 <div class="form-grid">
                     
                     <div class="section-title">📌 1. البيانات الأساسية للدعوى</div>
                     
                     <div class="form-group">
-                        <label>رقم الدعوة:</label>
-                        <input type="text" id="caseNumber" placeholder="مثال: 1234567">
+                        <label for="caseNumber">رقم الدعوى:</label>
+                        <div style="display:flex;align-items:center;gap:10px;">
+                            <input type="text" id="caseNumber" placeholder="مثال: 1234567" style="flex:1;min-width:0;">
+                            <button type="button" id="caseStatusLight" title="الدعوى نشطة — اضغط لتغيير الحالة" aria-label="تغيير حالة الدعوى" onclick="toggleCaseStatusLight()" style="flex:0 0 42px;width:42px;height:42px;border:2px solid #fff;border-radius:50%;background:#16a34a;box-shadow:0 0 0 2px #15803d,0 0 12px #16a34a88;cursor:pointer;font-size:0;"></button>
+                        </div>
+                        <small id="caseStatusLightText" style="display:block;margin-top:6px;color:#16a34a;font-weight:700">🟢 الدعوى لا تزال نشطة</small>
                     </div>
                     <div class="form-group">
                         <label>المحكمة المختصة:</label>
@@ -3977,9 +4651,14 @@ svg {
                         <label>عنوان الدعوة (موضوعها):</label>
                         <input type="text" id="caseTitle" placeholder="أدخل موضوع الدعوة">
                     </div>
-                    <div class="form-group">
-                        <label for="followUpDate">موعد المحكمة:</label>
-                        <input type="datetime-local" id="followUpDate" onchange="checkHearingAlert(document.getElementById('nextHearingDate').value)">
+                    <div class="form-group case-closure-group" hidden aria-hidden="true">
+                        <label class="case-closure-label" for="caseClosed"><input type="checkbox" id="caseClosed" style="width:20px;height:20px;accent-color:#c9a34a"> <span>تمييز الدعوى كمنتهية / مغلقة / مهملة</span></label>
+                        <select id="caseClosureReason" disabled aria-label="سبب إغلاق الدعوى">
+                            <option value="منتهية">انتهت الدعوى</option>
+                            <option value="مغلقة">أُغلقت الدعوى</option>
+                            <option value="مهملة">دعوى مهملة</option>
+                        </select>
+                        <small>عند تفعيل المربع تُستبعد الدعوى من الدعاوى النشطة في لوحة المتابعة.</small>
                     </div>
 
                     <div class="form-group">
@@ -4010,8 +4689,15 @@ svg {
                         <input type="text" id="barcodeSubText" placeholder="مثال: صالح للنشر">
                     </div>
                     <div class="form-group">
-                        <label>اسم المحامي (العلامة المائية):</label>
-                        <input type="text" id="watermarkText" placeholder="مثال: المحامي فلان">
+                        <label for="watermarkText">اسم المحامي (العلامة المائية):</label>
+                        <input type="text" id="watermarkText" placeholder="اكتب اسم المحامي هنا">
+                        <label for="showWatermarkOnPrint" class="watermark-print-option" style="display:flex;align-items:center;gap:8px;margin-top:9px;cursor:pointer;font-size:13px;font-weight:700;">
+                            <input type="checkbox" id="showWatermarkOnPrint" style="width:17px;height:17px;min-height:17px;accent-color:#b89543;">
+                            إظهار اسم المحامي في التقرير وكخلفية مائية عند الطباعة
+                        </label>
+                        <div id="watermarkNameOnPage" style="display:none;margin-top:10px;padding:9px 12px;border:1px solid rgba(184,149,67,.45);border-radius:8px;color:var(--label-color);font-weight:700;">
+                            اسم المحامي: <span id="watermarkNameOnPageText"></span>
+                        </div>
                     </div>
                     <div class="form-group full-width">
                         <label>ملاحظات سرية / إدارية:</label>
@@ -4033,6 +4719,25 @@ svg {
                     <button type="button" class="btn-print btn-3d" onclick="return printCaseReportOnly(event)">🖨️ طباعة التقرير</button>
                 </div>
             </form>
+        </div>
+
+        <div id="smartDashboardPage" class="smart-dashboard-page" style="display:none;">
+            <div class="smart-dashboard-page-toolbar">
+                <button type="button" class="btn-search btn-3d" onclick="closeSmartDashboardPage()">↩ العودة إلى النظام الرئيسي</button>
+                <span>لوحة متابعة الدعاوى والمواعيد</span>
+            </div>
+            <section id="smartCaseDashboard" class="smart-case-dashboard" aria-label="لوحة متابعة الدعاوى">
+                <div class="smart-dashboard-heading"><div><h3>📊 لوحة المتابعة الذكية للدعاوى</h3><p>ملخص حيّ للدعاوى والمواعيد المسجلة في حسابك</p></div><button type="button" class="btn-search btn-3d" onclick="refreshSmartCaseDashboard()">↻ تحديث</button></div>
+                <div class="smart-dashboard-stats">
+                    <button type="button" class="smart-stat" onclick="filterSmartCases('all')"><span>إجمالي الدعاوى</span><strong id="smartTotalCases">—</strong></button>
+                    <button type="button" class="smart-stat" onclick="filterSmartCases('active')"><span>دعاوى نشطة</span><strong id="smartActiveCases">—</strong></button>
+                    <button type="button" class="smart-stat" onclick="filterSmartCases('closed')"><span>منتهية / مغلقة / مهملة</span><strong id="smartClosedCases">—</strong></button>
+                    <button type="button" class="smart-stat" onclick="filterSmartCases('upcoming')"><span>جلسات خلال 7 أيام</span><strong id="smartUpcomingCases">—</strong></button>
+                    <button type="button" class="smart-stat" onclick="filterSmartCases('overdue')"><span>مواعيد فائتة</span><strong id="smartOverdueCases">—</strong></button>
+                </div>
+                <div class="smart-dashboard-lower"><div><h4>⏰ أقرب الجلسات والمواعيد</h4><div id="smartUpcomingList" class="smart-case-list"><p>جارٍ تحميل المواعيد...</p></div></div><div><h4>📌 الدعاوى التي تحتاج متابعة</h4><div id="smartFollowupList" class="smart-case-list"><p>جارٍ تحميل الدعاوى...</p></div></div></div>
+                <div id="smartFilterResults" class="smart-filter-results" style="display:none"></div>
+            </section>
         </div>
 
         <div id="contractPrintSection" class="contract-print-container">
@@ -4058,8 +4763,8 @@ svg {
                 
                 <!-- تم جعل التواقيع تلتصق في أسفل الصفحة عبر خاصية margin-top: auto -->
                 <div style="display: flex; justify-content: space-between; margin-top: auto; padding-top: 30px; font-weight: bold;">
-                    <div>الطرف الثاني (الموكل):<br><br>....................................</div>
-                    <div>الطرف الأول (المحامي):<br><br>....................................</div>
+                    <div>الطرف الثاني (الموكل)</div>
+                    <div>الطرف الأول (المحامي)</div>
                 </div>
                 
                 <div class="actions-section hide-on-print" style="margin-top: 20px;">
@@ -4215,7 +4920,7 @@ svg {
                 <div><b>هاتف الموكل:</b> <span id="inc_complainantPhone">---</span></div>
                 <div><b>الخصم:</b> <span id="inc_defendant">---</span></div>
                 <div id="inc_nextHearingLine"><b>موعد المحكمة:</b> <span id="inc_nextHearingDate">---</span></div>
-                <div id="inc_followUpLine"><b>موعد المحكمة (الموعد الإضافي):</b> <span id="inc_followUpDate">---</span></div>
+
                 <div><b>الأتعاب:</b> <span id="inc_totalFees">---</span></div>
                 <div><b>الملاحظات:</b> <span id="inc_privateNotes">---</span></div>
                 <div><b>نص الباركود:</b> <span id="inc_barcodeSubText">---</span></div>
@@ -4319,7 +5024,7 @@ svg {
                 <label for="calendarEventType">نوع التاريخ الذي تريد البحث عنه:</label>
                 <select id="calendarEventType" style="width:100%;">
                     <option value="registeredDate">تاريخ تسجيل الدعوى</option>
-                    <option value="followUpDate">موعد المحكمة</option>
+                    <option value="followUpDate">موعد الجلسة</option>
                     <option value="all">جميع المواعيد في هذا اليوم</option>
                 </select>
             </div>
@@ -4403,9 +5108,23 @@ svg {
     document.getElementById('barcodeSubText')?.addEventListener('input', function() {
         document.getElementById('barcodeSubTextDisplay').textContent = this.value;
     });
-    document.getElementById('watermarkText')?.addEventListener('input', function() {
-        document.getElementById('watermarkDisplay').textContent = this.value;
-    });
+    (function setupLawyerWatermarkOption() {
+        const nameInput = document.getElementById('watermarkText');
+        const checkbox = document.getElementById('showWatermarkOnPrint');
+        const preview = document.getElementById('watermarkNameOnPage');
+        const previewText = document.getElementById('watermarkNameOnPageText');
+        const watermarkDisplay = document.getElementById('watermarkDisplay');
+        function updateLawyerWatermark() {
+            const name = (nameInput?.value || '').trim();
+            const enabled = !!(checkbox?.checked && name);
+            if (preview) preview.style.display = enabled ? 'block' : 'none';
+            if (previewText) previewText.textContent = enabled ? name : '';
+            if (watermarkDisplay) watermarkDisplay.textContent = enabled ? name : '';
+        }
+        nameInput?.addEventListener('input', updateLawyerWatermark);
+        checkbox?.addEventListener('change', updateLawyerWatermark);
+        updateLawyerWatermark();
+    })();
 </script>
 
 <script>
@@ -4795,5 +5514,218 @@ body.dark-mode{
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
 </style>
 
+
+
+<style id="daytime-black-gold-and-gold-entry-motion">
+/* الوضع النهاري أيضاً بهوية الأسود والذهبي الفاخرة */
+@media screen {
+  body:not(.dark-mode) {
+    --primary-color:#171717; --secondary-color:#b58b2a; --bg-color:#f4f0e5;
+    --card-bg:#fffdf7; --text-main:#211d15; --border-color:#cbb778;
+    --label-color:#665b42; --input-bg:#fffdf7; --userbar-bg:#eee5ce;
+    --userbar-border:#c9ad60; --section-bg:#f2ead6;
+    background:linear-gradient(145deg,#f7f3e8,#e9dfc4)!important;
+    color:#211d15!important;
+  }
+  body:not(.dark-mode) .container,
+  body:not(.dark-mode) .card,
+  body:not(.dark-mode) .section,
+  body:not(.dark-mode) .dashboard-card,
+  body:not(.dark-mode) .modal-content,
+  body:not(.dark-mode) .auth-card {
+    border-color:#b89543!important;
+    box-shadow:0 9px 25px rgba(75,55,13,.10),0 0 0 1px rgba(184,149,67,.10)!important;
+  }
+  body:not(.dark-mode) .btn-main,
+  body:not(.dark-mode) .btn-search,
+  body:not(.dark-mode) button.btn-main,
+  body:not(.dark-mode) button.btn-search,
+  body:not(.dark-mode) .btn-3d {
+    color:#f8edc8!important;
+    background:linear-gradient(135deg,#111 0%,#29251b 65%,#17130b 100%)!important;
+    border:1px solid #c6a54d!important;
+    box-shadow:0 4px 12px rgba(53,39,8,.18),inset 0 1px rgba(255,226,145,.18)!important;
+  }
+  body:not(.dark-mode) .section-title,
+  body:not(.dark-mode) .header-title,
+  body:not(.dark-mode) .modal-header h3 {
+    color:#6f5010!important;
+    border-bottom-color:#b89543!important;
+  }
+  body:not(.dark-mode) input,
+  body:not(.dark-mode) select,
+  body:not(.dark-mode) textarea {
+    background:#fffdf7!important;color:#211d15!important;border-color:#c9b36f!important;
+  }
+  button, .btn, [role="button"], .btn-main, .btn-search, .btn-3d {
+    position:relative; overflow:hidden;
+    -webkit-tap-highlight-color:transparent;
+  }
+  button:active, .btn:active, [role="button"]:active,
+  .btn-main:active, .btn-search:active, .btn-3d:active {
+    transform:scale(.975)!important;
+    box-shadow:0 0 0 2px rgba(224,184,65,.65),0 0 20px rgba(224,184,65,.55)!important;
+    filter:brightness(1.16);
+  }
+  .gold-entry-flash {
+    animation:goldEntryFlash .52s ease-out!important;
+    outline:2px solid #e2bd54!important;
+    outline-offset:2px;
+  }
+  @keyframes goldEntryFlash {
+    0% {box-shadow:0 0 0 0 rgba(225,187,65,0);filter:brightness(1)}
+    28% {box-shadow:0 0 0 4px rgba(225,187,65,.72),0 0 24px rgba(225,187,65,.75);filter:brightness(1.24)}
+    65% {box-shadow:0 0 0 2px rgba(225,187,65,.48),0 0 13px rgba(225,187,65,.42)}
+    100% {box-shadow:0 0 0 0 rgba(225,187,65,0);filter:brightness(1)}
+  }
+}
+@media(prefers-reduced-motion:reduce){.gold-entry-flash{animation:none!important}}
+</style>
+<script id="gold-button-entry-animation">
+(function(){
+  if(window.__goldEntryAnimationInstalled) return;
+  window.__goldEntryAnimationInstalled=true;
+  document.addEventListener('click',function(event){
+    var el=event.target && event.target.closest ? event.target.closest('button,.btn,[role="button"],input[type="button"],input[type="submit"]') : null;
+    if(!el || el.disabled) return;
+    el.classList.remove('gold-entry-flash');
+    void el.offsetWidth;
+    el.classList.add('gold-entry-flash');
+    window.setTimeout(function(){el.classList.remove('gold-entry-flash');},560);
+  },true);
+})();
+</script>
+
+
+<style id="smart-dashboard-premium-3d">
+/* تصميم ثلاثي الأبعاد خاص بصفحة لوحة المتابعة فقط، ولا يغيّر الطباعة أو منطق النظام */
+#smartDashboardPage{perspective:1400px;background:radial-gradient(ellipse at 50% 0%,rgba(201,163,74,.10),transparent 58%);border-radius:24px}
+#smartDashboardPage .smart-dashboard-page-toolbar{position:relative;overflow:hidden;background:linear-gradient(145deg,#252017 0%,#111 52%,#302616 100%);border:1px solid #b89543;border-radius:17px;box-shadow:inset 0 1px 0 rgba(255,232,166,.2),0 7px 0 #5c471e,0 13px 25px rgba(0,0,0,.35);padding:16px 18px;color:#f7e7b5}
+#smartDashboardPage .smart-dashboard-page-toolbar:before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 15%,rgba(255,226,143,.07) 48%,transparent 72%);pointer-events:none}
+#smartDashboardPage #smartCaseDashboard{position:relative;overflow:hidden;border:1px solid rgba(230,192,94,.78);border-radius:22px;background:linear-gradient(145deg,#181818 0%,#211b10 48%,#0d0d0d 100%);box-shadow:inset 0 1px 0 rgba(255,239,185,.14),inset 0 -2px 0 rgba(0,0,0,.65),0 8px 0 #5b461d,0 15px 30px rgba(0,0,0,.38);padding:clamp(14px,2vw,25px);color:#f8f1df}
+#smartDashboardPage .smart-dashboard-heading{padding-bottom:16px;border-bottom:1px solid rgba(219,181,87,.25)}
+#smartDashboardPage .smart-dashboard-heading h3{font-size:clamp(20px,2.3vw,28px);letter-spacing:.2px;text-shadow:0 2px 0 #4e3b18,0 0 15px rgba(230,192,94,.2)}
+#smartDashboardPage .smart-dashboard-heading p{line-height:1.8}
+#smartDashboardPage .smart-dashboard-stats{gap:14px;margin:22px 0}
+#smartDashboardPage .smart-stat{position:relative;isolation:isolate;overflow:hidden;min-height:112px;border:1px solid #c5a04c;border-radius:16px;background:linear-gradient(150deg,#373020 0%,#1d1b16 45%,#0e0e0e 100%);box-shadow:inset 0 1px 0 rgba(255,235,173,.26),inset 0 -3px 0 rgba(0,0,0,.5),0 5px 0 #6b511f,0 9px 15px rgba(0,0,0,.36);padding:16px 11px;transform:translateY(0);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}
+#smartDashboardPage .smart-stat:before{content:"";position:absolute;z-index:-1;inset:0;background:linear-gradient(120deg,transparent 20%,rgba(255,225,145,.10) 48%,transparent 70%);opacity:.7}
+#smartDashboardPage .smart-stat span{font-weight:700;color:#e6d7b0;font-size:clamp(12px,1.2vw,14px);line-height:1.7}
+#smartDashboardPage .smart-stat strong{font-size:clamp(27px,3vw,36px);text-shadow:0 2px 0 #5b4519,0 0 13px rgba(240,203,98,.23)}
+#smartDashboardPage .smart-stat:hover{transform:translateY(-4px);border-color:#ffe49a;box-shadow:inset 0 1px 0 rgba(255,245,203,.4),0 8px 0 #6b511f,0 16px 23px rgba(0,0,0,.42),0 0 20px rgba(226,187,82,.18)}
+#smartDashboardPage .smart-stat:active{transform:translateY(3px);box-shadow:inset 0 2px 5px rgba(0,0,0,.5),0 2px 0 #6b511f}
+#smartDashboardPage .smart-dashboard-lower>div{position:relative;border:1px solid rgba(219,181,87,.4);border-radius:17px;background:linear-gradient(145deg,rgba(45,37,22,.86),rgba(13,13,13,.96));box-shadow:inset 0 1px 0 rgba(255,239,185,.08),0 5px 0 rgba(87,65,26,.8),0 9px 17px rgba(0,0,0,.26);padding:16px}
+#smartDashboardPage .smart-dashboard-lower h4{font-size:16px;line-height:1.8;padding-bottom:9px;border-bottom:1px solid rgba(219,181,87,.22);text-shadow:0 1px 0 #443416}
+#smartDashboardPage .smart-case-list{gap:10px}
+#smartDashboardPage .smart-case-row{position:relative;border:1px solid rgba(219,181,87,.35);border-radius:12px;background:linear-gradient(135deg,rgba(48,40,25,.95),rgba(14,14,14,.98));box-shadow:inset 0 1px 0 rgba(255,239,185,.08),0 3px 0 rgba(87,65,26,.7),0 5px 10px rgba(0,0,0,.22);padding:13px 14px;transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease}
+#smartDashboardPage .smart-case-row strong{font-size:14px;text-shadow:0 1px 0 #4e3b18}
+#smartDashboardPage .smart-case-row span,#smartDashboardPage .smart-case-row small{line-height:1.7}
+#smartDashboardPage .smart-case-row:hover{transform:translateY(-2px);border-color:#e8c76d;background:linear-gradient(135deg,rgba(74,58,27,.98),rgba(20,18,13,.98));box-shadow:inset 0 1px 0 rgba(255,239,185,.14),0 5px 0 #6b511f,0 9px 15px rgba(0,0,0,.3),0 0 12px rgba(201,163,74,.12)}
+#smartDashboardPage .smart-filter-results{border:1px solid #b89543;border-radius:16px;background:linear-gradient(145deg,#201b11,#101010);box-shadow:inset 0 1px 0 rgba(255,239,185,.1),0 5px 0 #5b461d,0 9px 18px rgba(0,0,0,.3)}
+#smartDashboardPage .smart-filter-head{font-size:15px;padding-bottom:8px;border-bottom:1px solid rgba(219,181,87,.22)}
+#smartDashboardPage button.btn-3d,#smartDashboardPage .smart-dashboard-page-toolbar button{border-radius:11px;box-shadow:inset 0 1px 0 rgba(255,241,190,.25),0 4px 0 #674e1d,0 7px 12px rgba(0,0,0,.28);transition:transform .18s ease,box-shadow .18s ease}
+#smartDashboardPage button.btn-3d:hover,#smartDashboardPage .smart-dashboard-page-toolbar button:hover{transform:translateY(-2px);box-shadow:inset 0 1px 0 rgba(255,241,190,.35),0 6px 0 #674e1d,0 10px 17px rgba(0,0,0,.32)}
+#smartDashboardPage button.btn-3d:active,#smartDashboardPage .smart-dashboard-page-toolbar button:active{transform:translateY(2px);box-shadow:inset 0 2px 4px rgba(0,0,0,.3),0 1px 0 #674e1d}
+#smartDashboardPage button:focus-visible{outline:2px solid #ffe49a;outline-offset:3px}
+@media(max-width:900px){#smartDashboardPage .smart-dashboard-stats{gap:11px}#smartDashboardPage .smart-stat{min-height:100px}}
+@media(max-width:520px){#smartDashboardPage #smartCaseDashboard{border-radius:16px;padding:12px}#smartDashboardPage .smart-stat{padding:12px 7px;border-radius:12px}#smartDashboardPage .smart-dashboard-lower>div{padding:12px}}
+@media print{#smartDashboardPage .smart-dashboard-page-toolbar,#smartDashboardPage #smartCaseDashboard{box-shadow:none!important;filter:none!important;transform:none!important}}
+</style>
+
+
+<style id="smart-dashboard-theme-sync">
+/* مزامنة زر اللوحة وصفحتها مع نمط النظام الحالي؛ التأثيرات محصورة بالواجهة */
+body:not(.dark-mode):not(.luxury-gold-mode) .smart-dashboard-open-btn{
+  background:linear-gradient(145deg,#fffdf8 0%,#f3e7c7 48%,#dfc47d 100%)!important;
+  color:#382b0d!important;border:1px solid #b99543!important;
+  box-shadow:inset 0 1px 0 #fff,0 4px 0 #b18b36,0 8px 16px rgba(90,68,19,.18)!important;
+}
+body:not(.dark-mode):not(.luxury-gold-mode) .smart-dashboard-open-btn:hover{
+  box-shadow:inset 0 1px 0 #fff,0 6px 0 #b18b36,0 12px 20px rgba(90,68,19,.23)!important;
+}
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage{background:radial-gradient(ellipse at top,rgba(219,185,99,.16),transparent 65%)}
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-page-toolbar,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage #smartCaseDashboard,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-lower>div,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-filter-results{
+  background:linear-gradient(145deg,#fffefa 0%,#f8f3e7 55%,#eee3c9 100%)!important;
+  color:#29251b!important;border-color:#c7a75c!important;
+  box-shadow:inset 0 1px 0 #fff,0 5px 0 #d2bd8a,0 10px 22px rgba(65,49,14,.12)!important;
+}
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-stat,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-case-row{
+  background:linear-gradient(145deg,#ffffff 0%,#f5f0e4 58%,#e9dfc8 100%)!important;
+  color:#29251b!important;border-color:#cfb46f!important;
+  box-shadow:inset 0 1px 0 #fff,0 4px 0 #d0bb86,0 8px 14px rgba(65,49,14,.12)!important;
+}
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-stat span,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-heading h3,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-lower h4,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-case-row strong,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-filter-head{color:#5c4718!important;text-shadow:none!important}
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-heading p,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-case-row span,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-case-row small{color:#514b3e!important}
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage button.btn-3d,
+body:not(.dark-mode):not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-page-toolbar button{
+  background:linear-gradient(145deg,#fffdf6,#e9d7a8)!important;color:#3b2d0d!important;border-color:#c4a153!important;
+  box-shadow:inset 0 1px 0 #fff,0 4px 0 #b18b36,0 7px 12px rgba(65,49,14,.15)!important;
+}
+body.dark-mode:not(.luxury-gold-mode) .smart-dashboard-open-btn{
+  background:linear-gradient(145deg,#263b57,#111c30)!important;color:#f3d88e!important;border:1px solid #b99651!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 4px 0 #111827,0 8px 16px rgba(0,0,0,.3)!important;
+}
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage{background:radial-gradient(ellipse at top,rgba(74,105,146,.22),transparent 65%)}
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-page-toolbar,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage #smartCaseDashboard,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-lower>div,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-filter-results{
+  background:linear-gradient(145deg,#1e2b3d 0%,#111c2c 60%,#0a1220 100%)!important;color:#e7edf6!important;
+  border-color:#536985!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 5px 0 #0a1220,0 11px 23px rgba(0,0,0,.35)!important;
+}
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-stat,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-case-row{
+  background:linear-gradient(145deg,#2a3c53 0%,#182538 60%,#101a29 100%)!important;color:#edf2f8!important;border-color:#647b98!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 4px 0 #0b1421,0 8px 15px rgba(0,0,0,.3)!important;
+}
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-stat span,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-heading h3,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-lower h4,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-case-row strong,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-filter-head{color:#f3d88e!important;text-shadow:0 1px 0 #111!important}
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-heading p,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-case-row span,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-case-row small{color:#d1dae7!important}
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage button.btn-3d,
+body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-page-toolbar button{
+  background:linear-gradient(145deg,#314763,#17263b)!important;color:#f3d88e!important;border-color:#b99651!important;
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 4px 0 #0b1421,0 7px 12px rgba(0,0,0,.3)!important;
+}
+/* الوضع الذهبي له الأولوية إذا كان مفعلاً */
+body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135deg,#3a2b0e,#17130a 60%,#080807)!important;color:#f5d985!important;border-color:#b8943c!important;box-shadow:0 0 14px rgba(215,174,61,.28),0 4px 0 #5b461d!important}
+@media print{#smartDashboardPage,#smartDashboardPage *{animation:none!important;transition:none!important;filter:none!important}#smartDashboardPage .smart-dashboard-page-toolbar,#smartDashboardPage #smartCaseDashboard,#smartDashboardPage .smart-stat,#smartDashboardPage .smart-case-row{transform:none!important}}
+</style>
+
+
+<style id="case-report-print-theme-independent">
+/* تقرير الدعوى: إخفاء شريط قفل التعديل وتثبيت ألوان الطباعة بعيداً عن الثيم */
+@media print {
+  body.print-report #caseEditLockBar { display:none !important; visibility:hidden !important; }
+  body.print-report, body.print-report #appSection, body.print-report #mainSystemView,
+  body.print-report #mainSystemView .container, body.print-report #lawForm,
+  body.print-report #lawForm .form-section, body.print-report #lawForm .form-group,
+  body.print-report #lawForm .form-grid {
+    background:#fff !important; background-image:none !important; color:#111 !important;
+    border-color:#c8c8c8 !important; box-shadow:none !important; text-shadow:none !important;
+    filter:none !important; opacity:1 !important; mix-blend-mode:normal !important;
+  }
+  body.print-report #mainSystemView * { color:#111 !important; text-shadow:none !important; }
+  body.print-report #lawForm input:not([type="checkbox"]):not([type="radio"]),
+  body.print-report #lawForm select, body.print-report #lawForm textarea {
+    background:#fff !important; color:#111 !important; border-color:#aaa !important;
+    -webkit-text-fill-color:#111 !important; box-shadow:none !important;
+  }
+  body.print-report #caseStatusLight { print-color-adjust:exact !important; -webkit-print-color-adjust:exact !important; }
+}
+</style>
 </body>
 </html>
