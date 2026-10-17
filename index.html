@@ -564,6 +564,11 @@
                 document.getElementById('archivePreviewComplainant').textContent = data.complainant || '---';
                 document.getElementById('archivePreviewPhone').textContent = data.complainantPhone || '---';
                 document.getElementById('archivePreviewDefendant').textContent = data.defendant || '---';
+                const actualComplainantLine = document.getElementById('archivePreviewActualComplainantLine');
+                if (actualComplainantLine) {
+                    actualComplainantLine.style.display = data.actualComplainant ? 'block' : 'none';
+                    document.getElementById('archivePreviewActualComplainant').textContent = data.actualComplainant || '---';
+                }
                 document.getElementById('archivePreviewHearing').textContent = data.nextHearingDate || '---';
                 document.getElementById('archivePreviewFees').textContent = data.totalFees || '---';
                 document.getElementById('archivePreviewNotes').textContent = data.privateNotes || '---';
@@ -1611,6 +1616,7 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
                     complainant: complainant,
                     complainantPhone: document.getElementById('complainantPhone').value,
                     defendant: document.getElementById('defendant').value,
+                    actualComplainant: document.getElementById('actualComplainant').value,
                     court: document.getElementById('court').value,
                     nextHearingDate: document.getElementById('nextHearingDate').value,
                     followUpDate: '',
@@ -1669,6 +1675,7 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
                     document.getElementById('complainant').value = data.complainant || '';
                     document.getElementById('complainantPhone').value = data.complainantPhone || '';
                     document.getElementById('defendant').value = data.defendant || '';
+                    document.getElementById('actualComplainant').value = data.actualComplainant || '';
                     document.getElementById('court').value = data.court || '';
                     document.getElementById('nextHearingDate').value = data.nextHearingDate || '';
                     
@@ -1963,6 +1970,7 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
                     complainant: document.getElementById('complainant').value,
                     complainantPhone: hidePhone ? "" : document.getElementById('complainantPhone').value,
                     defendant: document.getElementById('defendant').value,
+                    actualComplainant: document.getElementById('actualComplainant').value,
                     nextHearingDate: showHearing ? document.getElementById('nextHearingDate').value : '',
                     followUpDate: '',
                     hideHearing: !showHearing,
@@ -4682,6 +4690,10 @@ body.luxury-gold-mode #caseStatusLight {
                         <label>اسم المشكو منه / المدعى عليه:</label>
                         <input type="text" id="defendant" placeholder="الاسم الثلاثي">
                     </div>
+                    <div class="form-group">
+                        <label>اسم المشتكي:</label>
+                        <input type="text" id="actualComplainant" placeholder="اسم المشتكي">
+                    </div>
 
                     <div class="section-title">⚙️ 2. المرفقات والإعدادات الخاصة</div>
 
@@ -4888,7 +4900,7 @@ body.luxury-gold-mode #caseStatusLight {
                     <div><b>موضوع الدعوى:</b> <span id="archivePreviewCaseTitle">---</span></div>
                     <div><b>المشتكي:</b> <span id="archivePreviewComplainant">---</span></div>
                     <div><b>هاتف الموكل:</b> <span id="archivePreviewPhone">---</span></div>
-                    <div><b>الخصم:</b> <span id="archivePreviewDefendant">---</span></div>
+                    <div><b>الخصم:</b> <span id="archivePreviewDefendant">---</span></div>\n                    <div id="archivePreviewActualComplainantLine" style="display:none"><b>اسم المشتكي:</b> <span id="archivePreviewActualComplainant">---</span></div>
                     <div><b>موعد الجلسة:</b> <span id="archivePreviewHearing">---</span></div>
                     <div><b>الأتعاب:</b> <span id="archivePreviewFees">---</span></div>
                     <div><b>الملاحظات:</b> <span id="archivePreviewNotes">---</span></div>
