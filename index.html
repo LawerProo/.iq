@@ -77,8 +77,7 @@
                 if(chatCleanupTimer){clearInterval(chatCleanupTimer);chatCleanupTimer=null;}
                 loginBox.style.display = 'block';
                 appBox.style.display = 'none';
-                document.getElementById('email').value = "";
-                document.getElementById('password').value = "";
+                // تُدار حقول الدخول بواسطة خيارات الحفظ المحلي أدناه.
             }
         });
 
@@ -1374,6 +1373,39 @@ body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-page-
 body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135deg,#3a2b0e,#17130a 60%,#080807)!important;color:#f5d985!important;border-color:#b8943c!important;box-shadow:0 0 14px rgba(215,174,61,.28),0 4px 0 #5b461d!important}
 @media print{#smartDashboardPage,#smartDashboardPage *{animation:none!important;transition:none!important;filter:none!important}#smartDashboardPage .smart-dashboard-page-toolbar,#smartDashboardPage #smartCaseDashboard,#smartDashboardPage .smart-stat,#smartDashboardPage .smart-case-row{transform:none!important}}
 </style>
+
+
+    <style>
+      #loginSection .login-remember-option{display:flex;align-items:center;justify-content:flex-start;gap:8px;margin-top:9px;font-size:13px;font-weight:500;cursor:pointer;direction:rtl;color:inherit;}
+      #loginSection .login-remember-option input[type="checkbox"]{width:17px;height:17px;min-width:17px;margin:0;accent-color:#c49a43;cursor:pointer;}
+    </style>
+    <script>
+    (function(){
+      const EMAIL_KEY='legalSystem.rememberedLoginEmail.v1';
+      const PASSWORD_KEY='legalSystem.rememberedLoginPassword.v1';
+      function initLocalLoginRemember(){
+        const email=document.getElementById('email');
+        const password=document.getElementById('password');
+        const rememberEmail=document.getElementById('rememberEmailLocal');
+        const rememberPassword=document.getElementById('rememberPasswordLocal');
+        if(!email||!password||!rememberEmail||!rememberPassword||rememberEmail.dataset.ready==='1')return;
+        rememberEmail.dataset.ready='1';
+        try{
+          const savedEmail=localStorage.getItem(EMAIL_KEY);
+          if(savedEmail!==null){email.value=savedEmail;rememberEmail.checked=true;}
+          const savedPassword=localStorage.getItem(PASSWORD_KEY);
+          if(savedPassword!==null){password.value=savedPassword;rememberPassword.checked=true;}
+        }catch(e){console.warn('تعذر الوصول إلى الحفظ المحلي لبيانات الدخول.',e);}
+        function saveEmail(){try{if(rememberEmail.checked){localStorage.setItem(EMAIL_KEY,email.value);}else{localStorage.removeItem(EMAIL_KEY);}}catch(e){console.warn('تعذر حفظ البريد محلياً.',e);}}
+        function savePassword(){try{if(rememberPassword.checked){localStorage.setItem(PASSWORD_KEY,password.value);}else{localStorage.removeItem(PASSWORD_KEY);}}catch(e){console.warn('تعذر حفظ كلمة المرور محلياً.',e);}}
+        rememberEmail.addEventListener('change',saveEmail);
+        email.addEventListener('input',saveEmail);
+        rememberPassword.addEventListener('change',savePassword);
+        password.addEventListener('input',savePassword);
+      }
+      if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initLocalLoginRemember,{once:true});else initLocalLoginRemember();
+    })();
+    </script>
 
 </body></html>`);
             w.document.close();
@@ -4868,11 +4900,13 @@ body.luxury-gold-mode #caseStatusLight {
         <h2>🔐 تسجيل الدخول للنظام</h2>
         <div class="auth-group">
             <label>البريد الإلكتروني:</label>
-            <input type="email" id="email" placeholder="name@example.com">
+            <input type="email" id="email" placeholder="name@example.com" autocomplete="username">
+            <label class="login-remember-option"><input type="checkbox" id="rememberEmailLocal"> <span>حفظ البريد الإلكتروني على هذا الجهاز</span></label>
         </div>
         <div class="auth-group">
             <label>كلمة المرور:</label>
-            <input type="password" id="password" placeholder="********">
+            <input type="password" id="password" placeholder="********" autocomplete="current-password">
+            <label class="login-remember-option"><input type="checkbox" id="rememberPasswordLocal"> <span>حفظ كلمة المرور على هذا الجهاز</span></label>
         </div>
         <button type="button" id="loginSubmitButton" class="btn-main btn-3d" onclick="window.loginUser ? window.loginUser() : (document.getElementById('loginError').textContent = 'جاري تجهيز نظام الدخول، انتظر لحظة ثم أعد المحاولة.')">دخول للنظام</button>
         <div id="loginError" style="font-size: 13px; margin-top: 10px;"></div>
