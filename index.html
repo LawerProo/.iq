@@ -394,6 +394,72 @@
             document.getElementById('financialModal').style.display = 'none';
         };
 
+        const parseFinancialAmount = value => {
+            const normalized = String(value ?? '').replace(/[٬,،\s.]/g, '').replace(/[^0-9-]/g, '');
+            const amount = Number(normalized || 0);
+            return Number.isFinite(amount) ? amount : 0;
+        };
+        const formatFinancialAmount = value => new Intl.NumberFormat('ar-IQ').format(value) + ' د.ع';
+        let profitCasesCache = [];
+
+        window.openProfitsModal = async function() {
+            if (!currentUser) { alert('يرجى تسجيل الدخول أولاً.'); return; }
+            const modal = document.getElementById('profitsModal');
+            modal.style.display = 'flex';
+            document.getElementById('profitsSummary').innerHTML = '<p style="text-align:center;padding:20px">جارٍ تحميل الأرشيف المالي من السحابة...</p>';
+            document.getElementById('profitsDetails').style.display = 'none';
+            try {
+                const snapshot = await getDocs(collection(db, `users/${currentUser.uid}/cases`));
+                profitCasesCache = snapshot.docs.map(caseDoc => {
+                    const data = caseDoc.data() || {};
+                    const total = Math.max(0, parseFinancialAmount(data.totalFees));
+                    const received = Math.max(0, parseFinancialAmount(data.paidFees));
+                    return {
+                        id: caseDoc.id,
+                        caseNumber: data.caseNumber || caseDoc.id,
+                        client: data.complainant || 'غير محدد',
+                        title: data.caseTitle || 'موضوع الدعوى غير مسجل',
+                        date: data.registeredDate || (data.registeredAt ? String(data.registeredAt).slice(0,10) : 'غير محدد'),
+                        total,
+                        received,
+                        remaining: Math.max(0, total - received)
+                    };
+                });
+                const totalContracted = profitCasesCache.reduce((sum, item) => sum + item.total, 0);
+                const totalReceived = profitCasesCache.reduce((sum, item) => sum + item.received, 0);
+                const totalRemaining = profitCasesCache.reduce((sum, item) => sum + item.remaining, 0);
+                document.getElementById('profitsSummary').innerHTML = `
+                    <button type="button" class="profit-summary-card" onclick="showProfitDetails('received')"><span>💵 المبالغ المستلمة</span><strong>${formatFinancialAmount(totalReceived)}</strong><small>اضغط لعرض التفاصيل</small></button>
+                    <button type="button" class="profit-summary-card" onclick="showProfitDetails('remaining')"><span>⏳ المبالغ المتبقية</span><strong>${formatFinancialAmount(totalRemaining)}</strong><small>اضغط لعرض التفاصيل</small></button>
+                    <div class="profit-summary-card profit-total-card"><span>📊 مجموع الأتعاب الكلي</span><strong>${formatFinancialAmount(totalContracted)}</strong><small>مجموع الأتعاب المسجلة في جميع الدعاوى</small></div>
+                    <p style="margin:8px 0 0;color:var(--label-color);font-size:13px">عدد الدعاوى المحفوظة: ${profitCasesCache.length}. تُحسب الأرقام من حقلي الأتعاب الكلية والمبالغ المستلمة المحفوظين لكل دعوى.</p>`;
+            } catch (error) {
+                console.error('Profits archive loading error:', error);
+                document.getElementById('profitsSummary').innerHTML = '<p style="color:#b91c1c">تعذر تحميل الأرقام من السحابة. تحقق من الاتصال وصلاحيات قاعدة البيانات ثم حاول مجدداً.</p>';
+            }
+        };
+
+        window.showProfitDetails = function(kind) {
+            const details = document.getElementById('profitsDetails');
+            const heading = document.getElementById('profitsDetailsTitle');
+            const list = document.getElementById('profitsDetailsList');
+            const key = kind === 'received' ? 'received' : 'remaining';
+            const title = kind === 'received' ? 'تفاصيل المبالغ المستلمة' : 'تفاصيل المبالغ المتبقية';
+            const items = profitCasesCache.filter(item => item[key] > 0).sort((a,b) => b[key] - a[key]);
+            heading.textContent = title;
+            if (!items.length) {
+                list.innerHTML = '<p style="text-align:center;padding:16px">لا توجد مبالغ مسجلة في هذه القائمة.</p>';
+            } else {
+                list.innerHTML = items.map(item => `<article class="profit-detail-row"><div><strong>الدعوى رقم ${escapeProfitHtml(item.caseNumber)}</strong><div>📅 تاريخ التسجيل: ${escapeProfitHtml(item.date)}</div><div>📝 موضوع الدعوى: ${escapeProfitHtml(item.title)}</div><div>👤 اسم الموكل: ${escapeProfitHtml(item.client)}</div></div><strong class="profit-detail-amount">${formatFinancialAmount(item[key])}</strong></article>`).join('');
+            }
+            details.style.display = 'block';
+            details.scrollIntoView({behavior:'smooth',block:'nearest'});
+        };
+        window.closeProfitsModal = function() { document.getElementById('profitsModal').style.display = 'none'; };
+        function escapeProfitHtml(value) {
+            return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+        }
+
         window.printFinancialReceipt = function(){
             try {
                 const totalEl = document.getElementById('totalFees');
@@ -844,7 +910,18 @@
             const w = window.open('', '_blank');
             if (!w) { alert('يرجى السماح بفتح نافذة المعاينة ثم المحاولة مجدداً.'); return; }
             const safeSrc = String(selectedFileBase64).replace(/"/g, '%22');
-            w.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>معاينة مرفق الدعوى</title><style>body{font-family:Arial,sans-serif;text-align:center;margin:20px;background:#f1f5f9}img{max-width:95%;max-height:90vh;object-fit:contain;background:white;padding:8px;border-radius:10px;box-shadow:0 4px 20px #0002}</style><style id="responsive-main-buttons-layout">
+            w.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>معاينة مرفق الدعوى</title><style>body{font-family:Arial,sans-serif;text-align:center;margin:20px;background:#f1f5f9}img{max-width:95%;max-height:90vh;object-fit:contain;background:white;padding:8px;border-radius:10px;box-shadow:0 4px 20px #0002}
+        .profit-summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; }
+        .profit-summary-card { display:flex; flex-direction:column; gap:9px; text-align:right; padding:16px; border:1px solid #b8943c; border-radius:14px; background:var(--section-bg,#fff); color:var(--text-main,#222); cursor:pointer; font:inherit; box-shadow:0 5px 16px #00000012; }
+        .profit-summary-card span { font-weight:700; }
+        .profit-summary-card strong { color:var(--primary-color,#b8943c); font-size:clamp(19px,3vw,27px); overflow-wrap:anywhere; }
+        .profit-summary-card small { color:var(--label-color,#666); }
+        .profit-total-card { cursor:default; background:linear-gradient(135deg,rgba(184,148,60,.12),rgba(10,28,55,.04)); }
+        .profit-detail-row { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:13px; border:1px solid var(--border-color,#ddd); border-radius:12px; margin-bottom:10px; flex-wrap:wrap; }
+        .profit-detail-row div div { margin-top:5px; font-size:13px; }
+        .profit-detail-amount { color:#16803c; white-space:nowrap; }
+        @media(max-width:560px){ .profit-detail-row { align-items:flex-start; flex-direction:column; } .profit-summary-card { padding:13px; } }
+</style><style id="responsive-main-buttons-layout">
 /* ترتيب متجاوب لأزرار الواجهة الرئيسية فقط؛ لا يغيّر أحداث الأزرار أو وظائفها */
 #mainSystemView .professional-user-bar {
   display: flex !important;
@@ -5121,6 +5198,7 @@ body.luxury-gold-mode #caseStatusLight {
                 <button type="button" class="modal-close-btn btn-3d" onclick="closeFinancialModal()">✕ إغلاق</button>
             </div>
             <div style="display: flex; flex-direction: column; gap: 12px;">
+                <button type="button" class="btn-main btn-3d" style="width:100%;margin-bottom:4px" onclick="openProfitsModal()">📈 أرباحي — ملخص جميع الدعاوى</button>
                 <div class="form-group" style="margin: 0;">
                     <label>أتعاب المحاماة الكلية (د.ع):</label>
                     <input type="number" id="totalFees" placeholder="مثال: 1000000">
@@ -5144,6 +5222,24 @@ body.luxury-gold-mode #caseStatusLight {
                 <button type="button" class="btn-print btn-3d" style="margin-top:10px;" onclick="printFinancialReceipt()">🖨️ طباعة وصل استلام الأتعاب</button>
                 <button type="button" class="btn-main btn-3d" style="margin-top: 4px;" onclick="closeFinancialModal()">حفظ وإغلاق النافذة</button>
             </div>
+        </div>
+    </div>
+
+    <!-- نافذة أرباحي: إجمالي الأتعاب والمستلم والمتبقي لجميع الدعاوى -->
+    <div id="profitsModal" class="modal-overlay" style="display:none;z-index:10020">
+        <div class="modal-content" style="width:min(900px,96vw);max-height:90vh;overflow:auto">
+            <div class="modal-header">
+                <h3 style="margin:0;color:var(--primary-color)">📈 أرباحي — ملخص الأرشيف المالي</h3>
+                <button type="button" class="modal-close-btn btn-3d" onclick="closeProfitsModal()">✕ إغلاق</button>
+            </div>
+            <div id="profitsSummary" class="profit-summary-grid"><p>اضغط على أرباحي لتحميل الملخص.</p></div>
+            <section id="profitsDetails" style="display:none;margin-top:18px">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+                    <h4 id="profitsDetailsTitle" style="margin:0;color:var(--primary-color)">التفاصيل</h4>
+                    <button type="button" class="btn-search btn-3d" onclick="document.getElementById('profitsDetails').style.display='none'">إخفاء التفاصيل</button>
+                </div>
+                <div id="profitsDetailsList"></div>
+            </section>
         </div>
     </div>
 
