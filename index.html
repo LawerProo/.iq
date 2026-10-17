@@ -32,6 +32,26 @@
         let currentLoadedDocId = ""; 
         let currentLoadedRegisteredDate = ""; 
         let activeInboxMsgId = null; 
+        let chatPresenceTimer = null;
+        let chatPresenceRefreshTimer = null;
+        let chatCleanupTimer = null;
+        function chatPresenceDocId(email){ return 'chatPresence_' + encodeURIComponent(String(email||'').trim().toLowerCase()).replace(/%/g,'_'); }
+        async function publishChatPresence(email, online=true){
+            if(!email) return;
+            const normalized=String(email).trim().toLowerCase();
+            try{
+                // تستخدم إضافة/حذف مستندات منفصلة لتتلاءم مع قواعد inbox التي تسمح بالإنشاء والحذف دون تحديث المستندات.
+                const all=await getDocs(query(collection(db,'inbox'),where('type','==','chatPresence')));
+                const old=all.docs.filter(item=>String(item.data().email||'').toLowerCase()===normalized);
+                for(const item of old){try{await deleteDoc(doc(db,'inbox',item.id));}catch(e){}}
+                await addDoc(collection(db,'inbox'),{type:'chatPresence',email:normalized,online:!!online,lastSeen:new Date().toISOString()});
+            }catch(e){ console.warn('تعذر تحديث حالة الاتصال',e); }
+        }
+        function startChatPresence(email){
+            if(chatPresenceTimer) clearInterval(chatPresenceTimer);
+            publishChatPresence(email,true);
+            chatPresenceTimer=setInterval(()=>{ if(currentUser) publishChatPresence(currentUser.email,true); },20000);
+        }
 
         onAuthStateChanged(auth, async (user) => {
             const loginBox = document.getElementById('loginSection');
@@ -40,6 +60,7 @@
 
             if (user) {
                 currentUser = user;
+                startChatPresence(user.email);
                 loginBox.style.display = 'none';
                 appBox.style.display = 'block';
                 userEmailSpan.textContent = user.email;
@@ -49,8 +70,11 @@
                 checkUserInbox(user.email);
                 startChatNotificationMonitor(user.email);
             } else {
+                if(currentUser?.email) publishChatPresence(currentUser.email,false);
+                if(chatPresenceTimer){clearInterval(chatPresenceTimer);chatPresenceTimer=null;}
                 currentUser = null;
                 if(chatNotificationTimer){clearInterval(chatNotificationTimer);chatNotificationTimer=null;}
+                if(chatCleanupTimer){clearInterval(chatCleanupTimer);chatCleanupTimer=null;}
                 loginBox.style.display = 'block';
                 appBox.style.display = 'none';
                 document.getElementById('email').value = "";
@@ -1263,6 +1287,9 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
         let chatInitialNotificationScanDone = false;
         let chatRefreshTimer = null;
         let chatCleanupRunning = false;
+        let chatGroupMode = false;
+        let chatGroupSelectedEmails = new Set();
+        let chatOnlineMap = {};
         const CHAT_RETENTION_MS = 7 * 24 * 60 * 60 * 1000;
         async function cleanupExpiredChatMessages(){
             if(!currentUser || chatCleanupRunning) return;
@@ -1283,11 +1310,31 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
         }
         const safeChatText = (value) => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
         const makeConversationId = (a,b) => [String(a||'').trim().toLowerCase(),String(b||'').trim().toLowerCase()].sort().join('__');
+        const makeGroupConversationId = (emails) => 'group__' + [...new Set((emails||[]).map(e=>String(e||'').trim().toLowerCase()).filter(Boolean))].sort().join('__');
+        async function refreshChatPresence(){
+            if(!currentUser || !chatContacts.length) return;
+            try{
+                const snap=await getDocs(query(collection(db,'inbox'),where('type','==','chatPresence')));
+                const now=Date.now(); const map={},latest={};
+                snap.docs.forEach(d=>{const x=d.data(); if(x.type==='chatPresence'&&x.email&&x.lastSeen){const e=String(x.email).toLowerCase();if(!latest[e]||String(x.lastSeen)>String(latest[e].lastSeen))latest[e]=x;}});
+                Object.keys(latest).forEach(e=>{const x=latest[e];map[e]=!!x.online&&(now-new Date(x.lastSeen).getTime())<65000;});
+                chatOnlineMap=map; renderChatContacts();
+                if(chatSelectedContact && !chatSelectedContact.isGroup) updateChatHeaderPresence();
+            }catch(e){console.warn('تعذر تحديث قائمة المتواجدين',e);}
+        }
+        function updateChatHeaderPresence(){
+            if(!chatSelectedContact || chatSelectedContact.isGroup) return;
+            const status=document.getElementById('chatSelectedPresence');
+            if(status){const online=!!chatOnlineMap[String(chatSelectedContact.email||'').toLowerCase()];status.classList.toggle('is-online',online);status.innerHTML=`<i></i>${online?'متصل الآن':'غير متصل'}`;}
+        }
         window.openChatModal = async function(){
             if(!currentUser){alert('يرجى تسجيل الدخول أولاً.');return;}
             document.getElementById('chatModal').style.display='flex';
             document.querySelector('.chat-modal-content')?.classList.remove('chat-has-selection');
             chatSelectedContact=null;
+            chatGroupMode=false; chatGroupSelectedEmails.clear();
+            const groupStart=document.getElementById('startChatGroupBtn'); if(groupStart)groupStart.disabled=true;
+            const groupModeBtn=document.getElementById('toggleChatGroupBtn'); if(groupModeBtn)groupModeBtn.classList.remove('active');
             document.getElementById('chatMessageInput').value='';
             document.getElementById('chatMessageInput').disabled=true;
             document.getElementById('sendChatMessageBtn').disabled=true;
@@ -1296,9 +1343,9 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
             await cleanupExpiredChatMessages();
             await loadSavedContacts();
             chatContacts=savedContacts.filter(c=>c.email && c.email.toLowerCase()!==String(currentUser.email||'').toLowerCase());
-            renderChatContacts();
+            renderChatContacts(); await refreshChatPresence();
             if(chatRefreshTimer) clearInterval(chatRefreshTimer);
-            chatRefreshTimer=setInterval(()=>{ if(document.getElementById('chatModal').style.display==='flex' && chatSelectedContact) loadChatThread(); },5000);
+            chatRefreshTimer=setInterval(()=>{ if(document.getElementById('chatModal').style.display==='flex'){ if(chatSelectedContact) loadChatThread(); refreshChatPresence(); } },10000);
         };
         window.closeChatModal = function(){document.getElementById('chatModal').style.display='none';if(chatRefreshTimer){clearInterval(chatRefreshTimer);chatRefreshTimer=null;}};
         window.backToChatContacts = function(){
@@ -1310,43 +1357,69 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
             const host=document.getElementById('chatMessages'); if(host)host.innerHTML='<div class="chat-empty">💬 اختر شخصاً لعرض المحادثة</div>';
             renderChatContacts();
         };
+        window.toggleChatGroupMode = function(){
+            chatGroupMode=!chatGroupMode; chatGroupSelectedEmails.clear();
+            const b=document.getElementById('toggleChatGroupBtn'); if(b)b.classList.toggle('active',chatGroupMode);
+            const start=document.getElementById('startChatGroupBtn'); if(start)start.disabled=true;
+            if(chatGroupMode){document.querySelector('.chat-modal-content')?.classList.remove('chat-has-selection');chatSelectedContact=null;document.getElementById('chatConversationHeader').innerHTML='اختر شخصين أو أكثر ثم اضغط «بدء الكروب»';document.getElementById('chatMessageInput').disabled=true;document.getElementById('sendChatMessageBtn').disabled=true;document.getElementById('chatMessages').innerHTML='<div class="chat-empty">👥 حدد أعضاء الكروب من القائمة</div>';}
+            renderChatContacts();
+        };
+        window.startChatGroup = async function(){
+            const chosen=chatContacts.filter(c=>chatGroupSelectedEmails.has(String(c.email||'').toLowerCase()));
+            if(chosen.length<2){alert('اختر شخصين على الأقل لإنشاء كروب.');return;}
+            chatGroupMode=false;chatGroupSelectedEmails.clear();
+            const b=document.getElementById('toggleChatGroupBtn');if(b)b.classList.remove('active');
+            const members=[{email:currentUser.email,name:currentUser.displayName||currentUser.email},...chosen];
+            await selectChatGroup(members);
+        };
         window.renderChatContacts = function(){
-            const host=document.getElementById('chatContactsList'); if(!host)return;
-            const term=(document.getElementById('chatContactSearch').value||'').trim().toLowerCase();
+            const host=document.getElementById('chatContactsList');if(!host)return;
+            const search=document.getElementById('chatContactSearch');const term=(search?.value||'').trim().toLowerCase();
             const items=chatContacts.filter(c=>[c.name,c.email,c.phone].some(v=>String(v||'').toLowerCase().includes(term)));
             if(!items.length){host.innerHTML='<div class="chat-empty">لا توجد أسماء مطابقة. أضف الشخص أولاً من زر «إضافة شخص».</div>';return;}
-            host.innerHTML=items.map(c=>`<button type="button" class="chat-contact-item ${chatSelectedContact?.email===c.email?'active':''}" data-chat-email="${safeChatText(c.email)}"><b>${safeChatText(c.name||c.email)}</b><small>${safeChatText(c.email)}</small><small>${safeChatText(c.phone||'')}</small></button>`).join('');
-            host.querySelectorAll('[data-chat-email]').forEach(btn=>btn.addEventListener('click',()=>{const c=chatContacts.find(x=>x.email===btn.dataset.chatEmail);if(c)selectChatContact(c);}));
+            host.innerHTML=items.map(c=>{const email=String(c.email||'').toLowerCase();const online=!!chatOnlineMap[email];const selected=chatGroupSelectedEmails.has(email);return `<button type="button" class="chat-contact-item ${chatSelectedContact?.email===c.email?'active':''} ${selected?'group-selected':''}" data-chat-email="${safeChatText(c.email)}"><span class="chat-contact-name-row">${chatGroupMode?`<input type="checkbox" tabindex="-1" ${selected?'checked':''} aria-label="اختيار عضو الكروب">`:''}<i class="chat-presence-dot ${online?'online':''}" title="${online?'متصل الآن':'غير متصل'}"></i><b>${safeChatText(c.name||c.email)}</b></span><small>${safeChatText(c.email)}</small><small>${safeChatText(c.phone||'')}</small><small class="chat-presence-text ${online?'online':''}">${online?'● متصل الآن':'○ غير متصل'}</small></button>`;}).join('');
+            host.querySelectorAll('[data-chat-email]').forEach(btn=>btn.addEventListener('click',()=>{const c=chatContacts.find(x=>String(x.email||'')===btn.dataset.chatEmail);if(!c)return;if(chatGroupMode){const e=String(c.email||'').toLowerCase();chatGroupSelectedEmails.has(e)?chatGroupSelectedEmails.delete(e):chatGroupSelectedEmails.add(e);const start=document.getElementById('startChatGroupBtn');if(start)start.disabled=chatGroupSelectedEmails.size<2;renderChatContacts();}else selectChatContact(c);}));
         };
         async function selectChatContact(contact){
             chatSelectedContact=contact;document.querySelector('.chat-modal-content')?.classList.add('chat-has-selection');renderChatContacts();
-            const warningKey = 'chatRetentionNotice:' + makeConversationId(currentUser?.email, contact?.email);
-            if(!localStorage.getItem(warningKey)){
-                alert('تنبيه مهم: سيتم حذف رسائل هذه المحادثة تلقائياً بعد مرور أسبوع واحد من تاريخ إرسال كل رسالة للمحافظة على مساحة التخزين السحابية.');
-                localStorage.setItem(warningKey,'shown');
-            }
-            document.getElementById('chatConversationHeader').innerHTML=`<button type="button" class="chat-back-button" onclick="backToChatContacts()" aria-label="العودة إلى جهات الاتصال">‹ الأشخاص</button><span class="chat-person-avatar">${safeChatText((contact.name||contact.email||'?').trim().charAt(0).toUpperCase())}</span><span class="chat-person-details"><b>${safeChatText(contact.name||contact.email)}</b><small>${safeChatText(contact.email)}</small></span><span class="chat-online-label"><i></i> محادثة مباشرة</span>`;
+            const warningKey='chatRetentionNotice:'+makeConversationId(currentUser?.email,contact?.email);
+            if(!localStorage.getItem(warningKey)){alert('تنبيه مهم: تُحذف رسائل هذه المحادثة تلقائياً بعد أسبوع واحد من تاريخ إرسال كل رسالة.');localStorage.setItem(warningKey,'shown');}
+            const online=!!chatOnlineMap[String(contact.email||'').toLowerCase()];
+            document.getElementById('chatConversationHeader').innerHTML=`<button type="button" class="chat-back-button" onclick="backToChatContacts()" aria-label="العودة إلى جهات الاتصال">‹ الأشخاص</button><span class="chat-person-avatar">${safeChatText((contact.name||contact.email||'?').trim().charAt(0).toUpperCase())}</span><span class="chat-person-details"><b>${safeChatText(contact.name||contact.email)}</b><small>${safeChatText(contact.email)}</small></span><span id="chatSelectedPresence" class="chat-online-label ${online?'is-online':''}"><i></i>${online?'متصل الآن':'غير متصل'}</span>`;
             document.getElementById('chatMessageInput').disabled=false;document.getElementById('sendChatMessageBtn').disabled=false;
             await loadChatThread();
         }
+        async function selectChatGroup(members){
+            const unique=[...new Map(members.filter(m=>m.email).map(m=>[String(m.email).toLowerCase(),{...m,email:String(m.email).toLowerCase()}])).values()];
+            if(unique.length<3){alert('الكروب يحتاج إلى حسابك وشخصين آخرين على الأقل.');return;}
+            chatSelectedContact={isGroup:true,participants:unique.map(m=>m.email),members:unique,name:'كروب: '+unique.filter(m=>m.email!==String(currentUser.email).toLowerCase()).map(m=>m.name||m.email).join('، ')};
+            document.querySelector('.chat-modal-content')?.classList.add('chat-has-selection');
+            document.getElementById('chatConversationHeader').innerHTML=`<button type="button" class="chat-back-button" onclick="backToChatContacts()" aria-label="العودة إلى جهات الاتصال">‹ الأشخاص</button><span class="chat-person-avatar">👥</span><span class="chat-person-details"><b>${safeChatText(chatSelectedContact.name)}</b><small>${unique.length} أعضاء: ${safeChatText(unique.map(m=>m.name||m.email).join('، '))}</small></span><span class="chat-online-label is-online"><i></i> محادثة جماعية</span>`;
+            document.getElementById('chatMessageInput').disabled=false;document.getElementById('sendChatMessageBtn').disabled=false;
+            const warningKey='chatRetentionNotice:'+makeGroupConversationId(chatSelectedContact.participants);
+            if(!localStorage.getItem(warningKey)){alert('تنبيه مهم: تُحذف رسائل الكروب تلقائياً بعد أسبوع واحد من تاريخ إرسال كل رسالة.');localStorage.setItem(warningKey,'shown');}
+            renderChatContacts();await loadChatThread();
+        }
         async function loadChatThread(){
             if(!currentUser||!chatSelectedContact)return;
-            const conv=makeConversationId(currentUser.email,chatSelectedContact.email);
+            const conv=chatSelectedContact.isGroup?makeGroupConversationId(chatSelectedContact.participants):makeConversationId(currentUser.email,chatSelectedContact.email);
             const host=document.getElementById('chatMessages');
             try{
                 const snap=await getDocs(query(collection(db,'inbox'),where('conversationId','==',conv)));
                 const all=snap.docs.map(d=>({id:d.id,...d.data()}));
                 const receipts=all.filter(x=>x.type==='chatSeen');
                 const messages=all.filter(x=>x.type==='chatMessage').sort((a,b)=>String(a.timestamp||'').localeCompare(String(b.timestamp||'')));
-                const toMark=messages.filter(m=>m.targetEmail===currentUser.email && !receipts.some(r=>r.messageId===m.id && r.readerEmail===currentUser.email));
+                const toMark=messages.filter(m=>(m.targetEmail===currentUser.email || (Array.isArray(m.targetEmails)&&m.targetEmails.includes(String(currentUser.email).toLowerCase()))) && !receipts.some(r=>r.messageId===m.id && r.readerEmail===currentUser.email));
                 for(const m of toMark){try{await addDoc(collection(db,'inbox'),{type:'chatSeen',conversationId:conv,messageId:m.id,readerEmail:currentUser.email,senderEmail:currentUser.email,targetEmail:m.senderEmail,timestamp:new Date().toISOString(),expiresAt:new Date(Date.now()+CHAT_RETENTION_MS)});}catch(e){console.warn('تعذر تسجيل مشاهدة الرسالة',e);}}
                 if(!messages.length){host.innerHTML='<div class="chat-empty">لا توجد رسائل بعد. اكتب أول رسالة لبدء المحادثة.</div>';return;}
                 host.innerHTML=messages.map(m=>{
                     const mine=m.senderEmail===currentUser.email;
-                    const seen=receipts.some(r=>r.messageId===m.id&&r.readerEmail===m.targetEmail);
+                    const recipients=Array.isArray(m.targetEmails)?m.targetEmails:(m.targetEmail?[m.targetEmail]:[]);
+                    const seen=recipients.length?recipients.every(e=>receipts.some(r=>r.messageId===m.id&&r.readerEmail===e)):false;
+                    const senderName=(chatSelectedContact.isGroup?(chatSelectedContact.members||[]).find(x=>String(x.email).toLowerCase()===String(m.senderEmail).toLowerCase())?.name||m.senderEmail:'');
                     const ticks=mine?`<span class="chat-ticks" title="${seen?'تمت المشاهدة':'تم الإرسال'}">${seen?'✓✓':'✓'}</span>`:'';
                     const when=m.timestamp?new Date(m.timestamp).toLocaleString('ar-IQ',{dateStyle:'short',timeStyle:'short'}):'';
-                    return `<div class="chat-bubble ${mine?'mine':'theirs'}">${safeChatText(m.text)}<div class="chat-meta"><span>${safeChatText(when)}</span>${ticks}</div></div>`;
+                    return `<div class="chat-bubble ${mine?'mine':'theirs'}">${chatSelectedContact.isGroup?`<small class="chat-sender-name">${safeChatText(senderName)}</small>`:''}${safeChatText(m.text)}<div class="chat-meta"><span>${safeChatText(when)}</span>${ticks}</div></div>`;
                 }).join('');
                 host.scrollTop=host.scrollHeight;
             }catch(e){host.innerHTML=`<div class="chat-empty">تعذر تحميل المحادثة: ${safeChatText(e.message||e)}</div>`;}
@@ -1356,8 +1429,10 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
             const input=document.getElementById('chatMessageInput');const textValue=input.value.trim();if(!textValue)return;
             const btn=document.getElementById('sendChatMessageBtn');btn.disabled=true;
             try{
-                const conv=makeConversationId(currentUser.email,chatSelectedContact.email);
-                await addDoc(collection(db,'inbox'),{type:'chatMessage',conversationId:conv,senderEmail:currentUser.email,targetEmail:chatSelectedContact.email,text:textValue,timestamp:new Date().toISOString(),expiresAt:new Date(Date.now()+CHAT_RETENTION_MS)});
+                const participants=chatSelectedContact.isGroup?chatSelectedContact.participants:[String(currentUser.email).toLowerCase(),String(chatSelectedContact.email).toLowerCase()];
+                const conv=chatSelectedContact.isGroup?makeGroupConversationId(participants):makeConversationId(currentUser.email,chatSelectedContact.email);
+                const targets=participants.filter(e=>String(e).toLowerCase()!==String(currentUser.email).toLowerCase());
+                await addDoc(collection(db,'inbox'),{type:'chatMessage',conversationId:conv,senderEmail:currentUser.email,targetEmail:targets[0]||chatSelectedContact.email,targetEmails:targets,participants,group:!!chatSelectedContact.isGroup,groupName:chatSelectedContact.isGroup?chatSelectedContact.name:'',text:textValue,timestamp:new Date().toISOString(),expiresAt:new Date(Date.now()+CHAT_RETENTION_MS)});
                 input.value='';await loadChatThread();
             }catch(e){alert('تعذر إرسال الرسالة: '+(e.message||e));}
             finally{btn.disabled=false;}
@@ -1367,20 +1442,20 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
         async function checkChatNotifications(userEmail){
             if(!userEmail)return;
             try{
-                const snap=await getDocs(query(collection(db,'inbox'),where('targetEmail','==',userEmail)));
-                const incoming=snap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>m.type==='chatMessage');
+                const snap=await getDocs(collection(db,'inbox'));
+                const incoming=snap.docs.map(d=>({id:d.id,...d.data()})).filter(m=>m.type==='chatMessage'&&(String(m.targetEmail||'').toLowerCase()===String(userEmail).toLowerCase()||(Array.isArray(m.targetEmails)&&m.targetEmails.map(x=>String(x).toLowerCase()).includes(String(userEmail).toLowerCase()))));
                 const conversations=[...new Set(incoming.map(m=>m.conversationId).filter(Boolean))];
                 let unread=[];
                 for(const conv of conversations){
                     const convSnap=await getDocs(query(collection(db,'inbox'),where('conversationId','==',conv)));
                     const all=convSnap.docs.map(d=>({id:d.id,...d.data()}));
                     const receipts=all.filter(x=>x.type==='chatSeen');
-                    unread.push(...all.filter(m=>m.type==='chatMessage'&&m.targetEmail===userEmail&&!receipts.some(r=>r.messageId===m.id&&r.readerEmail===userEmail)));
+                    unread.push(...all.filter(m=>m.type==='chatMessage'&&(String(m.targetEmail||'').toLowerCase()===String(userEmail).toLowerCase()||(Array.isArray(m.targetEmails)&&m.targetEmails.map(x=>String(x).toLowerCase()).includes(String(userEmail).toLowerCase())))&&!receipts.some(r=>r.messageId===m.id&&r.readerEmail===userEmail)));
                 }
                 const box=document.getElementById('chatNotificationBox');
                 if(unread.length){
                     const newest=unread.sort((a,b)=>String(b.timestamp||'').localeCompare(String(a.timestamp||'')))[0];
-                    box.style.display='block';box.innerHTML=`🔔 لديك ${unread.length} رسالة محادثة غير مقروءة من <b>${safeChatText(newest.senderEmail)}</b> <button type="button" class="btn-search btn-3d" style="margin-inline-start:10px" onclick="openChatFromNotice('${safeChatText(newest.senderEmail)}')">فتح الرسالة</button>`;
+                    box.style.display='block';box.innerHTML=`🔔 لديك ${unread.length} رسالة محادثة غير مقروءة من <b>${safeChatText(newest.senderEmail)}</b> <button type="button" class="btn-search btn-3d" style="margin-inline-start:10px" onclick="openChatFromNotice('${safeChatText(newest.senderEmail)}','${safeChatText(newest.conversationId||'')}')">فتح الرسالة</button>`;
                     const fresh=unread.some(m=>!chatKnownUnreadIds.has(m.id));
                     if(chatInitialNotificationScanDone&&fresh)playChatNoticeSound();
                     chatKnownUnreadIds=new Set(unread.map(m=>m.id));
@@ -1388,14 +1463,22 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
                 chatInitialNotificationScanDone=true;
             }catch(e){console.warn('تعذر فحص إشعارات المحادثة',e);}
         }
-        window.openChatFromNotice=async function(email){
+        window.openChatFromNotice=async function(email,conversationId=''){
             await openChatModal();
+            if(String(conversationId).startsWith('group__')){
+                try{const snap=await getDocs(query(collection(db,'inbox'),where('conversationId','==',conversationId)));const msg=snap.docs.map(d=>d.data()).find(x=>x.type==='chatMessage'&&Array.isArray(x.participants));if(msg){const members=msg.participants.map(e=>chatContacts.find(c=>String(c.email).toLowerCase()===String(e).toLowerCase())||{email:e,name:e});await selectChatGroup(members);return;}}catch(e){console.warn(e);}
+            }
             const c=chatContacts.find(x=>String(x.email||'').toLowerCase()===String(email||'').toLowerCase())||{email,name:email};
-            if(!chatContacts.some(x=>x.email===c.email)){chatContacts.unshift(c);renderChatContacts();}
+            if(!chatContacts.some(x=>String(x.email||'').toLowerCase()===String(c.email||'').toLowerCase())){chatContacts.unshift(c);renderChatContacts();}
             await selectChatContact(c);
         };
         let chatNotificationTimer=null;
-        function startChatNotificationMonitor(email){if(chatNotificationTimer)clearInterval(chatNotificationTimer);checkChatNotifications(email);cleanupExpiredChatMessages();chatNotificationTimer=setInterval(()=>{if(currentUser){checkChatNotifications(currentUser.email);cleanupExpiredChatMessages();}},12*60*60*1000);}
+        function startChatNotificationMonitor(email){
+            if(chatNotificationTimer)clearInterval(chatNotificationTimer);if(chatCleanupTimer)clearInterval(chatCleanupTimer);
+            checkChatNotifications(email);cleanupExpiredChatMessages();
+            chatNotificationTimer=setInterval(()=>{if(currentUser)checkChatNotifications(currentUser.email);},60*1000);
+            chatCleanupTimer=setInterval(()=>{if(currentUser)cleanupExpiredChatMessages();},30*60*1000);
+        }
 
         // دفتر الأشخاص المسجلين: الحفظ والقراءة من Firestore لكل مستخدم، دون تخزين محلي.
         let savedContacts = [];
@@ -1937,6 +2020,16 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
 
         window.closeShareModal = function() {
             document.getElementById('shareModal').style.display = 'none';
+        };
+
+        window.openChatWithShareRecipient = async function(){
+            if(!currentUser){alert('يرجى تسجيل الدخول أولاً.');return;}
+            const email=(document.getElementById('targetUserEmail')?.value||'').trim().toLowerCase();
+            if(!email||!email.includes('@')){alert('أدخل البريد الإلكتروني للمستلم أولاً لفتح المحادثة.');return;}
+            const contact=chatContacts.find(c=>String(c.email||'').toLowerCase()===email)||savedContacts.find(c=>String(c.email||'').toLowerCase()===email)||{email,name:email};
+            closeShareModal();await openChatModal();
+            if(!chatContacts.some(c=>String(c.email||'').toLowerCase()===email)){chatContacts.unshift(contact);renderChatContacts();}
+            await selectChatContact(contact);
         };
 
         window.sendSharedCaseToUser = async function() {
@@ -4869,7 +4962,7 @@ body.luxury-gold-mode #caseStatusLight {
                     </div>
                 </div>
 
-                <button type="button" class="btn-main btn-3d" onclick="sendSharedCaseToUser()">📤 تأكيد وإرسال الدعوى الآن</button>
+                <div class="share-action-row"><button type="button" class="btn-main btn-3d" onclick="sendSharedCaseToUser()">📤 تأكيد وإرسال الدعوى الآن</button><button type="button" class="btn-search btn-3d share-chat-button" onclick="openChatWithShareRecipient()">💬 محادثة</button></div>
             </div>
         </div>
     </div>
@@ -4997,7 +5090,7 @@ body.luxury-gold-mode #caseStatusLight {
         <div class="modal-content chat-modal-content">
             <div class="modal-header"><div><h3 style="margin:0;color:var(--primary-color);">💬 محادثة مع شخص</h3><small style="color:var(--label-color);">محادثات مباشرة مرتبطة بالبريد الإلكتروني</small></div><button type="button" class="modal-close-btn btn-3d" onclick="closeChatModal()">✕ إغلاق</button></div>
             <div class="chat-layout">
-                <aside class="chat-contacts-pane"><label for="chatContactSearch">ابحث بالاسم أو البريد أو الهاتف</label><input id="chatContactSearch" type="search" placeholder="اسم أو بريد أو هاتف" oninput="renderChatContacts()"><div id="chatContactsList" class="chat-contacts-list"></div></aside>
+                <aside class="chat-contacts-pane"><label for="chatContactSearch">ابحث بالاسم أو البريد أو الهاتف</label><input id="chatContactSearch" type="search" placeholder="اسم أو بريد أو هاتف" oninput="renderChatContacts()"><div class="chat-group-controls"><button id="toggleChatGroupBtn" type="button" class="btn-search btn-3d" onclick="toggleChatGroupMode()">👥 كروب</button><button id="startChatGroupBtn" type="button" class="btn-main btn-3d" onclick="startChatGroup()" disabled>بدء الكروب</button></div><div id="chatContactsList" class="chat-contacts-list"></div></aside>
                 <section class="chat-conversation-pane"><div id="chatConversationHeader" class="chat-conversation-header">اختر شخصاً من القائمة لبدء المحادثة</div><div id="chatMessages" class="chat-messages"><div class="chat-empty">💬 اختر شخصاً مسجلاً لعرض المحادثة</div></div><div class="chat-compose"><textarea id="chatMessageInput" rows="2" placeholder="اكتب رسالتك هنا..." disabled></textarea><button id="sendChatMessageBtn" type="button" class="btn-main btn-3d" onclick="sendChatMessage()" disabled>إرسال ➤</button></div></section>
             </div>
         </div>
@@ -5837,6 +5930,24 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
   outline:2px solid rgba(181,139,42,.25);outline-offset:1px;transform:translateY(-1px)
 }
 @media(max-width:600px){#contactPickerModal #contactPickerList button[data-pick-contact] b{font-size:19px!important}#contactPickerModal #contactPickerList button[data-pick-contact]{padding:13px!important}}
+
+        .share-action-row{display:flex;gap:10px;align-items:stretch;flex-wrap:wrap;margin-top:2px}
+        .share-action-row>button{flex:1;min-width:170px}
+        .share-chat-button{background:linear-gradient(135deg,#0f766e,#0b8b80)!important;color:#fff!important;border-color:#0f766e!important}
+        .chat-group-controls{display:flex;gap:8px;margin:9px 0;flex-wrap:wrap}
+        .chat-group-controls button{flex:1;min-width:100px}
+        #toggleChatGroupBtn.active{background:#b88928!important;color:#fff!important;border-color:#b88928!important}
+        .chat-contact-name-row{display:flex;align-items:center;gap:8px;min-width:0}
+        .chat-contact-name-row input{width:16px;height:16px;flex:0 0 auto;pointer-events:none;accent-color:#b88928}
+        .chat-presence-dot{display:inline-block;width:9px;height:9px;flex:0 0 9px;border-radius:50%;background:#9ca3af;box-shadow:0 0 0 2px rgba(156,163,175,.12)}
+        .chat-presence-dot.online{background:#16a34a;box-shadow:0 0 0 3px rgba(22,163,74,.15),0 0 9px rgba(22,163,74,.35)}
+        .chat-presence-text{font-size:10px!important;color:#7b8490!important;direction:rtl!important;text-align:right!important}
+        .chat-presence-text.online{color:#16a34a!important;font-weight:800}
+        .chat-contact-item.group-selected{border-color:#b88928!important;background:rgba(197,160,74,.16)!important}
+        .chat-online-label.is-online{color:#16a34a!important;font-weight:800}
+        .chat-online-label:not(.is-online) i{background:#9ca3af!important}
+        .chat-sender-name{display:block;font-size:10px;font-weight:800;color:#b88928;margin-bottom:4px}
+        @media(max-width:680px){.share-action-row{flex-direction:column}.share-action-row>button{width:100%;min-width:0}.chat-group-controls button{font-size:12px;padding:8px 9px}}
 </style>
 </body>
 </html>
