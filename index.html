@@ -565,73 +565,6 @@
             document.getElementById('contractModal').style.display = 'none';
         };
 
-        // مكتبة القوانين العراقية داخل النظام: بحث عن قانون/رقم مادة/عبارة، ومفضلة محلية.
-        window.openIraqiLawsLibrary = function() {
-            const modal = document.getElementById('iraqiLawsModal');
-            if (modal) {
-                modal.style.display = 'flex';
-                document.body.classList.add('laws-modal-open');
-                const field = document.getElementById('lawsSearchInput');
-                if (field) setTimeout(() => field.focus(), 80);
-                renderLawBookmarks();
-            }
-        };
-        window.closeLawsPage = function() {
-            const modal = document.getElementById('iraqiLawsModal');
-            if (modal) modal.style.display = 'none';
-            document.body.classList.remove('laws-modal-open');
-        };
-        const iraqiLawCatalog = [
-            {title:'القانون المدني العراقي',year:'1951',icon:'⚖️',query:'القانون المدني العراقي رقم 40 لسنة 1951'},
-            {title:'قانون العقوبات العراقي',year:'1969',icon:'🛡️',query:'قانون العقوبات العراقي رقم 111 لسنة 1969'},
-            {title:'قانون أصول المحاكمات الجزائية',year:'1971',icon:'🏛️',query:'قانون أصول المحاكمات الجزائية العراقي رقم 23 لسنة 1971'},
-            {title:'قانون المرافعات المدنية',year:'1969',icon:'📑',query:'قانون المرافعات المدنية العراقي رقم 83 لسنة 1969'},
-            {title:'قانون الإثبات',year:'1979',icon:'🧾',query:'قانون الإثبات العراقي رقم 107 لسنة 1979'},
-            {title:'قانون الأحوال الشخصية',year:'1959',icon:'👨‍👩‍👧',query:'قانون الأحوال الشخصية العراقي رقم 188 لسنة 1959'},
-            {title:'قانون العمل',year:'2015',icon:'👷',query:'قانون العمل العراقي رقم 37 لسنة 2015'},
-            {title:'قانون التنفيذ',year:'1980',icon:'📂',query:'قانون التنفيذ العراقي رقم 45 لسنة 1980'},
-            {title:'قانون المحاماة',year:'1965',icon:'👨‍⚖️',query:'قانون المحاماة العراقي رقم 173 لسنة 1965'},
-            {title:'قانون الشركات',year:'1997',icon:'🏢',query:'قانون الشركات العراقي رقم 21 لسنة 1997'},
-            {title:'قانون التسجيل العقاري',year:'1971',icon:'🏠',query:'قانون التسجيل العقاري العراقي رقم 43 لسنة 1971'},
-            {title:'قانون مجلس الدولة',year:'2017',icon:'🏛️',query:'قانون مجلس الدولة العراقي رقم 71 لسنة 2017'}
-        ];
-        function lawSafeText(value) {
-            return String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-        }
-        window.renderLawCatalog = function(filter='') {
-            const host = document.getElementById('lawsCatalogGrid');
-            if (!host) return;
-            const q = String(filter || '').trim().toLocaleLowerCase('ar');
-            const items = iraqiLawCatalog.filter(item => (item.title+' '+item.year+' '+item.query).toLocaleLowerCase('ar').includes(q));
-            host.innerHTML = items.length ? items.map((item, i) => `<button type="button" class="law-catalog-card" onclick="openLawSearch('${encodeURIComponent(item.query)}')"><span class="law-card-icon">${item.icon}</span><span class="law-card-title">${lawSafeText(item.title)}</span><small>رقم القانون/السنة: ${lawSafeText(item.year)}</small><span class="law-card-open">عرض المصادر والمواد ←</span></button>`).join('') : '<p class="laws-empty">لا توجد نتيجة في قائمة الاختصارات. جرّب البحث عن اسم آخر أو عبارة قانونية.</p>';
-        };
-        window.searchIraqiLaws = function() {
-            const term = (document.getElementById('lawsSearchInput')?.value || '').trim();
-            if (!term) { alert('اكتب اسم القانون أو رقم المادة أو كلمة/عبارة قانونية للبحث.'); return; }
-            openLawSearch(term);
-        };
-        window.openLawSearch = function(encodedTerm) {
-            const term = decodeURIComponent(String(encodedTerm || ''));
-            const url = 'https://www.google.com/search?q=' + encodeURIComponent('القوانين العراقية ' + term + ' site:sjc.iq OR site:iraqld.hjc.iq');
-            window.open(url, '_blank', 'noopener,noreferrer');
-        };
-        window.toggleLawBookmark = function(title, query) {
-            let saved = [];
-            try { saved = JSON.parse(localStorage.getItem('iraqiLawBookmarks') || '[]'); } catch(e) {}
-            const index = saved.findIndex(x => x.title === title);
-            if (index >= 0) saved.splice(index, 1); else saved.push({title, query});
-            localStorage.setItem('iraqiLawBookmarks', JSON.stringify(saved));
-            renderLawBookmarks();
-        };
-        window.renderLawBookmarks = function() {
-            const host = document.getElementById('lawsBookmarksList');
-            if (!host) return;
-            let saved = [];
-            try { saved = JSON.parse(localStorage.getItem('iraqiLawBookmarks') || '[]'); } catch(e) {}
-            host.innerHTML = saved.length ? saved.map(x => `<button type="button" class="law-bookmark-item" onclick="openLawSearch('${encodeURIComponent(x.query)}')">☆ ${lawSafeText(x.title)} <span>فتح البحث ↗</span></button>`).join('') : '<p class="laws-empty">لم تحفظ قوانين بعد. يمكنك حفظ الاختصارات المهمة هنا.</p>';
-        };
-
-
         window.openMyWalletPage = function() {
             window.open('https://drive.google.com', '_blank');
         };
@@ -1290,48 +1223,6 @@
 @media(max-width:650px){.smart-dashboard-page{padding:10px}.smart-dashboard-page-toolbar{align-items:stretch}.smart-dashboard-page-toolbar button{width:100%}}
 @media print{#smartDashboardPage{display:none!important}}
 </style>
-
-<style id="iraqi-laws-system-style">
-body.laws-modal-open { overflow:hidden; }
-#iraqiLawsModal { position:fixed; inset:0; z-index:100500; display:none; align-items:stretch; justify-content:center; padding:0; background:rgba(5,15,31,.78); backdrop-filter:blur(8px); }
-.laws-app-shell { width:100%; height:100%; max-width:1180px; overflow:auto; background:var(--section-bg,#f7f8fb); color:var(--text-main,#17243a); box-shadow:0 25px 90px #0005; }
-.laws-app-header { position:sticky; top:0; z-index:3; display:flex; align-items:center; justify-content:space-between; gap:12px; padding:17px clamp(14px,3vw,30px); color:#fff; background:linear-gradient(120deg,#0a1b34,#173e65 65%,#92712c); border-bottom:2px solid #c8a85c; }
-.laws-brand { display:flex; align-items:center; gap:12px; min-width:0; }
-.laws-brand-mark { display:grid; place-items:center; width:48px; height:48px; flex:0 0 48px; border-radius:15px; background:#ffffff18; border:1px solid #d8bd75; font-size:27px; }
-.laws-brand h2 { margin:0; font-size:clamp(18px,3vw,25px); }
-.laws-brand p { margin:4px 0 0; font-size:12px; opacity:.82; }
-.laws-close-btn { border:1px solid #ffffff55; background:#ffffff16; color:#fff; border-radius:12px; padding:10px 14px; font-size:15px; cursor:pointer; }
-.laws-main { padding:clamp(14px,3vw,30px); max-width:1100px; margin:auto; }
-.laws-hero { padding:clamp(18px,3vw,30px); border-radius:22px; color:white; background:radial-gradient(circle at 10% 0%,#d2b76b33,transparent 36%),linear-gradient(125deg,#10233e,#1b4770); box-shadow:0 12px 28px #10233e20; }
-.laws-hero h3 { margin:0 0 8px; font-size:clamp(20px,3vw,28px); }
-.laws-hero p { margin:0 0 18px; line-height:1.8; color:#e2eaf3; }
-.laws-search-row { display:flex; gap:9px; }
-.laws-search-row input { flex:1; min-width:0; border:1px solid #d8e0eb; border-radius:13px; padding:14px 15px; font:inherit; background:#fff; color:#17243a; }
-.laws-search-row button { border:0; border-radius:13px; padding:12px 20px; background:linear-gradient(135deg,#d8bc6d,#ad8734); color:#14233a; font-weight:800; cursor:pointer; }
-.laws-info-strip { margin-top:13px; font-size:12px; color:#e2eaf3; }
-.laws-section-head { display:flex; align-items:end; justify-content:space-between; gap:10px; margin:25px 0 13px; }
-.laws-section-head h3 { margin:0; font-size:19px; }
-.laws-section-head span { color:var(--label-color,#687386); font-size:12px; }
-.laws-catalog-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
-.law-catalog-card { display:flex; flex-direction:column; align-items:flex-start; gap:9px; padding:17px; min-height:155px; text-align:right; border:1px solid #d9dfeb; border-radius:17px; background:var(--section-bg,#fff); color:var(--text-main,#17243a); box-shadow:0 5px 15px #10233e0b; cursor:pointer; font:inherit; transition:transform .18s,border-color .18s,box-shadow .18s; }
-.law-catalog-card:hover { transform:translateY(-2px); border-color:#b99a4d; box-shadow:0 10px 24px #10233e14; }
-.law-card-icon { display:grid; place-items:center; width:38px; height:38px; border-radius:12px; color:#b18b38; background:#c9aa5420; font-size:21px; }
-.law-card-title { font-weight:800; line-height:1.5; }
-.law-catalog-card small { color:var(--label-color,#687386); }
-.law-card-open { margin-top:auto; color:#9a762a; font-size:12px; font-weight:800; }
-.laws-bookmarks-panel { border:1px solid #d9dfeb; border-radius:17px; padding:15px; background:var(--section-bg,#fff); }
-.law-bookmark-item { width:100%; display:flex; justify-content:space-between; gap:10px; text-align:right; padding:12px 8px; background:transparent; color:var(--text-main,#17243a); border:0; border-bottom:1px solid #e5e9f0; font:inherit; cursor:pointer; }
-.law-bookmark-item:last-child { border-bottom:0; }
-.law-bookmark-item span { color:#9a762a; white-space:nowrap; font-size:12px; }
-.laws-empty { color:var(--label-color,#687386); font-size:13px; margin:8px 0; }
-.laws-disclaimer { margin-top:20px; border-right:4px solid #b99a4d; padding:12px 14px; background:#b99a4d12; border-radius:10px; font-size:12px; line-height:1.8; color:var(--label-color,#687386); }
-@media(max-width:760px) { .laws-catalog-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:9px; } .law-catalog-card { padding:13px; min-height:150px; } .laws-search-row { flex-direction:column; } .laws-search-row button { width:100%; } .laws-app-header { padding:13px; } }
-@media(max-width:390px) { .laws-catalog-grid { grid-template-columns:1fr; } .law-catalog-card { min-height:unset; } .laws-brand p { max-width:200px; } }
-body.dark-mode .laws-app-shell { background:#101827; color:#e8edf6; }
-body.dark-mode .law-catalog-card, body.dark-mode .laws-bookmarks-panel { background:#182337; color:#e8edf6; border-color:#34435a; }
-body.dark-mode .law-bookmark-item { color:#e8edf6; border-color:#34435a; }
-</style>
-
 </head><body><h3>معاينة مرفق الدعوى</h3><img src="${safeSrc}" alt="مرفق الدعوى">
 <style id="luxury-legal-identity">
 /* الهوية البصرية القانونية الفاخرة — كحلي وذهبي، دون تغيير منطق النظام */
@@ -1483,36 +1374,6 @@ body.dark-mode:not(.luxury-gold-mode) #smartDashboardPage .smart-dashboard-page-
 body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135deg,#3a2b0e,#17130a 60%,#080807)!important;color:#f5d985!important;border-color:#b8943c!important;box-shadow:0 0 14px rgba(215,174,61,.28),0 4px 0 #5b461d!important}
 @media print{#smartDashboardPage,#smartDashboardPage *{animation:none!important;transition:none!important;filter:none!important}#smartDashboardPage .smart-dashboard-page-toolbar,#smartDashboardPage #smartCaseDashboard,#smartDashboardPage .smart-stat,#smartDashboardPage .smart-case-row{transform:none!important}}
 </style>
-
-
-<div id="iraqiLawsModal" role="dialog" aria-modal="true" aria-label="مكتبة القوانين العراقية">
-  <div class="laws-app-shell">
-    <header class="laws-app-header">
-      <div class="laws-brand"><div class="laws-brand-mark">⚖️</div><div><h2>مكتبة القوانين العراقية</h2><p>مرجع قانوني للبحث والتصفح — ضمن نظام إدارة الدعاوى</p></div></div>
-      <button type="button" class="laws-close-btn" onclick="closeLawsPage()">✕ إغلاق</button>
-    </header>
-    <main class="laws-main">
-      <section class="laws-hero">
-        <h3>ابحث عن القانون أو المادة القانونية</h3>
-        <p>اكتب اسم القانون أو رقم المادة أو كلمة/عبارة من النص، للوصول إلى نتائج البحث والمصادر المنشورة على الإنترنت.</p>
-        <div class="laws-search-row">
-          <input id="lawsSearchInput" type="search" placeholder="مثال: المادة ٤٠٦ من قانون العقوبات" onkeydown="if(event.key==='Enter') searchIraqiLaws()" aria-label="بحث في القوانين العراقية">
-          <button type="button" onclick="searchIraqiLaws()">⌕ بحث قانوني</button>
-        </div>
-        <div class="laws-info-strip">بحث بالقانون • رقم المادة • الكلمات والعبارات • اختصارات للقوانين الشائعة</div>
-      </section>
-      <div class="laws-section-head"><h3>📚 القوانين الأكثر استخداماً</h3><span>اختر قانوناً لفتح بحثه</span></div>
-      <div class="laws-search-row" style="margin-bottom:13px"><input id="lawsCatalogFilter" type="search" placeholder="تصفية قائمة القوانين..." oninput="renderLawCatalog(this.value)" aria-label="تصفية القوانين"></div>
-      <section id="lawsCatalogGrid" class="laws-catalog-grid"></section>
-      <div class="laws-section-head"><h3>☆ محفوظاتي</h3><span>تُحفظ على هذا الجهاز والمتصفح</span></div>
-      <section class="laws-bookmarks-panel"><div id="lawsBookmarksList"></div></section>
-      <div class="laws-disclaimer">تنبيه: هذه الواجهة أداة بحث وليست قاعدة بيانات تشريعية مكتملة أو جهة رسمية. نتائج البحث قد تتضمن نسخاً قديمة أو غير مكتملة؛ تحقّق دائماً من التعديلات والنص المنشور في جريدة الوقائع العراقية والمصادر الرسمية قبل الاستناد إلى أي مادة في دعوى أو مذكرة.</div>
-    </main>
-  </div>
-</div>
-<script>
-document.addEventListener('DOMContentLoaded', function(){ if (window.renderLawCatalog) window.renderLawCatalog(); });
-</script>
 
 </body></html>`);
             w.document.close();
@@ -2795,19 +2656,19 @@ document.addEventListener('DOMContentLoaded', function(){ if (window.renderLawCa
             box-shadow: 0 7px 0 #7f1d1d, 0 12px 20px rgba(239, 68, 68, 0.4);
         }
 
-        .btn-open-wallet-top, .btn-open-financial-top, .btn-open-contract-top, .btn-open-iraqi-laws, .btn-theme-toggle, .btn-back, .btn-share-case, .btn-archive-top {
+        .btn-open-wallet-top, .btn-open-financial-top, .btn-open-contract-top, .btn-theme-toggle, .btn-back, .btn-share-case, .btn-archive-top {
             background: linear-gradient(135deg, #64748b 0%, #334155 100%);
             color: white;
             box-shadow: 0 4px 0 #1e293b, 0 6px 12px rgba(100, 116, 139, 0.3);
         }
-        .btn-open-wallet-top:hover, .btn-open-financial-top:hover, .btn-open-contract-top:hover, .btn-open-iraqi-laws:hover, .btn-theme-toggle:hover, .btn-back:hover, .btn-share-case:hover, .btn-archive-top:hover {
+        .btn-open-wallet-top:hover, .btn-open-financial-top:hover, .btn-open-contract-top:hover, .btn-theme-toggle:hover, .btn-back:hover, .btn-share-case:hover, .btn-archive-top:hover {
             background: linear-gradient(135deg, #94a3b8 0%, #475569 100%);
             transform: translateY(-2px);
             box-shadow: 0 6px 0 #1e293b, 0 10px 16px rgba(100, 116, 139, 0.4);
         }
 
         .btn-main { width: 100%; padding: 12px; font-size: 16px; margin-top: 10px; }
-        .btn-settings, .btn-logout, .btn-open-wallet-top, .btn-open-financial-top, .btn-open-contract-top, .btn-open-iraqi-laws, .btn-theme-toggle, .btn-archive-top { padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; }
+        .btn-settings, .btn-logout, .btn-open-wallet-top, .btn-open-financial-top, .btn-open-contract-top, .btn-theme-toggle, .btn-archive-top { padding: 6px 12px; font-size: 12px; font-weight: 600; border-radius: 6px; }
         .btn-search, .btn-delete-case, .btn-new-entry, .btn-share-case { padding: 4px 10px; font-size: 12px; height: 26px; border-radius: 6px; }
         .modal-close-btn { padding: 5px 10px; font-size: 12px; border-radius: 4px; }
         .btn-save, .btn-print, .btn-back { padding: 10px 20px; font-size: 13px; font-weight: 600; }
@@ -4445,7 +4306,7 @@ svg {
         }
         .professional-actions .btn-3d:hover { transform: translateY(-3px) !important; filter: brightness(1.08); box-shadow: 0 10px 20px rgba(4,15,32,.24), inset 0 1px 0 rgba(255,255,255,.2) !important; }
         .professional-actions .btn-3d:active { transform: translateY(0) scale(.98) !important; }
-        .professional-actions .btn-open-iraqi-laws,
+        .professional-actions .btn-open-laws-top,
         .professional-actions .btn-open-wallet-top,
         .professional-actions .btn-open-contract-top,
         .professional-actions .btn-theme-toggle,
@@ -5052,7 +4913,7 @@ body.luxury-gold-mode #caseStatusLight {
     </div>
 
     <div class="user-actions professional-actions">
-                    <button type="button" class="btn-open-iraqi-laws btn-3d" onclick="openIraqiLawsLibrary()">⚖️ القوانين</button>
+                    <button type="button" class="btn-open-laws-top btn-3d" onclick="openIraqiLawsLibrary()">⚖️ القوانين</button>
                     <button type="button" class="btn-archive-top btn-3d smart-dashboard-open-btn" onclick="openSmartDashboardPage()">📊 لوحة المتابعة الذكية</button>
                     <button type="button" class="btn-open-wallet-top btn-3d" onclick="openMyWalletPage()">📁 محفظتي</button>
                     <button type="button" class="btn-open-contract-top btn-3d" onclick="openContractModal()">📜 عقد محامي</button>
@@ -6335,5 +6196,105 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
         .chat-sender-name{display:block;font-size:10px;font-weight:800;color:#b88928;margin-bottom:4px}
         @media(max-width:680px){.share-action-row{flex-direction:column}.share-action-row>button{width:100%;min-width:0}.chat-group-controls button{font-size:12px;padding:8px 9px}}
 </style>
+
+<style id="iraqi-laws-library-style">
+body.laws-modal-open{overflow:hidden!important}
+#iraqiLawsModal{position:fixed;inset:0;z-index:100500;display:none;align-items:stretch;justify-content:center;padding:0;background:rgba(5,15,31,.82);backdrop-filter:blur(8px);font-family:inherit;color:#172033}
+#iraqiLawsModal *{box-sizing:border-box}
+#iraqiLawsModal .laws-app-shell{width:100%;height:100%;max-width:1180px;overflow:auto;background:#f6f8fc;border:1px solid #c6a45a;box-shadow:0 20px 80px #0007}
+#iraqiLawsModal .laws-app-header{position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 20px;background:linear-gradient(120deg,#071a36,#12365d);color:#fff;border-bottom:2px solid #c6a45a}
+#iraqiLawsModal .laws-brand{display:flex;align-items:center;gap:12px;min-width:0}
+#iraqiLawsModal .laws-brand-mark{display:grid;place-items:center;width:45px;height:45px;border-radius:14px;background:#c6a45a;color:#071a36;font-size:24px;flex-shrink:0}
+#iraqiLawsModal h2,#iraqiLawsModal h3,#iraqiLawsModal p{margin-top:0}
+#iraqiLawsModal .laws-app-header h2{font-size:clamp(18px,3vw,25px);margin-bottom:4px}
+#iraqiLawsModal .laws-app-header p{margin-bottom:0;color:#dce6f3;font-size:12px}
+#iraqiLawsModal button{cursor:pointer;font:inherit}
+#iraqiLawsModal .laws-close-btn{border:1px solid #d9bd78;background:#c6a45a;color:#10213b;border-radius:10px;padding:9px 13px;font-weight:800;white-space:nowrap}
+#iraqiLawsModal .laws-main{padding:clamp(12px,3vw,24px);max-width:1080px;margin:auto}
+#iraqiLawsModal .laws-hero{padding:clamp(16px,3vw,24px);border-radius:18px;background:linear-gradient(135deg,#fff,#e9eff8);border:1px solid #d8e0ec;box-shadow:0 8px 24px #102b4d0c}
+#iraqiLawsModal .laws-hero h3{font-size:clamp(18px,3vw,24px);color:#0b2345;margin-bottom:8px}
+#iraqiLawsModal .laws-hero p{color:#53657b;line-height:1.8;margin-bottom:14px}
+#iraqiLawsModal .laws-search-row{display:flex;gap:9px;align-items:stretch}
+#iraqiLawsModal .laws-search-row input{flex:1;min-width:0;border:1px solid #cbd5e1;border-radius:11px;padding:12px 14px;background:#fff;color:#172033;font-size:16px;outline-color:#c6a45a}
+#iraqiLawsModal .laws-search-row button{border:0;border-radius:11px;padding:10px 17px;background:#0d2b50;color:#fff;font-weight:800;white-space:nowrap}
+#iraqiLawsModal .laws-info-strip{margin-top:12px;color:#6b7280;font-size:12px}
+#iraqiLawsModal .laws-section-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:22px 0 12px}
+#iraqiLawsModal .laws-section-head h3{margin:0;color:#102849;font-size:17px}
+#iraqiLawsModal .laws-section-head span{font-size:12px;color:#66758a}
+#iraqiLawsModal .laws-catalog-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+#iraqiLawsModal .law-catalog-card{display:flex;flex-direction:column;align-items:flex-start;text-align:right;gap:7px;min-width:0;padding:15px;border:1px solid #d9e1ec;border-radius:15px;background:#fff;color:#102849;box-shadow:0 4px 12px #102b4d08;transition:transform .15s,border-color .15s}
+#iraqiLawsModal .law-catalog-card:hover{transform:translateY(-2px);border-color:#c6a45a}
+#iraqiLawsModal .law-card-icon{font-size:23px}
+#iraqiLawsModal .law-card-title{font-weight:800;line-height:1.5}
+#iraqiLawsModal .law-catalog-card small{color:#66758a}
+#iraqiLawsModal .law-card-open{margin-top:3px;color:#986f1d;font-size:12px;font-weight:800}
+#iraqiLawsModal .laws-bookmarks-panel{padding:12px;border:1px solid #d9e1ec;border-radius:14px;background:#fff}
+#iraqiLawsModal .law-bookmark-item{display:flex;width:100%;justify-content:space-between;gap:10px;text-align:right;border:0;border-bottom:1px solid #edf0f5;background:transparent;padding:11px 4px;color:#102849;font-weight:700}
+#iraqiLawsModal .law-bookmark-item:last-child{border-bottom:0}
+#iraqiLawsModal .law-bookmark-item span{color:#986f1d;font-size:12px;white-space:nowrap}
+#iraqiLawsModal .laws-empty{margin:4px;color:#66758a;font-size:13px}
+#iraqiLawsModal .laws-disclaimer{margin-top:18px;padding:12px 14px;border-right:3px solid #c6a45a;border-radius:8px;background:#eef2f7;color:#59677a;font-size:12px;line-height:1.9}
+body.dark-mode #iraqiLawsModal .laws-app-shell{background:#111c2e;color:#e8eef7}
+body.dark-mode #iraqiLawsModal .laws-hero,body.dark-mode #iraqiLawsModal .law-catalog-card,body.dark-mode #iraqiLawsModal .laws-bookmarks-panel{background:#18263b;border-color:#33445d;color:#e8eef7}
+body.dark-mode #iraqiLawsModal .laws-hero h3,body.dark-mode #iraqiLawsModal .laws-section-head h3,body.dark-mode #iraqiLawsModal .law-catalog-card{color:#e8eef7}
+body.dark-mode #iraqiLawsModal .laws-search-row input{background:#0d1727;color:#fff;border-color:#40516b}
+body.dark-mode #iraqiLawsModal .laws-disclaimer{background:#1d2a3e;color:#cbd5e1}
+@media(max-width:760px){#iraqiLawsModal .laws-catalog-grid{grid-template-columns:repeat(2,minmax(0,1fr))}#iraqiLawsModal .laws-app-header{padding:12px}#iraqiLawsModal .laws-main{padding:12px}#iraqiLawsModal .laws-brand-mark{width:38px;height:38px}#iraqiLawsModal .laws-search-row{flex-direction:column}#iraqiLawsModal .laws-search-row button{width:100%}#iraqiLawsModal .laws-section-head{align-items:flex-start;flex-direction:column}}
+@media(max-width:420px){#iraqiLawsModal .laws-catalog-grid{grid-template-columns:1fr}#iraqiLawsModal .laws-app-header p{display:none}#iraqiLawsModal .laws-close-btn{padding:8px 10px}}
+</style>
+
+<div id="iraqiLawsModal" role="dialog" aria-modal="true" aria-label="مكتبة القوانين العراقية" aria-hidden="true">
+  <div class="laws-app-shell">
+    <header class="laws-app-header">
+      <div class="laws-brand"><div class="laws-brand-mark">⚖️</div><div><h2>مكتبة القوانين العراقية</h2><p>بحث قانوني واختصارات للتشريعات الشائعة</p></div></div>
+      <button type="button" class="laws-close-btn" onclick="closeLawsPage()">✕ إغلاق</button>
+    </header>
+    <main class="laws-main">
+      <section class="laws-hero">
+        <h3>ابحث عن القانون أو المادة القانونية</h3>
+        <p>اكتب اسم القانون أو رقم المادة أو عبارة قانونية للوصول إلى نتائج البحث على الإنترنت.</p>
+        <div class="laws-search-row"><input id="lawsSearchInput" type="search" placeholder="مثال: المادة ٤٠٦ من قانون العقوبات" onkeydown="if(event.key==='Enter') searchIraqiLaws()" aria-label="بحث في القوانين العراقية"><button type="button" onclick="searchIraqiLaws()">⌕ بحث قانوني</button></div>
+        <div class="laws-info-strip">البحث يفتح نتائج الإنترنت؛ النصوص الكاملة ليست مخزنة داخل النظام.</div>
+      </section>
+      <div class="laws-section-head"><h3>📚 القوانين الأكثر استخداماً</h3><span>اختر قانوناً لفتح بحثه</span></div>
+      <div class="laws-search-row" style="margin-bottom:13px"><input id="lawsCatalogFilter" type="search" placeholder="تصفية قائمة القوانين..." oninput="renderLawCatalog(this.value)" aria-label="تصفية القوانين"></div>
+      <section id="lawsCatalogGrid" class="laws-catalog-grid"></section>
+      <div class="laws-section-head"><h3>☆ محفوظاتي</h3><span>تُحفظ على هذا الجهاز والمتصفح</span></div>
+      <section class="laws-bookmarks-panel"><div id="lawsBookmarksList"></div></section>
+      <div class="laws-disclaimer">تنبيه: هذه الواجهة أداة بحث وليست قاعدة بيانات تشريعية مكتملة أو جهة رسمية. تحقّق من النصوص المعدّلة والمصادر الرسمية قبل الاستناد إلى أي مادة في دعوى أو مذكرة.</div>
+    </main>
+  </div>
+</div>
+<script>
+(function(){
+  'use strict';
+  const catalog = [
+    {title:'القانون المدني العراقي',year:'40 / 1951',icon:'⚖️',query:'القانون المدني العراقي رقم 40 لسنة 1951'},
+    {title:'قانون العقوبات',year:'111 / 1969',icon:'⚖️',query:'قانون العقوبات العراقي رقم 111 لسنة 1969'},
+    {title:'قانون أصول المحاكمات الجزائية',year:'23 / 1971',icon:'📘',query:'قانون أصول المحاكمات الجزائية العراقي رقم 23 لسنة 1971'},
+    {title:'قانون المرافعات المدنية',year:'83 / 1969',icon:'📑',query:'قانون المرافعات المدنية العراقي رقم 83 لسنة 1969'},
+    {title:'قانون الإثبات',year:'107 / 1979',icon:'🧾',query:'قانون الإثبات العراقي رقم 107 لسنة 1979'},
+    {title:'قانون الأحوال الشخصية',year:'188 / 1959',icon:'👨‍👩‍👧',query:'قانون الأحوال الشخصية العراقي رقم 188 لسنة 1959'},
+    {title:'قانون العمل',year:'37 / 2015',icon:'🏢',query:'قانون العمل العراقي رقم 37 لسنة 2015'},
+    {title:'قانون التنفيذ',year:'45 / 1980',icon:'📂',query:'قانون التنفيذ العراقي رقم 45 لسنة 1980'},
+    {title:'قانون المحاماة',year:'173 / 1965',icon:'⚖️',query:'قانون المحاماة العراقي رقم 173 لسنة 1965'},
+    {title:'قانون الشركات',year:'21 / 1997',icon:'🏛️',query:'قانون الشركات العراقي رقم 21 لسنة 1997'},
+    {title:'قانون التسجيل العقاري',year:'43 / 1971',icon:'🏠',query:'قانون التسجيل العقاري العراقي رقم 43 لسنة 1971'},
+    {title:'قانون مجلس الدولة',year:'71 / 2017',icon:'🏛️',query:'قانون مجلس الدولة العراقي رقم 71 لسنة 2017'}
+  ];
+  function safeText(value){return String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+  function getBookmarks(){try{const x=JSON.parse(localStorage.getItem('iraqiLawBookmarks')||'[]');return Array.isArray(x)?x:[];}catch(e){return [];}}
+  function renderBookmarks(){const host=document.getElementById('lawsBookmarksList');if(!host)return;const saved=getBookmarks();host.innerHTML=saved.length?saved.map((x,i)=>`<button type="button" class="law-bookmark-item" data-bookmark-index="${i}">☆ ${safeText(x.title)} <span>فتح البحث ↗</span></button>`).join(''):'<p class="laws-empty">لم تحفظ قوانين بعد. اضغط زر ☆ بجانب القانون لحفظه هنا.</p>';host.querySelectorAll('[data-bookmark-index]').forEach(btn=>btn.addEventListener('click',()=>{const item=getBookmarks()[Number(btn.dataset.bookmarkIndex)];if(item)window.openLawSearch(item.query);}));}
+  window.renderLawCatalog=function(filter=''){const host=document.getElementById('lawsCatalogGrid');if(!host)return;const q=String(filter||'').trim().toLocaleLowerCase('ar');const saved=getBookmarks();const items=catalog.filter(x=>(x.title+' '+x.year+' '+x.query).toLocaleLowerCase('ar').includes(q));host.innerHTML=items.map(item=>{const isSaved=saved.some(x=>x.query===item.query);return `<article class="law-catalog-card"><span class="law-card-icon">${item.icon}</span><span class="law-card-title">${safeText(item.title)}</span><small>رقم القانون/السنة: ${safeText(item.year)}</small><button type="button" class="law-card-open" data-law-query="${safeText(item.query)}">فتح البحث ↗</button><button type="button" class="law-card-open" data-law-save="${safeText(item.query)}" data-law-title="${safeText(item.title)}">${isSaved?'★ محفوظ':'☆ حفظ بالمفضلة'}</button></article>`;}).join('')||'<p class="laws-empty">لا توجد نتائج في قائمة القوانين.</p>';host.querySelectorAll('[data-law-query]').forEach(b=>b.addEventListener('click',()=>window.openLawSearch(b.dataset.lawQuery)));host.querySelectorAll('[data-law-save]').forEach(b=>b.addEventListener('click',()=>{const title=b.dataset.lawTitle,query=b.dataset.lawSave;let arr=getBookmarks();if(arr.some(x=>x.query===query)){arr=arr.filter(x=>x.query!==query);}else{arr.push({title,query});}try{localStorage.setItem('iraqiLawBookmarks',JSON.stringify(arr));}catch(e){alert('تعذر حفظ المفضلة في هذا المتصفح.');}window.renderLawCatalog(document.getElementById('lawsCatalogFilter')?.value||'');renderBookmarks();}));};
+  window.openIraqiLawsLibrary=function(){const modal=document.getElementById('iraqiLawsModal');if(!modal)return;modal.style.display='flex';modal.setAttribute('aria-hidden','false');document.body.classList.add('laws-modal-open');window.renderLawCatalog(document.getElementById('lawsCatalogFilter')?.value||'');renderBookmarks();};
+  window.closeLawsPage=function(){const modal=document.getElementById('iraqiLawsModal');if(modal){modal.style.display='none';modal.setAttribute('aria-hidden','true');}document.body.classList.remove('laws-modal-open');};
+  window.openLawSearch=function(term){const query=String(term||'').trim();if(!query)return;const url='https://www.google.com/search?q='+encodeURIComponent(query+' site:sjc.iq OR site:iraqld.hjc.iq');window.open(url,'_blank','noopener,noreferrer');};
+  window.searchIraqiLaws=function(){const input=document.getElementById('lawsSearchInput');const term=(input?.value||'').trim();if(!term){alert('اكتب اسم القانون أو رقم المادة أو عبارة قانونية للبحث.');return;}window.openLawSearch('القوانين العراقية '+term);};
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')window.closeLawsPage();});
+  document.getElementById('iraqiLawsModal')?.addEventListener('click',e=>{if(e.target.id==='iraqiLawsModal')window.closeLawsPage();});
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{window.renderLawCatalog();renderBookmarks();});else{window.renderLawCatalog();renderBookmarks();}
+})();
+</script>
+
 </body>
 </html>
