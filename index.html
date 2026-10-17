@@ -1969,7 +1969,8 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
             document.getElementById('previewCaseNum').textContent = document.getElementById('caseNumber').value;
             document.getElementById('previewCourt').textContent = document.getElementById('court').value;
             document.getElementById('previewTitle').textContent = document.getElementById('caseTitle').value;
-            document.getElementById('previewComplainant').textContent = document.getElementById('complainant').value;
+            document.getElementById('previewComplainant').textContent = document.getElementById('actualComplainant').value;
+            document.getElementById('previewClient').textContent = document.getElementById('complainant').value;
             document.getElementById('previewPhone').textContent = document.getElementById('complainantPhone').value;
             document.getElementById('previewDefendant').textContent = document.getElementById('defendant').value;
             document.getElementById('previewHearing').textContent = document.getElementById('nextHearingDate').value || '---';
@@ -1978,7 +1979,7 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
             document.getElementById('previewBarcodeSub').textContent = document.getElementById('barcodeSubText').value || '---';
 
             // الخيارات غير محددة افتراضياً: لا تتم مشاركة الحقول الحساسة إلا بعد اختيارها صراحةً.
-            ['shareShowFees','shareShowPhone','shareShowNotes','shareShowBarcode','shareShowHearing'].forEach(id => {
+            ['shareShowFees','shareShowPhone','shareShowNotes','shareShowBarcode','shareShowHearing','shareShowClient'].forEach(id => {
                 const el = document.getElementById(id);
                 if (el) el.checked = false;
             });
@@ -2000,7 +2001,8 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
                 ['shareShowPhone', 'previewPhone'],
                 ['shareShowNotes', 'previewNotes'],
                 ['shareShowBarcode', 'previewBarcodeSub'],
-                ['shareShowHearing', 'previewHearing']
+                ['shareShowHearing', 'previewHearing'],
+                ['shareShowClient', 'previewClient']
             ];
             choices.forEach(([checkId, valueId]) => {
                 const input = document.getElementById(checkId);
@@ -2044,6 +2046,7 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
             const showNotes = document.getElementById('shareShowNotes').checked;
             const showBarcode = document.getElementById('shareShowBarcode').checked;
             const showHearing = document.getElementById('shareShowHearing').checked;
+            const showClient = document.getElementById('shareShowClient').checked;
             const hideFees = !showFees;
             const hidePhone = !showPhone;
             const hideNotes = !showNotes;
@@ -2060,7 +2063,9 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
                     caseNumber: document.getElementById('caseNumber').value,
                     court: document.getElementById('court').value,
                     caseTitle: document.getElementById('caseTitle').value,
-                    complainant: document.getElementById('complainant').value,
+                    clientName: showClient ? document.getElementById('complainant').value : '',
+                    hideClient: !showClient,
+                    complainant: document.getElementById('actualComplainant').value,
                     complainantPhone: hidePhone ? "" : document.getElementById('complainantPhone').value,
                     defendant: document.getElementById('defendant').value,
                     actualComplainant: document.getElementById('actualComplainant').value,
@@ -2133,6 +2138,8 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
             document.getElementById('inc_caseNumber').textContent = data.caseNumber || '---';
             document.getElementById('inc_court').textContent = data.court || '---';
             document.getElementById('inc_caseTitle').textContent = data.caseTitle || '---';
+            document.getElementById('inc_clientName').textContent = data.clientName || '';
+            document.getElementById('inc_clientName').parentElement.style.display = (data.hideClient || !data.clientName) ? 'none' : '';
             document.getElementById('inc_complainant').textContent = data.complainant || '---';
             document.getElementById('inc_complainantPhone').textContent = data.complainantPhone || '';
             document.getElementById('inc_complainantPhone').parentElement.style.display = (data.hidePhone || data.complainantPhone === "[محجوب]") ? "none" : "";
@@ -4942,6 +4949,7 @@ body.luxury-gold-mode #caseStatusLight {
                         <label class="share-visibility-option" for="shareShowNotes"><span class="share-option-symbol">☰</span><span class="share-option-text"><strong>الملاحظات</strong><small>الملاحظات الإضافية</small></span><input type="checkbox" id="shareShowNotes" onchange="updateSharePreviewVisibility()"><span class="share-checkmark"></span></label>
                         <label class="share-visibility-option" for="shareShowBarcode"><span class="share-option-symbol">▦</span><span class="share-option-text"><strong>الباركود</strong><small>الرمز والنص المرتبط به</small></span><input type="checkbox" id="shareShowBarcode" onchange="updateSharePreviewVisibility()"><span class="share-checkmark"></span></label>
                         <label class="share-visibility-option" for="shareShowHearing"><span class="share-option-symbol">📅</span><span class="share-option-text"><strong>موعد المحكمة</strong><small>تاريخ ووقت الموعد</small></span><input type="checkbox" id="shareShowHearing" onchange="updateSharePreviewVisibility()"><span class="share-checkmark"></span></label>
+                        <label class="share-visibility-option" for="shareShowClient"><span class="share-option-symbol">👤</span><span class="share-option-text"><strong>اسم الموكل</strong><small>إظهار اسم الموكل أو إخفاؤه</small></span><input type="checkbox" id="shareShowClient" onchange="updateSharePreviewVisibility()"><span class="share-checkmark"></span></label>
                     </div>
                 </section>
 
@@ -4950,8 +4958,9 @@ body.luxury-gold-mode #caseStatusLight {
                     <div><b>رقم الدعوى:</b> <span id="previewCaseNum">---</span></div>
                     <div><b>المحكمة:</b> <span id="previewCourt">---</span></div>
                     <div><b>موضوعها:</b> <span id="previewTitle">---</span></div>
+                    <div class="share-preview-line"><b>اسم الموكل:</b> <span id="previewClient">---</span></div>
                     <div><b>المشتكي:</b> <span id="previewComplainant">---</span><span id="previewPhoneGroup"> | <b>الهاتف:</b> <span id="previewPhone">---</span></span></div>
-                    <div><b>الخصم:</b> <span id="previewDefendant">---</span></div>
+                    <div><b>اسم المشكو منه:</b> <span id="previewDefendant">---</span></div>
                     <div id="previewHearingLine" class="share-preview-line"><b>موعد المحكمة:</b> <span id="previewHearing">---</span></div>
                     <div class="share-preview-line"><b>الأتعاب الكلية:</b> <span id="previewFees">---</span></div>
                     <div class="share-preview-line"><b>ملاحظات:</b> <span id="previewNotes">---</span></div>
@@ -5030,9 +5039,10 @@ body.luxury-gold-mode #caseStatusLight {
                 <div><b>رقم الدعوى:</b> <span id="inc_caseNumber">---</span></div>
                 <div><b>المحكمة:</b> <span id="inc_court">---</span></div>
                 <div><b>موضوع الدعوى:</b> <span id="inc_caseTitle">---</span></div>
+                <div><b>اسم الموكل:</b> <span id="inc_clientName">---</span></div>
                 <div><b>المشتكي:</b> <span id="inc_complainant">---</span></div>
                 <div><b>هاتف الموكل:</b> <span id="inc_complainantPhone">---</span></div>
-                <div><b>الخصم:</b> <span id="inc_defendant">---</span></div>
+                <div><b>اسم المشكو منه:</b> <span id="inc_defendant">---</span></div>
                 <div id="inc_nextHearingLine"><b>موعد المحكمة:</b> <span id="inc_nextHearingDate">---</span></div>
 
                 <div><b>الأتعاب:</b> <span id="inc_totalFees">---</span></div>
