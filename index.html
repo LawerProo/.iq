@@ -1741,7 +1741,59 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
             try {
                 const docId = queryNum.replace(/\//g, '_');
                 const userId = currentUser.uid;
-                const docSnap = await getDoc(doc(db, `users/${userId}/cases`, docId));
+                let docSnap = await getDoc(doc(db, `users/${userId}/cases`, docId));
+
+                // إذا لم يوجد رقم دعوى مطابق، ابحث باسم الموكل في الدعاوى السحابية.
+                if (!docSnap.exists()) {
+                    const allCasesSnap = await getDocs(collection(db, `users/${userId}/cases`));
+                    const normalizeClientName = value => String(value || '').trim().toLocaleLowerCase('ar').replace(/[\s\u0640]+/g, ' ');
+                    const searchedName = normalizeClientName(queryNum);
+                    const clientMatches = [];
+                    allCasesSnap.forEach(caseDoc => {
+                        const data = caseDoc.data();
+                        const clientName = normalizeClientName(data.complainant);
+                        if (clientName && clientName.includes(searchedName)) {
+                            clientMatches.push({ id: caseDoc.id, caseNumber: data.caseNumber || caseDoc.id, caseTitle: data.caseTitle || 'موضوع الدعوى غير مسجل', registeredDate: data.registeredDate || 'تاريخ التسجيل غير متوفر', court: data.court || '', clientName: data.complainant || '' });
+                        }
+                    });
+                    clientMatches.sort((a,b) => String(b.registeredDate).localeCompare(String(a.registeredDate)));
+                    if (!clientMatches.length) {
+                        currentLoadedDocId = '';
+                        document.getElementById('deleteCaseBtn').style.display = 'none';
+                        document.getElementById('shareCaseBtn').style.display = 'none';
+                        alert('لم يتم العثور على دعوى بهذا الرقم أو باسم الموكل: ' + queryNum);
+                        return;
+                    }
+                    if (clientMatches.length === 1) {
+                        document.getElementById('searchQuery').value = clientMatches[0].caseNumber;
+                        return await window.fetchDataFromFirebase();
+                    }
+                    const escChoice = value => String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+                    let chooser = document.getElementById('clientCaseChooserModal');
+                    if (!chooser) {
+                        chooser = document.createElement('div');
+                        chooser.id = 'clientCaseChooserModal';
+                        chooser.style.cssText = 'position:fixed;inset:0;z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px;background:rgba(0,0,0,.72);';
+                        document.body.appendChild(chooser);
+                    }
+                    chooser.innerHTML = `<div dir="rtl" style="width:min(720px,100%);max-height:85vh;overflow:auto;background:var(--section-bg,#fff);color:var(--text-main,#222);border:1px solid #b8943c;border-radius:16px;padding:20px;box-shadow:0 18px 60px #0008;">
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;"><h3 style="margin:0">📂 دعاوى الموكل: ${escChoice(clientMatches[0].clientName)}</h3><button type="button" class="btn-search btn-3d" id="closeClientCaseChooser">إغلاق ✕</button></div>
+                        <p style="margin:0 0 14px">عُثر على ${clientMatches.length} دعاوى بهذا الاسم. اختر الدعوى التي تريد عرضها:</p>
+                        <div style="display:grid;gap:10px">${clientMatches.map(item=>`<div style="border:1px solid var(--border-color,#ccc);border-radius:12px;padding:12px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;"><div style="flex:1;min-width:200px"><strong>الدعوى رقم: ${escChoice(item.caseNumber)}</strong><div style="margin-top:5px">📅 تاريخ التسجيل: ${escChoice(item.registeredDate)}</div><div style="margin-top:4px">📝 موضوع الدعوى: ${escChoice(item.caseTitle)}</div>${item.court?`<div style="margin-top:4px">⚖️ المحكمة: ${escChoice(item.court)}</div>`:''}</div><button type="button" class="btn-search btn-3d" data-client-case-id="${escChoice(item.id)}">عرض هذه الدعوى</button></div>`).join('')}</div>
+                    </div>`;
+                    chooser.style.display = 'flex';
+                    document.getElementById('closeClientCaseChooser').onclick = () => { chooser.style.display = 'none'; };
+                    chooser.querySelectorAll('[data-client-case-id]').forEach(button => {
+                        button.onclick = async () => {
+                            const selected = clientMatches.find(item => item.id === button.dataset.clientCaseId);
+                            if (!selected) return;
+                            chooser.style.display = 'none';
+                            document.getElementById('searchQuery').value = selected.caseNumber;
+                            await window.fetchDataFromFirebase();
+                        };
+                    });
+                    return;
+                }
 
                 if (docSnap.exists()) {
                     const data = docSnap.data();
@@ -4730,7 +4782,7 @@ body.luxury-gold-mode #caseStatusLight {
 
             <div class="top-search-hearing-bar">
                 <div class="search-box-item">
-                    <input type="text" id="searchQuery" placeholder="بحث (7-9 أرقام)..." maxlength="9">
+                    <input type="text" id="searchQuery" placeholder="ابحث برقم الدعوى أو اسم الموكل..." autocomplete="off">
                     <button type="button" class="btn-search btn-3d" onclick="fetchDataFromFirebase()">🔍 بحث</button>
                     <button type="button" id="shareCaseBtn" class="btn-share-case btn-3d" onclick="openShareModal()" style="display: none;">🔗 مشاركة</button>
                     <button type="button" id="deleteCaseBtn" class="btn-delete-case btn-3d" onclick="deleteCurrentCase()" style="display: none;">🗑️ حذف</button>
