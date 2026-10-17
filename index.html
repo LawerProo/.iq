@@ -394,6 +394,35 @@
             document.getElementById('financialModal').style.display = 'none';
         };
 
+        // يحفظ حقول الأرشيف المالي على مستند الدعوى المفتوحة في Firestore.
+        window.saveFinancialAndClose = async function() {
+            if (!currentUser) { alert('يرجى تسجيل الدخول أولاً.'); return; }
+            if (!currentLoadedDocId) {
+                alert('افتح دعوى محفوظة أولاً حتى يرتبط الأرشيف المالي بها. لن تُحفظ البيانات بشكل منفصل.');
+                return;
+            }
+            const button = document.getElementById('saveFinancialBtn');
+            if (button) { button.disabled = true; button.textContent = 'جارٍ الحفظ...'; }
+            try {
+                const financialData = {
+                    totalFees: document.getElementById('totalFees').value,
+                    paidFees: document.getElementById('paidFees').value,
+                    financialRepresentative: document.getElementById('financialRepresentative').value,
+                    courtExpenses: document.getElementById('courtExpenses').value,
+                    financialReceiptDate: document.getElementById('financialReceiptDate').value,
+                    financialUpdatedAt: new Date().toISOString()
+                };
+                await setDoc(doc(db, `users/${currentUser.uid}/cases`, currentLoadedDocId), financialData, { merge: true });
+                window.closeFinancialModal();
+                alert('تم حفظ بيانات الأرشيف المالي وربطها بالدعوى الحالية بنجاح.');
+            } catch (error) {
+                console.error('Financial archive save failed:', error);
+                alert('تعذر حفظ الأرشيف المالي في السحابة. لم تُغلق النافذة حتى لا تفقد بياناتك. تحقق من الاتصال والصلاحيات ثم حاول مجدداً.\n' + (error.message || error));
+            } finally {
+                if (button) { button.disabled = false; button.textContent = '💾 حفظ بيانات الدعوى وإغلاق'; }
+            }
+        };
+
         const parseFinancialAmount = value => {
             const normalized = String(value ?? '').replace(/[٬,،\s.]/g, '').replace(/[^0-9-]/g, '');
             const amount = Number(normalized || 0);
@@ -429,9 +458,9 @@
                 const totalReceived = profitCasesCache.reduce((sum, item) => sum + item.received, 0);
                 const totalRemaining = profitCasesCache.reduce((sum, item) => sum + item.remaining, 0);
                 document.getElementById('profitsSummary').innerHTML = `
-                    <button type="button" class="profit-summary-card" onclick="showProfitDetails('received')"><span>💵 المبالغ المستلمة</span><strong>${formatFinancialAmount(totalReceived)}</strong><small>اضغط لعرض التفاصيل</small></button>
-                    <button type="button" class="profit-summary-card" onclick="showProfitDetails('remaining')"><span>⏳ المبالغ المتبقية</span><strong>${formatFinancialAmount(totalRemaining)}</strong><small>اضغط لعرض التفاصيل</small></button>
-                    <div class="profit-summary-card profit-total-card"><span>📊 مجموع الأتعاب الكلي</span><strong>${formatFinancialAmount(totalContracted)}</strong><small>مجموع الأتعاب المسجلة في جميع الدعاوى</small></div>
+                    <button type="button" class="profit-summary-card profit-received-card" onclick="showProfitDetails('received')"><span class="profit-card-icon">↙</span><span class="profit-card-label">المبالغ المستلمة</span><strong>${formatFinancialAmount(totalReceived)}</strong><small>اضغط لعرض تفاصيل الدعاوى</small><span class="profit-card-action">عرض التفاصيل ←</span></button>
+                    <button type="button" class="profit-summary-card profit-remaining-card" onclick="showProfitDetails('remaining')"><span class="profit-card-icon">◷</span><span class="profit-card-label">المبالغ المتبقية</span><strong>${formatFinancialAmount(totalRemaining)}</strong><small>المبالغ غير المستلمة بعد</small><span class="profit-card-action">عرض التفاصيل ←</span></button>
+                    <div class="profit-summary-card profit-total-card"><span class="profit-card-icon">▤</span><span class="profit-card-label">مجموع الأتعاب الكلي</span><strong>${formatFinancialAmount(totalContracted)}</strong><small>إجمالي الأتعاب لجميع الدعاوى المحفوظة</small><span class="profit-card-action">ملخص شامل</span></div>
                     <p style="margin:8px 0 0;color:var(--label-color);font-size:13px">عدد الدعاوى المحفوظة: ${profitCasesCache.length}. تُحسب الأرقام من حقلي الأتعاب الكلية والمبالغ المستلمة المحفوظين لكل دعوى.</p>`;
             } catch (error) {
                 console.error('Profits archive loading error:', error);
@@ -911,16 +940,32 @@
             if (!w) { alert('يرجى السماح بفتح نافذة المعاينة ثم المحاولة مجدداً.'); return; }
             const safeSrc = String(selectedFileBase64).replace(/"/g, '%22');
             w.document.write(`<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>معاينة مرفق الدعوى</title><style>body{font-family:Arial,sans-serif;text-align:center;margin:20px;background:#f1f5f9}img{max-width:95%;max-height:90vh;object-fit:contain;background:white;padding:8px;border-radius:10px;box-shadow:0 4px 20px #0002}
-        .profit-summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:12px; }
-        .profit-summary-card { display:flex; flex-direction:column; gap:9px; text-align:right; padding:16px; border:1px solid #b8943c; border-radius:14px; background:var(--section-bg,#fff); color:var(--text-main,#222); cursor:pointer; font:inherit; box-shadow:0 5px 16px #00000012; }
-        .profit-summary-card span { font-weight:700; }
-        .profit-summary-card strong { color:var(--primary-color,#b8943c); font-size:clamp(19px,3vw,27px); overflow-wrap:anywhere; }
-        .profit-summary-card small { color:var(--label-color,#666); }
-        .profit-total-card { cursor:default; background:linear-gradient(135deg,rgba(184,148,60,.12),rgba(10,28,55,.04)); }
+
+        .financial-save-button { background:linear-gradient(135deg,#17365d,#24558a) !important; color:#fff !important; border:1px solid #b8943c !important; border-radius:13px !important; box-shadow:0 7px 18px rgba(10,28,55,.20),inset 0 1px 0 rgba(255,255,255,.15) !important; }
+        .financial-save-button:hover:not(:disabled) { transform:translateY(-1px); filter:brightness(1.07); }
+        .financial-save-button:disabled { opacity:.72; cursor:wait; }
+        .profit-summary-card:focus-visible { outline:3px solid #b8943c; outline-offset:3px; }
+        .profit-summary-card { width:100%; box-sizing:border-box; }
+        .profit-detail-row { background:linear-gradient(135deg,var(--section-bg,#fff),rgba(184,148,60,.045)); box-shadow:0 4px 14px rgba(7,26,51,.06); }
+
+        .profit-summary-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:15px; margin-top:8px; }
+        .profit-summary-card { position:relative; display:flex; flex-direction:column; align-items:flex-start; gap:10px; text-align:right; padding:20px; border:1px solid rgba(184,148,60,.48); border-radius:19px; background:linear-gradient(145deg,var(--section-bg,#fff),rgba(184,148,60,.055)); color:var(--text-main,#222); cursor:pointer; font:inherit; box-shadow:0 8px 22px #071a3312; transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease; overflow:hidden; min-height:190px; }
+        .profit-summary-card:hover { transform:translateY(-3px); box-shadow:0 13px 28px #071a3320; border-color:#b8943c; }
+        .profit-card-icon { display:grid;place-items:center;width:42px;height:42px;border-radius:13px;background:rgba(184,148,60,.16);color:var(--primary-color,#b8943c);font-size:24px;font-weight:900; }
+        .profit-card-label { font-weight:800; font-size:15px; }
+        .profit-summary-card strong { color:var(--primary-color,#b8943c); font-size:clamp(20px,2.4vw,28px); overflow-wrap:anywhere; line-height:1.35; }
+        .profit-summary-card small { color:var(--label-color,#666); line-height:1.6; }
+        .profit-card-action { margin-top:auto;padding-top:8px;font-size:12px;font-weight:800;color:var(--primary-color,#b8943c); }
+        .profit-received-card { border-top:4px solid #21865a; }
+        .profit-received-card .profit-card-icon { color:#21865a;background:#21865a18; }
+        .profit-remaining-card { border-top:4px solid #b78325; }
+        .profit-remaining-card .profit-card-icon { color:#b78325;background:#b7832518; }
+        .profit-total-card { cursor:default; border-top:4px solid #17365d; background:linear-gradient(145deg,rgba(10,28,55,.08),rgba(184,148,60,.14)); }
+        .profit-total-card .profit-card-icon { color:#17365d;background:rgba(23,54,93,.12); }
         .profit-detail-row { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:13px; border:1px solid var(--border-color,#ddd); border-radius:12px; margin-bottom:10px; flex-wrap:wrap; }
         .profit-detail-row div div { margin-top:5px; font-size:13px; }
         .profit-detail-amount { color:#16803c; white-space:nowrap; }
-        @media(max-width:560px){ .profit-detail-row { align-items:flex-start; flex-direction:column; } .profit-summary-card { padding:13px; } }
+        @media(max-width:560px){ .profit-detail-row { align-items:flex-start; flex-direction:column; } .profit-summary-grid { grid-template-columns:1fr; gap:11px; } .profit-summary-card { padding:16px; min-height:160px; } }
 </style><style id="responsive-main-buttons-layout">
 /* ترتيب متجاوب لأزرار الواجهة الرئيسية فقط؛ لا يغيّر أحداث الأزرار أو وظائفها */
 #mainSystemView .professional-user-bar {
@@ -1782,6 +1827,8 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
                     followUpDate: '',
                     totalFees: document.getElementById('totalFees').value,
                     paidFees: document.getElementById('paidFees').value,
+                    financialRepresentative: document.getElementById('financialRepresentative').value,
+                    financialReceiptDate: document.getElementById('financialReceiptDate').value,
                     courtExpenses: document.getElementById('courtExpenses').value,
                     locationUrl: document.getElementById('locationUrl').value,
                     privateNotes: document.getElementById('privateNotes').value,
@@ -1895,6 +1942,8 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
 
                     document.getElementById('totalFees').value = data.totalFees || '';
                     document.getElementById('paidFees').value = data.paidFees || '';
+                    document.getElementById('financialRepresentative').value = data.financialRepresentative || '';
+                    document.getElementById('financialReceiptDate').value = data.financialReceiptDate || '';
                     document.getElementById('courtExpenses').value = data.courtExpenses || '';
                     document.getElementById('locationUrl').value = data.locationUrl || '';
                     document.getElementById('privateNotes').value = data.privateNotes || '';
@@ -5220,7 +5269,7 @@ body.luxury-gold-mode #caseStatusLight {
                     <input type="date" id="financialReceiptDate">
                 </div>
                 <button type="button" class="btn-print btn-3d" style="margin-top:10px;" onclick="printFinancialReceipt()">🖨️ طباعة وصل استلام الأتعاب</button>
-                <button type="button" class="btn-main btn-3d" style="margin-top: 4px;" onclick="closeFinancialModal()">حفظ وإغلاق النافذة</button>
+                <button type="button" id="saveFinancialBtn" class="btn-main btn-3d financial-save-button" style="margin-top: 8px;width:100%;min-height:48px;font-weight:800;" onclick="saveFinancialAndClose()">💾 حفظ بيانات الدعوى وإغلاق</button>
             </div>
         </div>
     </div>
