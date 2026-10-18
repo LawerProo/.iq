@@ -99,6 +99,69 @@ html body #profitsModal #profitsSummary .profit-summary-card:focus-visible {
         let chatPresenceTimer = null;
         let chatPresenceRefreshTimer = null;
         let chatCleanupTimer = null;
+        // تنبيه صوتي عند انتقال أي مستخدم آخر إلى حالة الاتصال.
+        let globalPresenceMonitorTimer = null;
+        let globalPresenceSnapshot = null;
+        let presenceAudioContext = null;
+        function unlockPresenceAudio(){
+            try{
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if(!AudioCtx) return;
+                if(!presenceAudioContext) presenceAudioContext = new AudioCtx();
+                if(presenceAudioContext.state === 'suspended') presenceAudioContext.resume().catch(()=>{});
+            }catch(e){}
+        }
+        document.addEventListener('pointerdown', unlockPresenceAudio, {passive:true});
+        function playOnlineAttentionSound(){
+            try{
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if(!AudioCtx) return;
+                if(!presenceAudioContext) presenceAudioContext = new AudioCtx();
+                if(presenceAudioContext.state === 'suspended') presenceAudioContext.resume().catch(()=>{});
+                const ctx = presenceAudioContext;
+                const now = ctx.currentTime;
+                [0, 0.22].forEach((delay, i)=>{
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    osc.type = 'sine'; osc.frequency.value = i === 0 ? 880 : 1046.5;
+                    gain.gain.setValueAtTime(0.0001, now + delay);
+                    gain.gain.exponentialRampToValueAtTime(0.18, now + delay + 0.025);
+                    gain.gain.exponentialRampToValueAtTime(0.0001, now + delay + 0.16);
+                    osc.connect(gain); gain.connect(ctx.destination);
+                    osc.start(now + delay); osc.stop(now + delay + 0.17);
+                });
+            }catch(e){ console.warn('تعذر تشغيل صوت التنبيه',e); }
+        }
+        async function monitorGlobalOnlinePresence(){
+            if(!currentUser) return;
+            try{
+                const snap = await getDocs(query(collection(db,'inbox'),where('type','==','chatPresence')));
+                const now = Date.now(), latest = {};
+                snap.docs.forEach(d=>{
+                    const x=d.data();
+                    if(!x.email || !x.lastSeen) return;
+                    const email=String(x.email).trim().toLowerCase();
+                    if(!latest[email] || String(x.lastSeen)>String(latest[email].lastSeen)) latest[email]=x;
+                });
+                const onlineNow = {};
+                Object.keys(latest).forEach(email=>{
+                    const x=latest[email];
+                    onlineNow[email]=!!x.online && (now-new Date(x.lastSeen).getTime())<65000;
+                });
+                if(globalPresenceSnapshot !== null){
+                    const myEmail=String(currentUser.email||'').toLowerCase();
+                    const newlyOnline=Object.keys(onlineNow).some(email=>email!==myEmail && onlineNow[email] && !globalPresenceSnapshot[email]);
+                    if(newlyOnline) playOnlineAttentionSound();
+                }
+                globalPresenceSnapshot=onlineNow;
+            }catch(e){ console.warn('تعذر فحص المتواجدين لتنبيه الصوت',e); }
+        }
+        function startGlobalOnlinePresenceMonitor(){
+            if(globalPresenceMonitorTimer) clearInterval(globalPresenceMonitorTimer);
+            globalPresenceSnapshot=null;
+            monitorGlobalOnlinePresence();
+            globalPresenceMonitorTimer=setInterval(monitorGlobalOnlinePresence,8000);
+        }
         function chatPresenceDocId(email){ return 'chatPresence_' + encodeURIComponent(String(email||'').trim().toLowerCase()).replace(/%/g,'_'); }
         async function publishChatPresence(email, online=true){
             if(!email) return;
@@ -125,6 +188,7 @@ html body #profitsModal #profitsSummary .profit-summary-card:focus-visible {
             if (user) {
                 currentUser = user;
                 startChatPresence(user.email);
+                startGlobalOnlinePresenceMonitor();
                 loginBox.style.display = 'none';
                 appBox.style.display = 'block';
                 userEmailSpan.textContent = user.email;
@@ -136,6 +200,8 @@ html body #profitsModal #profitsSummary .profit-summary-card:focus-visible {
             } else {
                 if(currentUser?.email) publishChatPresence(currentUser.email,false);
                 if(chatPresenceTimer){clearInterval(chatPresenceTimer);chatPresenceTimer=null;}
+                if(globalPresenceMonitorTimer){clearInterval(globalPresenceMonitorTimer);globalPresenceMonitorTimer=null;}
+                globalPresenceSnapshot=null;
                 currentUser = null;
                 if(chatNotificationTimer){clearInterval(chatNotificationTimer);chatNotificationTimer=null;}
                 if(chatCleanupTimer){clearInterval(chatCleanupTimer);chatCleanupTimer=null;}
