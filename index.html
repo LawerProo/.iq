@@ -1662,6 +1662,65 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
 @media print{#smartDashboardPage,#smartDashboardPage *{animation:none!important;transition:none!important;filter:none!important}#smartDashboardPage .smart-dashboard-page-toolbar,#smartDashboardPage #smartCaseDashboard,#smartDashboardPage .smart-stat,#smartDashboardPage .smart-case-row{transform:none!important}}
 </style>
 
+
+
+<style id="a4-print-and-clear-main-button-labels">
+/* تثبيت مقاس الورق A4 في الطباعة دون تغيير وظائف الأزرار */
+@page { size: A4 portrait; margin: 0; }
+@media print {
+  html, body { width: 210mm !important; margin: 0 !important; padding: 0 !important; }
+  body.print-contract .contract-print-container {
+    width: 210mm !important;
+    min-width: 210mm !important;
+    max-width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    max-height: 297mm !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+  body.print-archive-message #archiveMessagePreviewModal .archive-message-preview-content,
+  body.print-financial-receipt .financial-receipt-paper {
+    width: 210mm !important;
+    max-width: 210mm !important;
+    min-height: 297mm !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* تكبير خطوط أزرار القائمة الرئيسية فقط؛ لا تغيير للأحداث أو الخصائص */
+html body #appSection #mainSystemView .user-bar.professional-user-bar > .user-actions.professional-actions > button {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  line-height: 1.55 !important;
+  min-height: 48px !important;
+  padding: 11px 12px !important;
+  letter-spacing: 0 !important;
+}
+@media screen and (min-width: 701px) and (max-width: 1099px) {
+  html body #appSection #mainSystemView .user-bar.professional-user-bar > .user-actions.professional-actions > button {
+    font-size: 14px !important;
+    min-height: 46px !important;
+    padding: 10px 9px !important;
+  }
+}
+@media screen and (max-width: 700px) {
+  html body #appSection #mainSystemView .user-bar.professional-user-bar > .user-actions.professional-actions > button {
+    font-size: 13.5px !important;
+    min-height: 47px !important;
+    padding: 10px 8px !important;
+    line-height: 1.5 !important;
+  }
+}
+@media screen and (max-width: 360px) {
+  html body #appSection #mainSystemView .user-bar.professional-user-bar > .user-actions.professional-actions > button {
+    font-size: 13px !important;
+    min-height: 46px !important;
+  }
+}
+</style>
+
 </body></html>`);
             w.document.close();
         };
@@ -3110,7 +3169,8 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
             background-repeat: no-repeat;
             background-position: center center;
             background-size: 100% 100%;
-            opacity: 0.10;
+            /* رفع وضوح الورقة المائية في عقد المحامي إلى 10 أضعاف */
+            opacity: 1;
             pointer-events: none;
             z-index: 1;
         }
@@ -3320,7 +3380,8 @@ body.luxury-gold-mode .smart-dashboard-open-btn{background:linear-gradient(135de
                 left: 0 !important;
             }
             body.print-contract .contract-print-container::before {
-                opacity: 0.10 !important;
+                /* نفس الوضوح العالي عند طباعة العقد الرسمي */
+                opacity: 1 !important;
                 width: 100% !important;
                 height: 100% !important;
                 top: 0 !important; left: 0 !important;
@@ -5131,7 +5192,7 @@ body.luxury-gold-mode #caseStatusLight {
   cursor:text;
 }
 </style>
-\n<style id="confirmed-sidebar-layout-last">
+<style id="confirmed-sidebar-layout-last">
 /* قواعد أخيرة ذات أولوية عالية: القائمة الرئيسية جانبية فعلياً على الكمبيوتر والتابلت */
 @media screen and (min-width: 701px) {
   html body #appSection #mainSystemView { padding-right: 260px !important; box-sizing:border-box !important; }
@@ -5565,7 +5626,8 @@ body.luxury-gold-mode #caseStatusLight {
                     <div><b>موضوع الدعوى:</b> <span id="archivePreviewCaseTitle">---</span></div>
                     <div><b>المشتكي:</b> <span id="archivePreviewComplainant">---</span></div>
                     <div><b>هاتف الموكل:</b> <span id="archivePreviewPhone">---</span></div>
-                    <div><b>الخصم:</b> <span id="archivePreviewDefendant">---</span></div>\n                    <div id="archivePreviewActualComplainantLine" style="display:none"><b>اسم المشتكي:</b> <span id="archivePreviewActualComplainant">---</span></div>
+                    <div><b>الخصم:</b> <span id="archivePreviewDefendant">---</span></div>
+                    <div id="archivePreviewActualComplainantLine" style="display:none"><b>اسم المشتكي:</b> <span id="archivePreviewActualComplainant">---</span></div>
                     <div><b>موعد الجلسة:</b> <span id="archivePreviewHearing">---</span></div>
                     <div><b>الأتعاب:</b> <span id="archivePreviewFees">---</span></div>
                     <div><b>الملاحظات:</b> <span id="archivePreviewNotes">---</span></div>
@@ -6694,6 +6756,65 @@ body.dark-mode #iraqiLawsModal .laws-disclaimer{background:#1d2a3e;color:#cbd5e1
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initLocalLoginRemember,{once:true});else initLocalLoginRemember();
 })();
 </script>
+
+
+
+<style id="a4-print-and-clear-main-button-labels">
+/* تثبيت مقاس الورق A4 في الطباعة دون تغيير وظائف الأزرار */
+@page { size: A4 portrait; margin: 0; }
+@media print {
+  html, body { width: 210mm !important; margin: 0 !important; padding: 0 !important; }
+  body.print-contract .contract-print-container {
+    width: 210mm !important;
+    min-width: 210mm !important;
+    max-width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    max-height: 297mm !important;
+    margin: 0 !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+  body.print-archive-message #archiveMessagePreviewModal .archive-message-preview-content,
+  body.print-financial-receipt .financial-receipt-paper {
+    width: 210mm !important;
+    max-width: 210mm !important;
+    min-height: 297mm !important;
+    box-sizing: border-box !important;
+  }
+}
+
+/* تكبير خطوط أزرار القائمة الرئيسية فقط؛ لا تغيير للأحداث أو الخصائص */
+html body #appSection #mainSystemView .user-bar.professional-user-bar > .user-actions.professional-actions > button {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  line-height: 1.55 !important;
+  min-height: 48px !important;
+  padding: 11px 12px !important;
+  letter-spacing: 0 !important;
+}
+@media screen and (min-width: 701px) and (max-width: 1099px) {
+  html body #appSection #mainSystemView .user-bar.professional-user-bar > .user-actions.professional-actions > button {
+    font-size: 14px !important;
+    min-height: 46px !important;
+    padding: 10px 9px !important;
+  }
+}
+@media screen and (max-width: 700px) {
+  html body #appSection #mainSystemView .user-bar.professional-user-bar > .user-actions.professional-actions > button {
+    font-size: 13.5px !important;
+    min-height: 47px !important;
+    padding: 10px 8px !important;
+    line-height: 1.5 !important;
+  }
+}
+@media screen and (max-width: 360px) {
+  html body #appSection #mainSystemView .user-bar.professional-user-bar > .user-actions.professional-actions > button {
+    font-size: 13px !important;
+    min-height: 46px !important;
+  }
+}
+</style>
 
 </body>
 </html>
