@@ -1,6 +1,70 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
+
+<style id="profits-buttons-visible-fix">
+/* تطبيق مباشر داخل رأس الصفحة الحقيقي حتى تظهر ألوان بطاقات أرباحي */
+html body #profitsModal #profitsSummary .profit-summary-card {
+  display:flex !important; flex-direction:column !important; align-items:stretch !important;
+  gap:13px !important; padding:22px !important; min-height:215px !important;
+  border-radius:22px !important; border:1px solid rgba(148,163,184,.3) !important;
+  text-align:right !important; box-shadow:0 12px 28px rgba(15,23,42,.14) !important;
+  transition:transform .22s ease,box-shadow .22s ease !important;
+  overflow:hidden !important; position:relative !important;
+}
+html body #profitsModal #profitsSummary .profit-received-card {
+  background:linear-gradient(135deg,#ffffff 0%,#e9fff2 100%) !important;
+  border-right:6px solid #11945b !important; color:#145536 !important;
+}
+html body #profitsModal #profitsSummary .profit-remaining-card {
+  background:linear-gradient(135deg,#ffffff 0%,#fff0cc 100%) !important;
+  border-right:6px solid #d18a08 !important; color:#704500 !important;
+}
+html body #profitsModal #profitsSummary .profit-total-card {
+  background:linear-gradient(135deg,#ffffff 0%,#e8efff 100%) !important;
+  border-right:6px solid #315bd6 !important; color:#193a8a !important;
+}
+html body #profitsModal #profitsSummary .profit-card-icon {
+  display:grid !important; place-items:center !important; width:52px !important; height:52px !important;
+  border-radius:17px !important; font-size:27px !important; font-weight:900 !important;
+  background:rgba(255,255,255,.82) !important; box-shadow:0 4px 13px rgba(15,23,42,.1) !important;
+}
+html body #profitsModal #profitsSummary .profit-received-card .profit-card-icon {color:#11945b !important}
+html body #profitsModal #profitsSummary .profit-remaining-card .profit-card-icon {color:#b77908 !important}
+html body #profitsModal #profitsSummary .profit-total-card .profit-card-icon {color:#315bd6 !important}
+html body #profitsModal #profitsSummary .profit-card-label {font-size:16px !important;font-weight:900 !important}
+html body #profitsModal #profitsSummary .profit-summary-card strong {
+  display:block !important; width:100% !important; box-sizing:border-box !important;
+  padding:12px !important; border-radius:14px !important; background:rgba(255,255,255,.85) !important;
+  font-size:clamp(21px,2.5vw,29px) !important; line-height:1.4 !important;
+  box-shadow:inset 0 0 0 1px rgba(20,40,75,.08) !important;
+}
+html body #profitsModal #profitsSummary .profit-received-card strong {color:#087443 !important}
+html body #profitsModal #profitsSummary .profit-remaining-card strong {color:#a56800 !important}
+html body #profitsModal #profitsSummary .profit-total-card strong {color:#244fc0 !important}
+html body #profitsModal #profitsSummary .profit-card-action {
+  display:block !important; width:100% !important; box-sizing:border-box !important;
+  margin-top:auto !important; padding:12px 14px !important; border-radius:13px !important;
+  text-align:center !important; font-weight:900 !important; font-size:13px !important;
+  background:#11945b !important; color:#fff !important; box-shadow:0 5px 13px rgba(17,148,91,.22) !important;
+}
+html body #profitsModal #profitsSummary .profit-remaining-card .profit-card-action {
+  background:#c28108 !important; box-shadow:0 5px 13px rgba(194,129,8,.22) !important;
+}
+html body #profitsModal #profitsSummary .profit-total-card .profit-card-action {
+  background:#315bd6 !important; color:#fff !important;
+}
+html body #profitsModal #profitsSummary .profit-summary-card:hover {
+  transform:translateY(-5px) !important; box-shadow:0 19px 36px rgba(15,23,42,.2) !important;
+}
+html body #profitsModal #profitsSummary .profit-summary-card:focus-visible {
+  outline:3px solid #d1a43c !important; outline-offset:3px !important;
+}
+@media(max-width:560px) {
+  html body #profitsModal #profitsSummary .profit-summary-card {padding:17px !important;min-height:190px !important}
+}
+</style>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>نظام إدارة وتوثيق الدعاوى القضائية وعقود الأتعاب</title>
@@ -1222,6 +1286,230 @@
 @media(max-width:650px){.smart-dashboard-page{padding:10px}.smart-dashboard-page-toolbar{align-items:stretch}.smart-dashboard-page-toolbar button{width:100%}}
 @media print{#smartDashboardPage{display:none!important}}
 </style>
+
+
+<style id="iraqi-laws-premium-controls">
+/* تحسينات مرئية مخصصة لواجهة مكتبة القوانين فقط */
+#iraqiLawsModal .laws-search-row button,
+#iraqiLawsModal .laws-close-btn {
+  position:relative !important; overflow:hidden !important;
+  border:1px solid #d9b75f !important; border-radius:13px !important;
+  background:linear-gradient(135deg,#173c67 0%,#071a36 100%) !important;
+  color:#fff !important; padding:12px 19px !important;
+  font-weight:900 !important; letter-spacing:.1px !important;
+  box-shadow:0 6px 15px rgba(7,26,54,.20),inset 0 1px 0 rgba(255,255,255,.16) !important;
+  transition:transform .2s ease,box-shadow .2s ease,filter .2s ease !important;
+}
+#iraqiLawsModal .laws-close-btn {
+  background:linear-gradient(135deg,#f1d58b 0%,#c6a45a 100%) !important;
+  color:#10213b !important; border-color:#f3d995 !important;
+}
+#iraqiLawsModal .laws-search-row button:hover,
+#iraqiLawsModal .laws-close-btn:hover {
+  transform:translateY(-2px) !important; filter:brightness(1.07) !important;
+  box-shadow:0 10px 22px rgba(7,26,54,.25),0 0 0 3px rgba(198,164,90,.14) !important;
+}
+#iraqiLawsModal .laws-search-row button:active,
+#iraqiLawsModal .laws-close-btn:active {transform:translateY(0) scale(.98) !important}
+#iraqiLawsModal .laws-search-row input,
+#iraqiLawsModal #lawsCatalogFilter {
+  border:1px solid #cbd5e1 !important; border-radius:13px !important;
+  box-shadow:inset 0 2px 4px rgba(15,23,42,.035) !important;
+  transition:border-color .2s ease,box-shadow .2s ease !important;
+}
+#iraqiLawsModal .laws-search-row input:focus,
+#iraqiLawsModal #lawsCatalogFilter:focus {
+  border-color:#c6a45a !important;
+  box-shadow:0 0 0 4px rgba(198,164,90,.18) !important;
+}
+#iraqiLawsModal .laws-catalog-grid {gap:16px !important}
+#iraqiLawsModal .law-catalog-card {
+  position:relative !important; overflow:hidden !important;
+  align-items:stretch !important; gap:11px !important;
+  min-height:195px !important; padding:19px !important;
+  border:1px solid #d8e0ec !important; border-radius:19px !important;
+  background:linear-gradient(145deg,#fff 0%,#f4f7fc 100%) !important;
+  color:#102849 !important; text-align:right !important;
+  box-shadow:0 7px 20px rgba(16,40,73,.07) !important;
+  transition:transform .22s ease,border-color .22s ease,box-shadow .22s ease !important;
+}
+#iraqiLawsModal .law-catalog-card:before {
+  content:"" !important; position:absolute !important; inset:0 0 auto 0 !important;
+  height:4px !important; background:linear-gradient(90deg,#c6a45a,#f2d98e,#173c67) !important;
+}
+#iraqiLawsModal .law-catalog-card:hover {
+  transform:translateY(-5px) !important; border-color:#c6a45a !important;
+  box-shadow:0 16px 30px rgba(16,40,73,.14),0 0 0 3px rgba(198,164,90,.10) !important;
+}
+#iraqiLawsModal .law-card-icon {
+  display:grid !important; place-items:center !important;
+  width:51px !important; height:51px !important; border-radius:16px !important;
+  background:linear-gradient(145deg,#fff4d5,#e9d08c) !important;
+  color:#17365d !important; font-size:26px !important;
+  box-shadow:inset 0 0 0 1px rgba(151,112,31,.15),0 5px 12px rgba(151,112,31,.12) !important;
+}
+#iraqiLawsModal .law-card-title {
+  font-size:15px !important; font-weight:900 !important; line-height:1.8 !important;
+  color:#102849 !important;
+}
+#iraqiLawsModal .law-catalog-card small {
+  color:#64748b !important; font-size:12px !important; line-height:1.7 !important;
+}
+#iraqiLawsModal .law-card-open {
+  display:inline-flex !important; align-items:center !important; justify-content:center !important;
+  align-self:flex-start !important; margin-top:auto !important; padding:9px 13px !important;
+  border-radius:11px !important; border:1px solid rgba(198,164,90,.42) !important;
+  background:linear-gradient(135deg,#fff8e5,#f4e4b7) !important;
+  color:#765516 !important; font-size:12px !important; font-weight:900 !important;
+  box-shadow:0 3px 8px rgba(151,112,31,.08) !important;
+}
+#iraqiLawsModal .law-bookmark-item {
+  position:relative !important; margin:4px 0 !important; padding:13px 14px !important;
+  border:1px solid #e4e9f1 !important; border-radius:12px !important;
+  background:linear-gradient(120deg,#fff,#f7f9fd) !important;
+  transition:background .2s ease,border-color .2s ease,transform .2s ease !important;
+}
+#iraqiLawsModal .law-bookmark-item:hover {
+  transform:translateX(-2px) !important; border-color:#c6a45a !important;
+  background:linear-gradient(120deg,#fff8e7,#f2f6fc) !important;
+}
+#iraqiLawsModal .law-bookmark-item span {
+  display:inline-flex !important; align-items:center !important;
+  padding:5px 9px !important; border-radius:9px !important;
+  background:#f5e8c4 !important; color:#765516 !important; font-weight:900 !important;
+}
+#iraqiLawsModal button:focus-visible {
+  outline:3px solid #d7b65d !important; outline-offset:3px !important;
+}
+body.dark-mode #iraqiLawsModal .law-catalog-card {
+  background:linear-gradient(145deg,#1c2b42,#142238) !important;
+  border-color:#354762 !important; color:#edf3fc !important;
+}
+body.dark-mode #iraqiLawsModal .law-card-title {color:#edf3fc !important}
+body.dark-mode #iraqiLawsModal .law-catalog-card small {color:#b5c2d4 !important}
+body.dark-mode #iraqiLawsModal .law-bookmark-item {
+  background:linear-gradient(120deg,#1b2a40,#152238) !important;
+  border-color:#34465f !important; color:#edf3fc !important;
+}
+@media(max-width:760px) {
+  #iraqiLawsModal .laws-catalog-grid {grid-template-columns:repeat(2,minmax(0,1fr)) !important;gap:12px !important}
+  #iraqiLawsModal .law-catalog-card {min-height:185px !important;padding:15px !important}
+}
+@media(max-width:480px) {
+  #iraqiLawsModal .laws-catalog-grid {grid-template-columns:1fr !important}
+  #iraqiLawsModal .laws-search-row {flex-wrap:wrap !important}
+  #iraqiLawsModal .laws-search-row input {flex-basis:100% !important}
+  #iraqiLawsModal .laws-search-row button {width:100% !important}
+}
+</style>
+
+
+<style id="desktop-tablet-side-navigation">
+/* نقل أزرار النظام إلى شريط جانبي على الكمبيوتر والتابلت فقط، دون تعديل وظائفها */
+@media screen and (min-width: 701px) {
+ #mainSystemView {box-sizing:border-box!important;padding-right:252px!important}
+ #mainSystemView .professional-actions {
+  position:fixed!important;top:112px!important;right:14px!important;bottom:14px!important;
+  width:222px!important;max-height:calc(100vh - 126px)!important;overflow-y:auto!important;overflow-x:hidden!important;
+  display:flex!important;flex-direction:column!important;flex-wrap:nowrap!important;align-items:stretch!important;
+  justify-content:flex-start!important;gap:9px!important;margin:0!important;padding:13px!important;box-sizing:border-box!important;
+  border:1px solid rgba(184,149,67,.48)!important;border-radius:18px!important;
+  background:linear-gradient(160deg,#fffdf7 0%,#eee8da 100%)!important;
+  box-shadow:0 12px 32px rgba(20,40,75,.16),inset 0 1px 0 rgba(255,255,255,.9)!important;
+  z-index:1200!important;scrollbar-width:thin;scrollbar-color:#b89543 transparent;
+ }
+ #mainSystemView .professional-actions>button {
+  flex:0 0 auto!important;width:100%!important;min-width:0!important;min-height:44px!important;height:auto!important;
+  padding:11px 10px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:8px!important;
+  text-align:right!important;white-space:normal!important;overflow-wrap:anywhere!important;line-height:1.5!important;
+  border-radius:11px!important;box-sizing:border-box!important;
+ }
+ #mainSystemView .professional-actions>button:hover {transform:translateX(-2px)!important;filter:brightness(1.04)!important}
+ body.dark-mode #mainSystemView .professional-actions {
+  background:linear-gradient(160deg,#202b3d 0%,#151e2c 100%)!important;border-color:rgba(205,174,96,.48)!important;
+  box-shadow:0 12px 32px rgba(0,0,0,.35)!important;
+ }
+ body.luxury-gold-mode #mainSystemView .professional-actions {border-color:rgba(214,180,91,.72)!important}
+}
+@media screen and (min-width:701px) and (max-width:1099px) {
+ #mainSystemView {padding-right:222px!important}
+ #mainSystemView .professional-actions {right:10px!important;top:104px!important;bottom:10px!important;width:198px!important;max-height:calc(100vh - 114px)!important;padding:10px!important;gap:7px!important}
+ #mainSystemView .professional-actions>button {min-height:42px!important;padding:9px 8px!important;font-size:12px!important}
+}
+/* الهاتف يحتفظ بتخطيط الأزرار السابق */
+@media screen and (max-width:700px) {
+ #mainSystemView {padding-right:initial!important}
+ #mainSystemView .professional-actions {
+  position:static!important;inset:auto!important;width:100%!important;max-height:none!important;overflow:visible!important;
+  display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:9px!important;padding:0!important;
+  border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important;
+ }
+}
+</style>
+
+<style id="actual-main-buttons-sidebar-fix">
+/* Actual selector from this system: .user-actions.professional-actions */
+@media screen and (min-width: 701px) {
+  body #mainSystemView { padding-right: 260px !important; box-sizing:border-box !important; }
+  body #mainSystemView > .user-actions.professional-actions,
+  body #mainSystemView .user-actions.professional-actions {
+    position:fixed !important;
+    top:115px !important; right:12px !important; bottom:12px !important;
+    left:auto !important; width:232px !important;
+    height:auto !important; max-height:calc(100vh - 127px) !important;
+    overflow-y:auto !important; overflow-x:hidden !important;
+    display:flex !important; flex-direction:column !important;
+    flex-wrap:nowrap !important; align-items:stretch !important;
+    justify-content:flex-start !important; gap:9px !important;
+    margin:0 !important; padding:12px !important; box-sizing:border-box !important;
+    border:1px solid rgba(184,149,67,.55) !important; border-radius:18px !important;
+    background:linear-gradient(160deg,#fffdf7,#eee8da) !important;
+    box-shadow:0 12px 32px rgba(20,40,75,.17) !important;
+    z-index:999 !important;
+  }
+  body #mainSystemView .user-actions.professional-actions > button {
+    display:flex !important; position:relative !important;
+    flex:0 0 auto !important; width:100% !important; min-width:0 !important;
+    min-height:43px !important; height:auto !important; margin:0 !important;
+    padding:10px 11px !important; box-sizing:border-box !important;
+    align-items:center !important; justify-content:flex-start !important;
+    text-align:right !important; white-space:normal !important;
+    overflow-wrap:anywhere !important; line-height:1.45 !important;
+  }
+  body #mainSystemView .user-actions.professional-actions > button:hover { transform:translateX(-2px) !important; }
+  body.dark-mode #mainSystemView .user-actions.professional-actions {
+    background:linear-gradient(160deg,#202b3d,#151e2c) !important;
+    border-color:rgba(205,174,96,.5) !important; box-shadow:0 12px 32px rgba(0,0,0,.35) !important;
+  }
+}
+@media screen and (min-width:701px) and (max-width:1050px) {
+  body #mainSystemView { padding-right:218px !important; }
+  body #mainSystemView .user-actions.professional-actions {
+    top:105px !important; right:8px !important; bottom:8px !important;
+    width:196px !important; max-height:calc(100vh - 113px) !important;
+    padding:9px !important; gap:7px !important;
+  }
+  body #mainSystemView .user-actions.professional-actions > button { font-size:12px !important; padding:9px 7px !important; }
+}
+/* Mobile: preserve the system's original inline/grid-style button layout */
+@media screen and (max-width:700px) {
+  body #mainSystemView { padding-right:initial !important; }
+  body #mainSystemView .user-actions.professional-actions {
+    position:static !important; inset:auto !important; width:auto !important;
+    height:auto !important; max-height:none !important; overflow:visible !important;
+    display:flex !important; flex-direction:row !important; flex-wrap:wrap !important;
+    align-items:stretch !important; justify-content:center !important;
+    margin:initial !important; padding:initial !important; border:initial !important;
+    border-radius:initial !important; background:initial !important; box-shadow:none !important;
+    gap:initial !important; z-index:auto !important;
+  }
+  body #mainSystemView .user-actions.professional-actions > button {
+    width:auto !important; height:auto !important; min-width:0 !important;
+    margin:initial !important; white-space:normal !important;
+  }
+}
+</style>
+
 </head><body><h3>معاينة مرفق الدعوى</h3><img src="${safeSrc}" alt="مرفق الدعوى">
 <style id="luxury-legal-identity">
 /* الهوية البصرية القانونية الفاخرة — كحلي وذهبي، دون تغيير منطق النظام */
@@ -4843,6 +5131,62 @@ body.luxury-gold-mode #caseStatusLight {
   cursor:text;
 }
 </style>
+\n<style id="confirmed-sidebar-layout-last">
+/* قواعد أخيرة ذات أولوية عالية: القائمة الرئيسية جانبية فعلياً على الكمبيوتر والتابلت */
+@media screen and (min-width: 701px) {
+  html body #appSection #mainSystemView { padding-right: 260px !important; box-sizing:border-box !important; }
+  html body #appSection #mainSystemView .user-bar.professional-user-bar > .user-actions.professional-actions {
+    position:fixed !important;
+    top:16px !important; right:14px !important; bottom:16px !important; left:auto !important;
+    z-index:99999 !important;
+    display:flex !important; flex-direction:column !important; flex-wrap:nowrap !important;
+    align-items:stretch !important; justify-content:flex-start !important;
+    width:226px !important; min-width:226px !important; max-width:226px !important;
+    height:auto !important; max-height:none !important;
+    overflow-y:auto !important; overflow-x:hidden !important;
+    gap:9px !important; margin:0 !important; padding:13px !important;
+    box-sizing:border-box !important;
+    border:1px solid #c8a95e !important; border-radius:18px !important;
+    background:linear-gradient(160deg,#fffdf7 0%,#e8e2d4 100%) !important;
+    box-shadow:0 12px 32px rgba(20,35,60,.22) !important;
+    scrollbar-width:thin !important;
+  }
+  html body #appSection #mainSystemView .user-bar.professional-user-bar > .user-actions.professional-actions > button {
+    display:flex !important; flex:0 0 auto !important; width:100% !important;
+    min-width:0 !important; min-height:44px !important; height:auto !important;
+    align-items:center !important; justify-content:flex-start !important;
+    padding:11px 10px !important; margin:0 !important;
+    box-sizing:border-box !important; text-align:right !important;
+    white-space:normal !important; overflow-wrap:anywhere !important; line-height:1.45 !important;
+  }
+  html body.dark-mode #appSection #mainSystemView .user-bar.professional-user-bar > .user-actions.professional-actions {
+    background:linear-gradient(160deg,#263449 0%,#141e2d 100%) !important;
+    border-color:#927b45 !important;
+  }
+}
+@media screen and (min-width:701px) and (max-width:1099px) {
+  html body #appSection #mainSystemView { padding-right:222px !important; }
+  html body #appSection #mainSystemView .user-bar.professional-user-bar > .user-actions.professional-actions {
+    right:10px !important; width:194px !important; min-width:194px !important; max-width:194px !important;
+    top:10px !important; bottom:10px !important; padding:10px !important; gap:7px !important;
+  }
+  html body #appSection #mainSystemView .user-bar.professional-user-bar > .user-actions.professional-actions > button {
+    min-height:41px !important; font-size:12px !important; padding:9px 7px !important;
+  }
+}
+@media screen and (max-width:700px) {
+  html body #appSection #mainSystemView { padding-right:initial !important; }
+  html body #appSection #mainSystemView .user-bar.professional-user-bar > .user-actions.professional-actions {
+    position:static !important; inset:auto !important; z-index:auto !important;
+    display:grid !important; grid-template-columns:repeat(2,minmax(0,1fr)) !important;
+    width:100% !important; min-width:0 !important; max-width:none !important;
+    height:auto !important; max-height:none !important; overflow:visible !important;
+    flex-direction:initial !important; flex-wrap:initial !important;
+    margin:0 !important; padding:0 !important; border:0 !important; border-radius:0 !important;
+    background:transparent !important; box-shadow:none !important;
+  }
+}
+</style>
 </head>
 <body>
     <div id="legalScreensaver" role="dialog" aria-modal="true" aria-label="شاشة التوقف القانونية">
@@ -4908,7 +5252,7 @@ body.luxury-gold-mode #caseStatusLight {
         </button>
         <div class="quick-mode-buttons" aria-label="إعدادات سريعة">
             <button type="button" id="darkModeBtn" class="quick-mode-btn" onclick="toggleDarkMode()" title="تبديل إلى الوضع الليلي" aria-label="تبديل إلى الوضع الليلي">☾</button>
-            <button type="button" id="luxuryGoldModeBtn" class="quick-mode-btn luxury-gold-mode-btn" onclick="toggleLuxuryGoldMode()" title="تفعيل الوضع الذهبي الفاخر" aria-label="تفعيل الوضع الذهبي الفاخر">✦</button>
+            <button type="button" id="luxuryGoldModeBtn" class="quick-mode-btn luxury-gold-mode-btn" onclick="toggleLuxuryGoldMode()" title="تفعيل الوضع الذهبي الفاخر" aria-label="تفعيل الوضع الذهبي الفاخر">♛</button>
             <button type="button" id="muteModeBtn" class="quick-mode-btn" onclick="toggleSystemMute()" title="كتم أصوات الأزرار" aria-label="كتم أصوات الأزرار">🔈</button>
         </div>
     </div>
